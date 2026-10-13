@@ -1,6 +1,7 @@
 node_modules/
 *.keystore
 *.jks
+!android/debug.keystore
 android/.gradle/
 android/build/
 android/app/build/

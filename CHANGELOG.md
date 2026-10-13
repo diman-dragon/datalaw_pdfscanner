@@ -1,7 +1,13 @@
 # Changelog
+## 0.0.5
+- New app icon: document in scanner frame with scan beam (drawn from scratch, no character)
+- Bottom bar: text labels under emoji (ru/en)
+## 0.0.4
+- Debug builds signed with a fixed open keystore (android/debug.keystore): new APK installs as an update, no reinstall
+- Debug file name: datalaw_pdfscanner_<version>_debug.apk; artifact name includes version
 ## 0.0.3
 - App icon (adaptive + legacy + Play 512): character cut from source, solid background, no text/progress elements
-- Bottom bar and empty pages: emoji are now bundled SVG images (Noto Emoji) instead of a font; fixes empty buttons
+- Bottom bar and empty pages: emoji are bundled SVG images (Noto Emoji) instead of a font
 - Removed emoji font (www/fonts, www/css/fonts.css)
 ## 0.0.2
 - npm run dev: local preview server

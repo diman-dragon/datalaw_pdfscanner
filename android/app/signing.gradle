@@ -1,4 +1,16 @@
-// Release signing from env (CI secrets). Without KEYSTORE_PATH the release is left unsigned.
+// Debug: fixed open keystore (android/debug.keystore, committed) so every CI build is signed
+// with the same key and installs as an UPDATE over the previous one.
+android {
+  signingConfigs {
+    debug {
+      storeFile rootProject.file('debug.keystore')
+      storePassword 'android'
+      keyAlias 'androiddebugkey'
+      keyPassword 'android'
+    }
+  }
+}
+// Release: from env (CI secrets). Without KEYSTORE_PATH the release is left unsigned.
 def ks = System.getenv('KEYSTORE_PATH')
 if (ks) {
   android {

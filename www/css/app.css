@@ -14,6 +14,7 @@ h1{font-size:15px;font-weight:600}
 .seg button{border:0;background:transparent;color:var(--text);padding:8px 12px;font:inherit;font-size:14px}
 .seg button.on{background:var(--accent);color:var(--on-accent)}
 nav{display:flex;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
-nav button{flex:1;height:48px;display:grid;place-items:center;border:0;border-radius:16px;background:transparent}
-nav button img{width:28px;height:28px;pointer-events:none}
-nav button.on{background:var(--accent-soft)}
+nav button{flex:1;min-width:0;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;border-radius:16px;background:transparent;color:var(--muted);font:inherit}
+nav button img{width:26px;height:26px;pointer-events:none}
+nav button span{max-width:100%;padding:0 2px;font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+nav button.on{background:var(--accent-soft);color:var(--text);font-weight:600}
