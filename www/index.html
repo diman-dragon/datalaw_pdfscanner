@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>PDF Scanner</title>
-<link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/app.css">
 <script type="module" src="js/main.js"></script>
@@ -13,9 +12,9 @@
 <div id="app">
   <header><h1 id="title"></h1></header>
   <main id="pager">
-    <section class="page" data-page="library"><div class="empty"><div class="emoji em">📚</div><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
-    <section class="page" data-page="quick"><div class="empty"><div class="emoji em">⚡</div><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
-    <section class="page" data-page="scan"><div class="empty"><div class="emoji em">📷</div><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
+    <section class="page" data-page="library"><div class="empty"><img class="em" src="img/emoji/1f4da.svg" alt=""><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
+    <section class="page" data-page="quick"><div class="empty"><img class="em" src="img/emoji/26a1.svg" alt=""><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
+    <section class="page" data-page="scan"><div class="empty"><img class="em" src="img/emoji/1f4f7.svg" alt=""><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
     <section class="page" data-page="settings">
       <div class="row"><span data-i18n="set.theme"></span>
         <div class="seg" data-setting="theme"><button data-value="light" data-i18n="set.light"></button><button data-value="dark" data-i18n="set.dark"></button></div></div>
@@ -25,10 +24,10 @@
     </section>
   </main>
   <nav id="tabbar">
-    <button class="emoji" data-tab="library" data-i18n-aria="tab.library">📚</button>
-    <button class="emoji" data-tab="quick" data-i18n-aria="tab.quick">⚡</button>
-    <button class="emoji" data-tab="scan" data-i18n-aria="tab.scan">📷</button>
-    <button class="emoji" data-tab="settings" data-i18n-aria="tab.settings">⚙️</button>
+    <button data-tab="library" data-i18n-aria="tab.library"><img src="img/emoji/1f4da.svg" alt=""></button>
+    <button data-tab="quick" data-i18n-aria="tab.quick"><img src="img/emoji/26a1.svg" alt=""></button>
+    <button data-tab="scan" data-i18n-aria="tab.scan"><img src="img/emoji/1f4f7.svg" alt=""></button>
+    <button data-tab="settings" data-i18n-aria="tab.settings"><img src="img/emoji/2699.svg" alt=""></button>
   </nav>
 </div>
 </body>

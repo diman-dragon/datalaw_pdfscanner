@@ -1,19 +1,19 @@
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,sans-serif}
-.emoji{font-family:'Noto Color Emoji',sans-serif}
 #app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
 header{height:40px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--line);background:var(--surface)}
 h1{font-size:15px;font-weight:600}
 #pager{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:contain}
 #pager::-webkit-scrollbar{display:none}
 .page{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;padding:16px}
-.empty{height:100%;display:grid;place-content:center;gap:8px;text-align:center;color:var(--muted)}
-.empty .em{font-size:56px;line-height:1.2}
+.empty{height:100%;display:grid;justify-items:center;align-content:center;gap:8px;text-align:center;color:var(--muted)}
+.empty .em{width:64px;height:64px;margin-bottom:8px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .muted{color:var(--muted)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .seg button{border:0;background:transparent;color:var(--text);padding:8px 12px;font:inherit;font-size:14px}
 .seg button.on{background:var(--accent);color:var(--on-accent)}
 nav{display:flex;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
-nav button{flex:1;height:48px;border:0;border-radius:16px;background:transparent;font-size:26px;line-height:1}
+nav button{flex:1;height:48px;display:grid;place-items:center;border:0;border-radius:16px;background:transparent}
+nav button img{width:28px;height:28px;pointer-events:none}
 nav button.on{background:var(--accent-soft)}
