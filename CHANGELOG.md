@@ -1,4 +1,9 @@
 # Changelog
+## 0.0.6
+- Library: PDFs from the selected folder as list rows or cards (switch), first-page previews, add (copies into the folder), rename, delete, open
+- Settings: PDF folder picker (Android Storage Access Framework); scans will be saved there
+- Native plugin Folder (FolderPlugin.java, PdfPreview.java), registered in MainActivity
+- System Back closes the action sheet first
 ## 0.0.5
 - New app icon: document in scanner frame with scan beam (drawn from scratch, no character)
 - Bottom bar: text labels under emoji (ru/en)

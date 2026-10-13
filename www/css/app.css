@@ -18,3 +18,5 @@ nav button{flex:1;min-width:0;height:56px;display:flex;flex-direction:column;ali
 nav button img{width:26px;height:26px;pointer-events:none}
 nav button span{max-width:100%;padding:0 2px;font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 nav button.on{background:var(--accent-soft);color:var(--text);font-weight:600}
+.small{font-size:13px}
+.btn{border:0;border-radius:12px;padding:9px 14px;font:inherit;font-size:14px;font-weight:600;background:var(--accent);color:var(--on-accent);flex:none}
