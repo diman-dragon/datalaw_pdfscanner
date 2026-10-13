@@ -1,0 +1,8 @@
+import { applyTheme } from './theme.js';
+import { applyLang } from './i18n.js';
+import { goTo } from './tabs.js';
+import './settings.js';
+import './back.js';
+applyTheme();
+applyLang();
+goTo('library', false);
