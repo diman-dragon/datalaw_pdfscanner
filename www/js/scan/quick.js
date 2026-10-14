@@ -7,7 +7,7 @@ import { detectQuad } from './detect.js';
 import { openCamera } from './camera.js';
 import { openResult } from './result.js';
 import { canvasToJpeg, jpegsToPdf } from './pdf.js';
-import { ensureFolder, savePdf } from './save.js';
+import { ensureFolder, savePdf, askName } from './save.js';
 
 const $ = (id) => document.getElementById(id);
 const target = $('quick-target'), fallback = $('quick-cam'), gallery = $('quick-pick');
@@ -18,10 +18,10 @@ function paintTarget() {
   target.textContent = info ? `${t('scan.to')} ${info.path}` : t('scan.nofolder.label');
 }
 
-async function save(canvas) {
+async function save(canvas, name) {
   toast(t('scan.saving'), 60000);
   const jpeg = await canvasToJpeg(canvas);
-  const r = await savePdf(jpegsToPdf([{ jpeg, w: canvas.width, h: canvas.height }]));
+  const r = await savePdf(jpegsToPdf([{ jpeg, w: canvas.width, h: canvas.height }]), name);
   toast(`${t('scan.saved')} ${r.name ?? ''}`);
   document.dispatchEvent(new Event('libchange'));
 }
@@ -33,9 +33,12 @@ async function run(first) {
   try {
     let cur = first;
     while (cur) {
-      const out = await openResult(cur.canvas, cur.quad, { filter: cur.filter });
+      const out = await openResult(cur.canvas, cur.quad, { filter: cur.filter, turns: cur.turns });
       if (out === 'retake') { cur = await openCamera(); continue; }
-      if (out) await save(out.canvas);
+      if (!out) return;
+      const name = askName();
+      if (name === null) { cur = { canvas: cur.canvas, quad: out.quad, filter: out.filter, turns: out.turns }; continue; } // back to the result
+      await save(out.canvas, name);
       return;
     }
   } catch (e) {

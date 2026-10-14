@@ -4,6 +4,7 @@ import { store } from './storage.js';
 import { goTo } from './tabs.js';
 import { openSheet } from './sheet.js';
 import { loadPreview } from './previews.js';
+import { openViewer, openExternal } from './viewer.js';
 
 const $ = (id) => document.getElementById(id);
 const bar = $('lib-bar'), items = $('lib-items');
@@ -39,7 +40,7 @@ function card(f) {
   const more = el.querySelector('.more');
   more.setAttribute('aria-label', t('lib.menu'));
   more.addEventListener('click', (e) => { e.stopPropagation(); menu(f); });
-  el.addEventListener('click', () => open(f));
+  el.addEventListener('click', () => openViewer(f));
   observer.observe(el);
   return el;
 }
@@ -76,9 +77,6 @@ export async function refresh() {
 
 const fail = (e) => { if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail')); };
 
-function open(f) {
-  Folder.open({ uri: f.uri }).catch((e) => alert(String(e?.message ?? e) === 'no_viewer' ? t('lib.noviewer') : t('lib.fail')));
-}
 async function rename(f) {
   const base = f.name.replace(/\.pdf$/i, '');
   const n = prompt(t('lib.renameq'), base)?.trim();
@@ -93,7 +91,8 @@ async function remove(f) {
 }
 function menu(f) {
   openSheet(f.name, [
-    { label: t('lib.open'), run: () => open(f) },
+    { label: t('lib.open'), run: () => openViewer(f) },
+    { label: t('lib.openext'), run: () => openExternal(f) },
     { label: t('lib.rename'), run: () => rename(f) },
     { label: t('lib.delete'), danger: true, run: () => remove(f) },
   ]);

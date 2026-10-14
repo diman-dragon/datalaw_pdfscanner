@@ -27,6 +27,14 @@ const mock = {
   async remove({ uri }) { mockFiles = mockFiles.filter((f) => f.uri !== uri); },
   async rename({ uri, name }) { mockFiles.forEach((f) => { if (f.uri === uri) f.name = name; }); return { uri }; },
   async open() { alert('open (browser mock)'); },
+  async viewOpen() { return { id: 'mock', ratios: [1.414, 1.414, 1.414] }; },
+  async viewPage({ index, width }) {
+    const c = document.createElement('canvas'); c.width = width; c.height = Math.round(width * 1.414);
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#888'; x.font = `${width / 5}px sans-serif`; x.textAlign = 'center'; x.fillText(String(index + 1), width / 2, c.height / 2);
+    return { data: c.toDataURL('image/jpeg', 0.8) };
+  },
+  async viewClose() {},
 };
 
 export const Folder = window.Capacitor?.Plugins?.Folder ?? mock;
@@ -47,8 +55,9 @@ export function folderInfo(f) {
   const i = id.indexOf(':');
   const vol = i < 0 ? '' : id.slice(0, i);
   const rest = i < 0 ? id : id.slice(i + 1);
-  const volLabel = vol === 'primary' || vol === '' ? t('set.internal') : vol;
-  const path = rest ? `${volLabel}/${rest}` : volLabel;
+  const sd = /^[0-9a-f]{4}-[0-9a-f]{4}$/i.test(vol); // removable card volume id looks like 1A2B-3C4D
+  const volLabel = vol === 'primary' || vol === '' ? t('set.internal') : sd ? t('set.sd') : vol;
+  const path = rest ? (sd ? `${volLabel}\\${rest.split('/').join('\\')}` : `${volLabel}/${rest}`) : volLabel;
   const name = f.name || rest.split('/').filter(Boolean).pop() || volLabel;
   return { name, path };
 }

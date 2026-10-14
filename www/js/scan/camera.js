@@ -1,9 +1,11 @@
 // Own camera screen: live preview, live auto frame, draggable corners, shutter.
 import { detectQuad, insetQuad } from './detect.js';
 import { t } from '../i18n.js';
+import { getShotDelay } from '../shotdelay.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
+const timerBtn = $('cam-timer'), tickEl = $('cam-tick');
 const fxBar = $('cam-fx'), countEl = $('cam-count'), cancelBtn = $('cam-cancel');
 const paintCount = () => { countEl.hidden = !multi; countEl.textContent = `${t('sc.count')} ${shots}`; };
 const setFx = (v) => {
@@ -12,11 +14,12 @@ const setFx = (v) => {
   [...fxBar.children].forEach((b) => b.classList.toggle('on', b.dataset.value === v));
 };
 fxBar.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFx(b.dataset.value); });
-let multi = false, onShot = null, shots = 0, fx = 'color', stream = null, quad = null, manual = false, timer = 0, resolveFn = null, vw = 0, vh = 0, scale = 1, drag = -1, busy = false;
+let multi = false, onShot = null, shots = 0, fx = 'color', stream = null, quad = null, manual = false, timer = 0, resolveFn = null, vw = 0, vh = 0, scale = 1, drag = -1, busy = false, cd = 0, lastTap = 0;
 
 export const isCameraOpen = () => !root.hidden;
 
 function stop() {
+  stopCountdown();
   clearInterval(timer);
   stream?.getTracks().forEach((t) => t.stop());
   stream = null; video.srcObject = null; root.hidden = true; multi = false; onShot = null;
@@ -68,7 +71,10 @@ ov.addEventListener('pointerdown', (e) => {
   let best = -1, bd = 48 / scale;
   quad.forEach((q, i) => { const d = Math.hypot(q[0] - x, q[1] - y); if (d < bd) { bd = d; best = i; } });
   drag = best;
-  if (drag >= 0) { manual = true; ov.setPointerCapture(e.pointerId); }
+  if (drag >= 0) { manual = true; ov.setPointerCapture(e.pointerId); return; }
+  const now = Date.now(); // double-tap outside the corners: back to the automatic frame
+  if (now - lastTap < 350) { manual = false; detectTick(); }
+  lastTap = now;
 });
 ov.addEventListener('pointermove', (e) => {
   if (drag < 0) return;
@@ -78,9 +84,27 @@ ov.addEventListener('pointermove', (e) => {
 });
 ov.addEventListener('pointerup', () => { drag = -1; });
 ov.addEventListener('pointercancel', () => { drag = -1; });
-$('cam-auto').addEventListener('click', () => { manual = false; detectTick(); });
 $('cam-cancel').addEventListener('click', closeCamera);
-$('cam-shot').addEventListener('click', () => {
+
+const paintTimer = () => { timerBtn.textContent = cd ? t('ed.cancel') : `${t('cam.timer')} ${getShotDelay()} ${t('cam.sec')}`; };
+function stopCountdown() { clearInterval(cd); cd = 0; tickEl.hidden = true; paintTimer(); }
+function startCountdown() {
+  if (!vw) return;
+  let n = getShotDelay();
+  tickEl.textContent = n; tickEl.hidden = false;
+  cd = setInterval(() => {
+    n -= 1;
+    if (n <= 0) { stopCountdown(); shoot(); } else tickEl.textContent = n;
+  }, 1000);
+  paintTimer();
+}
+timerBtn.addEventListener('click', () => (cd ? stopCountdown() : startCountdown()));
+document.addEventListener('delaychange', paintTimer);
+document.addEventListener('langchange', paintTimer);
+paintTimer();
+
+$('cam-shot').addEventListener('click', () => shoot());
+function shoot() {
   if (!vw) return;
   const k = Math.min(1, 3000 / Math.max(vw, vh));
   const c = document.createElement('canvas');
@@ -92,7 +116,7 @@ $('cam-shot').addEventListener('click', () => {
   shots += 1; paintCount(); navigator.vibrate?.(25);
   wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
   onShot?.(frame); // camera stays open for the next page
-});
+}
 
 /**
  * Single mode: resolves {canvas, quad, filter} after the shutter, or null if cancelled.

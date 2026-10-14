@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/library.css">
 <link rel="stylesheet" href="css/scan.css">
+<link rel="stylesheet" href="css/viewer.css">
 <script type="module" src="js/main.js"></script>
 </head>
 <body>
@@ -54,7 +55,9 @@
       <input type="file" id="sc-pick" accept="image/*" multiple hidden>
     </section>
     <section class="page" data-page="settings">
-      <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="strong"></div><div id="folder-path" class="small muted"></div><div class="small muted" data-i18n="set.folderhint"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
+      <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="strong"></div><div id="folder-path" class="small muted"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
+      <div class="row"><span data-i18n="set.delay"></span>
+        <div class="seg" data-setting="delay"><button data-value="3">3</button><button data-value="5">5</button><button data-value="10">10</button></div></div>
       <div class="row"><span data-i18n="set.theme"></span>
         <div class="seg" data-setting="theme"><button data-value="light" data-i18n="set.light"></button><button data-value="dark" data-i18n="set.dark"></button></div></div>
       <div class="row"><span data-i18n="set.lang"></span>
@@ -72,13 +75,13 @@
 <div id="camera" hidden>
   <div id="cam-count" hidden></div>
   <div class="ed-head" data-i18n="cam.title"></div>
-  <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><canvas id="cam-overlay"></canvas></div></div>
+  <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><canvas id="cam-overlay"></canvas><div id="cam-tick" hidden></div></div></div>
   <p class="cam-hint" data-i18n="cam.hint"></p>
   <div id="cam-fx"><button data-value="color" data-i18n="fx.color"></button><button data-value="contrast" data-i18n="fx.contrast"></button><button data-value="gray" data-i18n="fx.gray"></button><button data-value="bw" data-i18n="fx.bw"></button></div>
   <div id="cam-bar">
     <button class="btn ghost" id="cam-cancel" data-i18n="ed.cancel"></button>
     <button id="cam-shot" aria-label="Shoot"></button>
-    <button class="btn ghost" id="cam-auto" data-i18n="ed.auto"></button>
+    <button class="btn ghost" id="cam-timer"></button>
   </div>
 </div>
 <div id="result" hidden>
@@ -92,6 +95,19 @@
     <button class="btn ghost" id="rs-retake" data-i18n="rs.retake"></button>
     <button class="btn ghost" id="rs-edges" data-i18n="rs.edges"></button>
     <button class="btn" id="rs-save" data-i18n="rs.save"></button>
+  </div>
+</div>
+<div id="viewer" hidden>
+  <div class="ed-head vw-head">
+    <button id="vw-close" class="vw-btn" data-i18n-aria="vw.close"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+    <span id="vw-title"></span><span id="vw-pos" class="muted"></span>
+  </div>
+  <div id="vw-scroll"><div id="vw-pages"></div></div>
+  <div id="vw-bar">
+    <button class="btn ghost" id="vw-minus" data-i18n-aria="vw.zoomout">−</button>
+    <span id="vw-zoom"></span>
+    <button class="btn ghost" id="vw-plus" data-i18n-aria="vw.zoomin">+</button>
+    <button class="btn ghost" id="vw-ext" data-i18n="vw.ext"></button>
   </div>
 </div>
 <div id="editor" hidden>

@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** PDF folder via Storage Access Framework: pick, list, add (copy), streaming save, remove, rename, open, preview. */
+/** PDF folder via Storage Access Framework: pick, list, add (copy), streaming save, remove, rename, open, preview, in-app view. */
 @CapacitorPlugin(name = "Folder")
 public class FolderPlugin extends Plugin {
 
@@ -250,6 +250,55 @@ public class FolderPlugin extends Plugin {
     } catch (Exception e) {
       call.reject("preview failed: " + e.getMessage());
     }
+  }
+
+  // In-app viewer: viewOpen -> viewPage (many) -> viewClose.
+  private final PdfViewer viewer = new PdfViewer();
+
+  @PluginMethod
+  public void viewOpen(PluginCall call) {
+    String u = call.getString("uri");
+    if (u == null) {
+      call.reject("uri required");
+      return;
+    }
+    try {
+      JSArray ratios = new JSArray();
+      String id = viewer.open(cr(), Uri.parse(u), ratios);
+      JSObject o = new JSObject();
+      o.put("id", id);
+      o.put("ratios", ratios);
+      call.resolve(o);
+    } catch (Exception e) {
+      call.reject("view failed: " + e.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void viewPage(PluginCall call) {
+    String id = call.getString("id");
+    if (id == null) {
+      call.reject("id required");
+      return;
+    }
+    try {
+      JSObject o = new JSObject();
+      o.put("data", viewer.page(id, call.getInt("index", 0), call.getInt("width", 1200)));
+      call.resolve(o);
+    } catch (Exception e) {
+      call.reject("page failed: " + e.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void viewClose(PluginCall call) {
+    viewer.close(call.getString("id"));
+    call.resolve();
+  }
+
+  @Override
+  protected void handleOnDestroy() {
+    viewer.closeAll();
   }
 
   // Streaming save: open -> write chunks (base64) -> close. Keeps big multi-page PDFs off the bridge in one piece.

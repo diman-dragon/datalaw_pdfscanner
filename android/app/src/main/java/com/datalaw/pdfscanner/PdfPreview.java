@@ -9,9 +9,17 @@ import android.os.ParcelFileDescriptor;
 import android.util.Base64;
 import java.io.ByteArrayOutputStream;
 
-/** Renders the first page of a PDF to a JPEG data URL. */
+/** Renders the first page of a PDF to a JPEG data URL (library thumbnails). */
 final class PdfPreview {
   private PdfPreview() {}
+
+  /** Encodes the bitmap as a JPEG data URL and recycles it. */
+  static String toDataUrl(Bitmap bmp, int quality) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    bmp.compress(Bitmap.CompressFormat.JPEG, quality, out);
+    bmp.recycle();
+    return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+  }
 
   static String firstPage(ContentResolver cr, Uri uri, int width) throws Exception {
     ParcelFileDescriptor pfd = cr.openFileDescriptor(uri, "r");
@@ -25,10 +33,7 @@ final class PdfPreview {
       Bitmap bmp = Bitmap.createBitmap(width, h, Bitmap.Config.ARGB_8888);
       bmp.eraseColor(Color.WHITE);
       page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      bmp.compress(Bitmap.CompressFormat.JPEG, 80, out);
-      bmp.recycle();
-      return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+      return toDataUrl(bmp, 80);
     } finally {
       if (page != null) page.close();
       if (renderer != null) renderer.close();

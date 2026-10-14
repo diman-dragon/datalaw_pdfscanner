@@ -1,4 +1,12 @@
 # Changelog
+## 0.1.1
+- Camera: the unclear "Auto" button is now a self-timer (shoots after N seconds with an on-screen countdown, tap again to cancel); the delay 3 / 5 / 10 s is chosen in Settings (default 5)
+- Camera: double-tap outside the corners returns the frame to automatic detection; the edge editor's "Auto" is renamed "Detect edges"
+- Saving asks for a file name (suggests Scan_<date>_<time>); Cancel returns to the result screen (Quick) or keeps the pages (Scan)
+- Faster save in the Scan tab: every page is rendered to JPEG in the background right after it is shot/edited, Save only writes the file
+- Settings: SD card folders are shown as SD\path; the folder hint text is removed
+- Library: built-in light PDF viewer (vertical pages, lazy rendering, zoom 100-300%, Back closes it); "Open in another app" stays in the menu and in the viewer
+- Native: PdfViewer.java + Folder.viewOpen / viewPage / viewClose
 ## 0.1.0
 - Multi-page scanning in the Scan tab: continuous camera (counter, flash), several images from the gallery, page grid
 - Per page: edit (edges, filter, rotation), move left/right, delete; clear all; save everything as one PDF

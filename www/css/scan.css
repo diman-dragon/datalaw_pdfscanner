@@ -49,3 +49,4 @@
 #sc-target{font-size:13px;word-break:break-all}
 #cam-count{position:absolute;z-index:1;top:calc(env(safe-area-inset-top) + 6px);right:12px;padding:4px 10px;border-radius:12px;background:rgba(56,217,245,.9);color:#000;font-size:13px;font-weight:600}
 #cam-wrap.flash::after{content:'';position:absolute;inset:0;background:#fff;opacity:.6;pointer-events:none}
+#cam-tick{position:absolute;inset:0;display:grid;place-items:center;font-size:120px;font-weight:700;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);pointer-events:none}

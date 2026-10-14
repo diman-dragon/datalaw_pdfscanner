@@ -10,21 +10,36 @@ import { openResult } from './result.js';
 import { warp } from './warp.js';
 import { applyFilter, rotate90, scaled } from './filters.js';
 import { canvasToJpeg, jpegsToPdf } from './pdf.js';
-import { ensureFolder, savePdf } from './save.js';
+import { ensureFolder, savePdf, askName } from './save.js';
 
 const $ = (id) => document.getElementById(id);
 const home = $('sc-home'), sess = $('sc-session'), grid = $('sc-grid'), count = $('sc-count'), target = $('sc-target');
 const fallback = $('sc-cam'), gallery = $('sc-pick');
-const pages = []; // {blob, quad, filter, turns, thumb}
+const pages = []; // {blob, quad, filter, turns, thumb, job}
 let busy = false;
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 const thumbOf = (canvas, quad, filter, turns) =>
   applyFilter(rotate90(warp(canvas, quad, 360), turns), filter).toDataURL('image/jpeg', 0.7);
 
+// Final JPEG of a page. Rendered in the background right after a page is added/edited, so "Save" only writes the file.
+async function renderPage(p) {
+  await tick();
+  const f = applyFilter(rotate90(warp(await loadImage(p.blob), p.quad), p.turns), p.filter);
+  return { jpeg: await canvasToJpeg(f), w: f.width, h: f.height };
+}
+let chain = Promise.resolve();
+function prepare(p) { // one page at a time, so the UI stays responsive
+  const job = chain.then(() => renderPage(p));
+  chain = job.catch(() => {});
+  p.job = job;
+}
+
 async function addPage(canvas, quad, filter = 'color') {
   const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
-  pages.push({ blob, quad, filter, turns: 0, thumb: thumbOf(canvas, quad, filter, 0) });
+  const p = { blob, quad, filter, turns: 0, thumb: thumbOf(canvas, quad, filter, 0) };
+  pages.push(p);
+  prepare(p);
   render();
 }
 
@@ -59,6 +74,9 @@ async function edit(i) {
     const out = await openResult(await loadImage(p.blob), p.quad, { filter: p.filter, turns: p.turns, saveKey: 'ms.apply', retake: false });
     if (out) {
       Object.assign(p, { quad: out.quad, filter: out.filter, turns: out.turns, thumb: scaled(out.canvas, 360).toDataURL('image/jpeg', 0.7) });
+      const c = out.canvas;
+      p.job = chain.then(async () => ({ jpeg: await canvasToJpeg(c), w: c.width, h: c.height })); // already final, no re-warp
+      chain = p.job.catch(() => {});
       render();
     }
   } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
@@ -93,17 +111,18 @@ async function fromFiles(files) {
 
 async function exportPdf() {
   if (busy || !pages.length || !ensureFolder()) return;
+  const name = askName();
+  if (name === null) return;
   busy = true;
   try {
     const out = [];
     for (let i = 0; i < pages.length; i++) {
       toast(`${t('scan.saving')} ${i + 1}/${pages.length}`, 60000);
-      await tick();
-      const p = pages[i];
-      const f = applyFilter(rotate90(warp(await loadImage(p.blob), p.quad), p.turns), p.filter);
-      out.push({ jpeg: await canvasToJpeg(f), w: f.width, h: f.height });
+      let r;
+      try { r = await pages[i].job; } catch { r = await renderPage(pages[i]); }
+      out.push(r);
     }
-    const r = await savePdf(jpegsToPdf(out));
+    const r = await savePdf(jpegsToPdf(out), name);
     pages.length = 0; render();
     toast(`${t('scan.saved')} ${r.name ?? ''}`);
     document.dispatchEvent(new Event('libchange'));

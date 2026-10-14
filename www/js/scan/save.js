@@ -16,8 +16,16 @@ export function ensureFolder() {
 
 export const stamp = () => {
   const d = new Date(), p = (n) => String(n).padStart(2, '0');
-  return `Scan_${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+  return `${t('scan.prefix')}_${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
 };
+
+const clean = (s) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\.pdf$/i, '').trim();
+
+/** Asks for the file name (suggests the time stamp). null = user cancelled. */
+export function askName() {
+  const n = prompt(t('scan.nameq'), stamp());
+  return n === null ? null : clean(n) || stamp();
+}
 
 const CHUNK = 1500000;
 /** Writes PDF bytes into the selected folder. Returns {uri, name}. */
