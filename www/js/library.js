@@ -6,7 +6,7 @@ import { openSheet } from './sheet.js';
 import { loadPreview } from './previews.js';
 
 const $ = (id) => document.getElementById(id);
-const bar = $('lib-bar'), nameEl = $('lib-name'), items = $('lib-items');
+const bar = $('lib-bar'), items = $('lib-items');
 const empty = $('lib-empty'), eTitle = $('lib-empty-title'), eHint = $('lib-empty-hint'), eBtn = $('lib-choose');
 const viewSeg = $('lib-view');
 
@@ -53,7 +53,6 @@ function render() {
   const folder = getFolder();
   const ok = state === 'ok';
   bar.hidden = !folder || state === 'error';
-  nameEl.textContent = folder?.name ?? '';
   items.hidden = !(ok && files.length);
   empty.hidden = ok && files.length > 0;
   eBtn.hidden = ok;

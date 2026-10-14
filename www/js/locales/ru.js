@@ -27,4 +27,5 @@ export const ru = {
   'set.folderpick': 'Выбрать',
   'set.nofolder': 'не выбрана',
   'set.folderhint': 'Сюда копируются добавленные файлы и будут сохраняться сканы',
+  'set.internal': 'Память устройства',
 };

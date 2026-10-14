@@ -27,4 +27,5 @@ export const en = {
   'set.folderpick': 'Choose',
   'set.nofolder': 'not selected',
   'set.folderhint': 'Added files are copied here and scans will be saved here',
+  'set.internal': 'Device storage',
 };

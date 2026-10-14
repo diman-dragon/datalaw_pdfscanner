@@ -20,3 +20,5 @@ nav button span{max-width:100%;padding:0 2px;font-size:11px;line-height:1.1;whit
 nav button.on{background:var(--accent-soft);color:var(--text);font-weight:600}
 .small{font-size:13px}
 .btn{border:0;border-radius:12px;padding:9px 14px;font:inherit;font-size:14px;font-weight:600;background:var(--accent);color:var(--on-accent);flex:none}
+.strong{font-weight:600;word-break:break-word}
+#folder-path{word-break:break-all}

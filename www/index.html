@@ -15,8 +15,7 @@
   <main id="pager">
     <section class="page" data-page="library">
       <div id="lib-bar" hidden>
-        <span id="lib-name" class="lib-name"></span>
-        <div class="seg" id="lib-view"><button data-value="list" data-i18n="lib.list"></button><button data-value="cards" data-i18n="lib.cards"></button></div>
+        <div class="seg" id="lib-view"><button data-value="list" data-i18n-aria="lib.list"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="18" height="3" rx="1.5"/><rect x="3" y="10.5" width="18" height="3" rx="1.5"/><rect x="3" y="16" width="18" height="3" rx="1.5"/></svg></button><button data-value="cards" data-i18n-aria="lib.cards"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></button></div>
         <button class="btn" id="lib-add" data-i18n="lib.add"></button>
       </div>
       <div id="lib-items" hidden></div>
@@ -25,7 +24,7 @@
     <section class="page" data-page="quick"><div class="empty"><img class="em" src="img/emoji/26a1.svg" alt=""><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
     <section class="page" data-page="scan"><div class="empty"><img class="em" src="img/emoji/1f4f7.svg" alt=""><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
     <section class="page" data-page="settings">
-      <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="small"></div><div class="small muted" data-i18n="set.folderhint"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
+      <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="strong"></div><div id="folder-path" class="small muted"></div><div class="small muted" data-i18n="set.folderhint"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
       <div class="row"><span data-i18n="set.theme"></span>
         <div class="seg" data-setting="theme"><button data-value="light" data-i18n="set.light"></button><button data-value="dark" data-i18n="set.dark"></button></div></div>
       <div class="row"><span data-i18n="set.lang"></span>

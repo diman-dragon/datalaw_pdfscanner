@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.7
+- Settings: selected folder is shown (name + path, derived from the URI if the provider gives no name); pick errors are reported
+- Library: list/cards switch is pictograms only; folder name no longer shown
+- CI: fails if android/debug.keystore is missing; prints the APK signing certificate SHA-256 (must stay identical between builds, otherwise Android refuses the update)
 ## 0.0.6
 - Library: PDFs from the selected folder as list rows or cards (switch), first-page previews, add (copies into the folder), rename, delete, open
 - Settings: PDF folder picker (Android Storage Access Framework); scans will be saved there

@@ -1,6 +1,6 @@
 [hidden]{display:none!important}
-#lib-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.lib-name{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lib-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+#lib-view svg{display:block;pointer-events:none}
 #lib-items{display:grid;gap:10px}
 #lib-items.list{grid-template-columns:1fr}
 #lib-items.cards{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}

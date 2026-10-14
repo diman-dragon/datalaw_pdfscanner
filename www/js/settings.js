@@ -1,6 +1,6 @@
 import { getTheme, setTheme } from './theme.js';
 import { getLang, setLang, t } from './i18n.js';
-import { Folder, getFolder, setFolder } from './folder.js';
+import { Folder, getFolder, setFolder, folderInfo } from './folder.js';
 import { VERSION } from './version.js';
 const get = { theme: getTheme, lang: getLang };
 const set = { theme: setTheme, lang: setLang };
@@ -13,9 +13,14 @@ segs.forEach((s) => s.addEventListener('click', (e) => {
   paint();
 }));
 const folderName = document.getElementById('folder-name');
-const paintFolder = () => { folderName.textContent = getFolder()?.name || t('set.nofolder'); };
+const folderPath = document.getElementById('folder-path');
+const paintFolder = () => {
+  const info = folderInfo(getFolder());
+  folderName.textContent = info ? info.name : t('set.nofolder');
+  folderPath.textContent = info ? info.path : '';
+};
 document.getElementById('folder-pick').addEventListener('click', () => {
-  Folder.pickFolder().then(setFolder).catch(() => {});
+  Folder.pickFolder().then(setFolder).catch((e) => { if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail')); });
 });
 document.addEventListener('folderchange', paintFolder);
 document.addEventListener('langchange', paintFolder);
