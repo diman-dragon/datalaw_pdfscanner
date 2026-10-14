@@ -84,31 +84,32 @@ ov.addEventListener('pointerup', () => { drag = -1; });
 ov.addEventListener('pointercancel', () => { drag = -1; });
 
 // ---- stream + original photo
-async function openStream(w, h) {
-  stream?.getTracks().forEach((tr) => tr.stop());
+async function openStream() {
   stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: 'environment' }, width: { ideal: w }, height: { ideal: h } }, audio: false,
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false,
   });
   video.srcObject = stream;
   await video.play();
+  root.hidden = false;
   if (!video.videoWidth) await new Promise((r) => { video.onloadedmetadata = r; });
   vw = video.videoWidth; vh = video.videoHeight;
 }
 
-async function initCapture() {
-  capture = null; photoOpts = undefined;
+// Runs in the background: the preview must never wait for it. Until it is ready (or if it fails) the default photo size is used.
+async function initCapture(st) {
   if (typeof ImageCapture === 'undefined') return;
   try {
-    capture = new ImageCapture(stream.getVideoTracks()[0]);
-    const c = await capture.getPhotoCapabilities();
-    if (c.imageWidth?.max && c.imageHeight?.max) photoOpts = { imageWidth: c.imageWidth.max, imageHeight: c.imageHeight.max };
+    const cap = new ImageCapture(st.getVideoTracks()[0]);
+    capture = cap;
+    const c = await Promise.race([cap.getPhotoCapabilities(), new Promise((r) => setTimeout(r, 3000))]);
+    if (st === stream && c?.imageWidth?.max && c?.imageHeight?.max) photoOpts = { imageWidth: c.imageWidth.max, imageHeight: c.imageHeight.max };
   } catch (e) { console.error(e); }
 }
 
 async function grab() {
   if (capture) {
     try {
-      const b = await capture.takePhoto(photoOpts);
+      const b = await Promise.race([capture.takePhoto(photoOpts), new Promise((_, rej) => setTimeout(() => rej(new Error('takePhoto timeout')), 8000))]);
       if (b?.size) return b;
     } catch (e) { console.error(e); }
   }
@@ -165,25 +166,11 @@ export async function openCamera(opts = {}) {
   cancelBtn.dataset.i18n = multi ? 'cam.done' : 'ed.cancel';
   cancelBtn.textContent = t(cancelBtn.dataset.i18n);
   paintCount(); paintTimer();
-  await openStream(4032, 3024);
-  root.hidden = false;
-  await initCapture();
-  if (photoOpts) { // make the preview the same field of view / aspect as the full-size photo, so the frame maps exactly
-    const pr = Math.max(photoOpts.imageWidth, photoOpts.imageHeight) / Math.min(photoOpts.imageWidth, photoOpts.imageHeight);
-    const sr = Math.max(vw, vh) / Math.min(vw, vh);
-    if (Math.abs(pr - sr) > 0.03) {
-      try {
-        await openStream(Math.max(photoOpts.imageWidth, photoOpts.imageHeight), Math.min(photoOpts.imageWidth, photoOpts.imageHeight));
-        await initCapture();
-      } catch (e) { // keep working with the default stream
-        console.error(e);
-        await openStream(4032, 3024); await initCapture();
-      }
-    }
-  }
+  await openStream();
   quad = insetQuad(vw, vh); manual = false;
   await new Promise((r) => requestAnimationFrame(r));
   layout();
   detTimer = setInterval(detectTick, 350);
+  initCapture(stream); // not awaited
   return new Promise((res) => { resolveFn = res; });
 }

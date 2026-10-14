@@ -1,4 +1,7 @@
 # Changelog
+## 0.1.6
+- Camera fix (black screen): the preview opens exactly as in the working 0.1.0 (one 3840x2160 stream, frame and overlay set up at once); ImageCapture (full-size photo) is attached in the background and can never block or restart the preview; no more re-opening of the stream; takePhoto has an 8 s timeout and falls back to the full video frame
+
 ## 0.1.5
 - Camera: the frame is back and mandatory: live auto-detection of the edges, draggable corners, double-tap = automatic again; the shot itself is still the ORIGINAL at the maximum camera quality (the preview is matched to the photo's aspect so the frame maps exactly; if it still does not fit, the edges are found automatically on the photo)
 - Quick scan: shot -> result screen (filter, rotation, edges, Retake) -> file name -> save; full-size render up to 4200 px
