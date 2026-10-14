@@ -33,7 +33,26 @@
         <input type="file" id="quick-pick" accept="image/*" hidden>
       </div>
     </section>
-    <section class="page" data-page="scan"><div class="empty"><img class="em" src="img/emoji/1f4f7.svg" alt=""><p data-i18n="empty.title"></p><p data-i18n="empty.hint"></p></div></section>
+    <section class="page" data-page="scan">
+      <div id="sc-home" class="scan-home">
+        <img class="em" src="img/emoji/1f4f7.svg" alt="">
+        <p data-i18n="scan.hint2"></p>
+        <button class="btn" id="sc-shoot" data-i18n="scan.shoot"></button>
+        <button class="btn ghost" id="sc-gallery" data-i18n="scan.gallery"></button>
+        <p id="sc-target"></p>
+      </div>
+      <div id="sc-session" hidden>
+        <div id="sc-bar"><span id="sc-count"></span><button class="btn ghost" id="sc-clear" data-i18n="sc.clear"></button></div>
+        <div id="sc-grid"></div>
+        <div id="sc-actions">
+          <button class="btn ghost" id="sc-add" data-i18n="sc.add"></button>
+          <button class="btn ghost" id="sc-add-gallery" data-i18n="scan.gallery"></button>
+          <button class="btn" id="sc-save" data-i18n="sc.save"></button>
+        </div>
+      </div>
+      <input type="file" id="sc-cam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="sc-pick" accept="image/*" multiple hidden>
+    </section>
     <section class="page" data-page="settings">
       <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="strong"></div><div id="folder-path" class="small muted"></div><div class="small muted" data-i18n="set.folderhint"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
       <div class="row"><span data-i18n="set.theme"></span>
@@ -51,6 +70,7 @@
   </nav>
 </div>
 <div id="camera" hidden>
+  <div id="cam-count" hidden></div>
   <div class="ed-head" data-i18n="cam.title"></div>
   <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><canvas id="cam-overlay"></canvas></div></div>
   <p class="cam-hint" data-i18n="cam.hint"></p>

@@ -1,4 +1,9 @@
 # Changelog
+## 0.1.0
+- Multi-page scanning in the Scan tab: continuous camera (counter, flash), several images from the gallery, page grid
+- Per page: edit (edges, filter, rotation), move left/right, delete; clear all; save everything as one PDF
+- Native streaming save (saveOpen/saveWrite/saveClose/saveAbort) replaces single-shot save: big PDFs go in chunks
+- Result screen returns {canvas, quad, filter, turns}; shared save.js (folder guard, file name, PDF save)
 ## 0.0.9
 - Single-page scanner moved to the Quick scan tab; the Scan tab is a placeholder again
 - Own camera screen: live preview, live auto document frame, draggable corners, shutter (system camera is the fallback)

@@ -2,6 +2,7 @@
 import { warp } from './warp.js';
 import { applyFilter, rotate90, scaled } from './filters.js';
 import { openEditor } from './editor.js';
+import { t } from '../i18n.js';
 const $ = (id) => document.getElementById(id);
 const root = $('result'), stage = $('rs-stage'), cv = $('rs-canvas'), seg = $('rs-filter');
 let src, quad, base, preview, turns = 0, filter = 'color', resolveFn = null;
@@ -35,11 +36,18 @@ $('rs-edges').addEventListener('click', async () => {
   const q = await openEditor(src, quad);
   if (q) { quad = q; rebuild(); }
 });
-$('rs-save').addEventListener('click', () => finish(applyFilter(rotate90(base, turns), filter)));
+$('rs-save').addEventListener('click', () => finish({ canvas: applyFilter(rotate90(base, turns), filter), quad: quad.map((p) => p.slice()), filter, turns }));
 
-/** Resolves the final full-size canvas, 'retake', or null (cancelled). */
-export function openResult(srcCanvas, q, initialFilter = 'color') {
-  src = srcCanvas; quad = q.map((p) => p.slice()); turns = 0; filter = initialFilter;
+/**
+ * opts: filter, turns (initial), saveKey (i18n key of the confirm button), retake (show "Retake", default true).
+ * Resolves {canvas, quad, filter, turns}, 'retake', or null (cancelled).
+ */
+export function openResult(srcCanvas, q, opts = {}) {
+  src = srcCanvas; quad = q.map((p) => p.slice()); turns = opts.turns ?? 0; filter = opts.filter ?? 'color';
+  const save = $('rs-save');
+  save.dataset.i18n = opts.saveKey ?? 'rs.save';
+  save.textContent = t(save.dataset.i18n);
+  $('rs-retake').hidden = opts.retake === false;
   root.hidden = false;
   requestAnimationFrame(rebuild);
   return new Promise((res) => { resolveFn = res; });

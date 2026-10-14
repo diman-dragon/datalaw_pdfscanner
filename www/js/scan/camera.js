@@ -1,23 +1,25 @@
 // Own camera screen: live preview, live auto frame, draggable corners, shutter.
 import { detectQuad, insetQuad } from './detect.js';
+import { t } from '../i18n.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
-const fxBar = $('cam-fx');
+const fxBar = $('cam-fx'), countEl = $('cam-count'), cancelBtn = $('cam-cancel');
+const paintCount = () => { countEl.hidden = !multi; countEl.textContent = `${t('sc.count')} ${shots}`; };
 const setFx = (v) => {
   fx = v;
   video.className = 'fx-' + v; // live preview via CSS filter; the saved scan uses the real engine filter
   [...fxBar.children].forEach((b) => b.classList.toggle('on', b.dataset.value === v));
 };
 fxBar.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFx(b.dataset.value); });
-let fx = 'color', stream = null, quad = null, manual = false, timer = 0, resolveFn = null, vw = 0, vh = 0, scale = 1, drag = -1, busy = false;
+let multi = false, onShot = null, shots = 0, fx = 'color', stream = null, quad = null, manual = false, timer = 0, resolveFn = null, vw = 0, vh = 0, scale = 1, drag = -1, busy = false;
 
 export const isCameraOpen = () => !root.hidden;
 
 function stop() {
   clearInterval(timer);
   stream?.getTracks().forEach((t) => t.stop());
-  stream = null; video.srcObject = null; root.hidden = true;
+  stream = null; video.srcObject = null; root.hidden = true; multi = false; onShot = null;
 }
 function finish(v) { stop(); const r = resolveFn; resolveFn = null; r?.(v); }
 export const closeCamera = () => finish(null);
@@ -85,11 +87,23 @@ $('cam-shot').addEventListener('click', () => {
   c.width = Math.round(vw * k); c.height = Math.round(vh * k);
   c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
   const q = quad.map(([x, y]) => [x * k, y * k]);
-  finish({ canvas: c, quad: q, filter: fx });
+  const frame = { canvas: c, quad: q, filter: fx };
+  if (!multi) return finish(frame);
+  shots += 1; paintCount(); navigator.vibrate?.(25);
+  wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
+  onShot?.(frame); // camera stays open for the next page
 });
 
-/** Resolves {canvas, quad, filter} after the shutter, or null if cancelled. Rejects if the camera is unavailable. */
-export async function openCamera() {
+/**
+ * Single mode: resolves {canvas, quad, filter} after the shutter, or null if cancelled.
+ * Multi mode (opts.multi): every shutter calls opts.onShot(frame) and the camera stays open; resolves null on close.
+ * Rejects if the camera is unavailable.
+ */
+export async function openCamera(opts = {}) {
+  multi = !!opts.multi; onShot = opts.onShot ?? null; shots = opts.start ?? 0;
+  cancelBtn.dataset.i18n = multi ? 'cam.done' : 'ed.cancel';
+  cancelBtn.textContent = t(cancelBtn.dataset.i18n);
+  paintCount();
   stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false,
   });

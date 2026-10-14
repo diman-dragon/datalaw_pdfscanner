@@ -21,9 +21,12 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-/** PDF folder via Storage Access Framework: pick, list, add (copy), save, remove, rename, open, preview. */
+/** PDF folder via Storage Access Framework: pick, list, add (copy), streaming save, remove, rename, open, preview. */
 @CapacitorPlugin(name = "Folder")
 public class FolderPlugin extends Plugin {
 
@@ -249,40 +252,88 @@ public class FolderPlugin extends Plugin {
     }
   }
 
-  /** Writes a new PDF (base64) into the tree. Name without extension; provider adds ".pdf" and resolves conflicts. */
+  // Streaming save: open -> write chunks (base64) -> close. Keeps big multi-page PDFs off the bridge in one piece.
+  private final Map<String, OutputStream> streams = new HashMap<>();
+  private final Map<String, Uri> streamUris = new HashMap<>();
+
+  /** Creates a new PDF in the tree. Name without extension; provider adds ".pdf" and resolves conflicts. */
   @PluginMethod
-  public void save(PluginCall call) {
+  public void saveOpen(PluginCall call) {
     String t = call.getString("tree");
     String name = call.getString("name");
-    String data = call.getString("data");
-    if (t == null || name == null || data == null) {
-      call.reject("tree, name and data required");
+    if (t == null || name == null) {
+      call.reject("tree and name required");
       return;
     }
-    Uri dst = null;
     try {
-      byte[] bytes = Base64.decode(data, Base64.DEFAULT);
-      dst = DocumentsContract.createDocument(cr(), treeRoot(Uri.parse(t)), "application/pdf", name);
+      Uri dst = DocumentsContract.createDocument(cr(), treeRoot(Uri.parse(t)), "application/pdf", name);
       if (dst == null) {
         call.reject("create failed");
         return;
       }
-      try (OutputStream out = cr().openOutputStream(dst)) {
-        out.write(bytes);
-      }
+      OutputStream out = cr().openOutputStream(dst);
+      String id = UUID.randomUUID().toString();
+      streams.put(id, out);
+      streamUris.put(id, dst);
       JSObject o = new JSObject();
-      o.put("uri", dst.toString());
-      String shown = queryName(dst, Document.COLUMN_DISPLAY_NAME);
-      o.put("name", shown == null ? name : shown);
+      o.put("id", id);
       call.resolve(o);
     } catch (Exception e) {
-      if (dst != null) {
-        try {
-          DocumentsContract.deleteDocument(cr(), dst);
-        } catch (Exception ignored) {
-        }
-      }
       call.reject("save failed: " + e.getMessage());
     }
+  }
+
+  @PluginMethod
+  public void saveWrite(PluginCall call) {
+    OutputStream out = streams.get(call.getString("id"));
+    String data = call.getString("data");
+    if (out == null || data == null) {
+      call.reject("bad stream");
+      return;
+    }
+    try {
+      out.write(Base64.decode(data, Base64.DEFAULT));
+      call.resolve();
+    } catch (Exception e) {
+      call.reject("write failed: " + e.getMessage());
+    }
+  }
+
+  @PluginMethod
+  public void saveClose(PluginCall call) {
+    String id = call.getString("id");
+    OutputStream out = streams.remove(id);
+    Uri dst = streamUris.remove(id);
+    if (out == null || dst == null) {
+      call.reject("bad stream");
+      return;
+    }
+    try {
+      out.close();
+      String shown = queryName(dst, Document.COLUMN_DISPLAY_NAME);
+      JSObject o = new JSObject();
+      o.put("uri", dst.toString());
+      o.put("name", shown == null ? "" : shown);
+      call.resolve(o);
+    } catch (Exception e) {
+      call.reject("close failed: " + e.getMessage());
+    }
+  }
+
+  /** Cancels an unfinished save and removes the partial file. */
+  @PluginMethod
+  public void saveAbort(PluginCall call) {
+    String id = call.getString("id");
+    OutputStream out = streams.remove(id);
+    Uri dst = streamUris.remove(id);
+    try {
+      if (out != null) out.close();
+    } catch (Exception ignored) {
+    }
+    try {
+      if (dst != null) DocumentsContract.deleteDocument(cr(), dst);
+    } catch (Exception ignored) {
+    }
+    call.resolve();
   }
 }

@@ -15,10 +15,15 @@ const mock = {
     mockFiles.push({ uri: 'mock://' + Date.now(), name: 'Новый файл.pdf', size: 100000, modified: Date.now() });
     return { added: 1 };
   },
-  async save({ name }) {
-    mockFiles.push({ uri: 'mock://' + Date.now(), name: name + '.pdf', size: 300000, modified: Date.now() });
-    return { uri: 'mock://x', name: name + '.pdf' };
+  _streams: {},
+  async saveOpen({ name }) { const id = String(Date.now()); this._streams[id] = { name, size: 0 }; return { id }; },
+  async saveWrite({ id, data }) { this._streams[id].size += data.length * 0.75; },
+  async saveClose({ id }) {
+    const st = this._streams[id]; delete this._streams[id];
+    mockFiles.push({ uri: 'mock://' + id, name: st.name + '.pdf', size: st.size, modified: Date.now() });
+    return { uri: 'mock://' + id, name: st.name + '.pdf' };
   },
+  async saveAbort({ id }) { delete this._streams[id]; },
   async remove({ uri }) { mockFiles = mockFiles.filter((f) => f.uri !== uri); },
   async rename({ uri, name }) { mockFiles.forEach((f) => { if (f.uri === uri) f.name = name; }); return { uri }; },
   async open() { alert('open (browser mock)'); },
