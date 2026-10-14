@@ -101,8 +101,8 @@ export function insetQuad(w, h, f = 0.06) {
 }
 
 /** @returns {number[][]} 4 points TL,TR,BR,BL in src pixel coords */
-export function detectQuad(src) {
-  const k = Math.min(1, W_MAX / Math.max(src.width, src.height));
+export function detectQuad(src, maxSide = W_MAX) {
+  const k = Math.min(1, maxSide / Math.max(src.width, src.height));
   const w = Math.max(8, Math.round(src.width * k)), h = Math.max(8, Math.round(src.height * k));
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -111,10 +111,11 @@ export function detectQuad(src) {
   const d = ctx.getImageData(0, 0, w, h).data;
   const g = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  const rr = Math.max(2, Math.round((4 * Math.max(w, h)) / 480));
   let best = null;
   for (const bright of [true, false]) {
     // remove text first: dark text on bright paper (closing) / light text on dark paper (opening)
-    const b = boxBlur(bright ? closing(g, w, h, 4) : opening(g, w, h, 4), w, h, 2), thr = otsu(b);
+    const b = boxBlur(bright ? closing(g, w, h, rr) : opening(g, w, h, rr), w, h, 2), thr = otsu(b);
     const m = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) m[i] = (b[i] > thr) === bright ? 1 : 0;
     const blob = largestBlob(m, w, h);

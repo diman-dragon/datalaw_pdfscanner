@@ -1,4 +1,11 @@
 # Changelog
+## 0.0.9
+- Single-page scanner moved to the Quick scan tab; the Scan tab is a placeholder again
+- Own camera screen: live preview, live auto document frame, draggable corners, shutter (system camera is the fallback)
+- Result screen: filters (Color / Gray / B&W), rotate left/right, edge re-editing, retake, save as PDF
+- Engine: filters.js (rotation, auto-levels, adaptive B&W), detect.js works at any preview size
+- Removed www/js/scan/controller.js (replaced by quick.js)
+- Camera effects row: Original (default, no filter), Contrast, Gray, B/W; live CSS preview, the chosen effect is applied to the scan by the engine and can be changed on the result screen
 ## 0.0.8
 - Scanner (single shot): camera or gallery -> auto edge detection (own engine) -> manual corner editor -> perspective correction -> PDF saved into the selected folder
 - If no folder is selected, the Scan tab offers to choose one
