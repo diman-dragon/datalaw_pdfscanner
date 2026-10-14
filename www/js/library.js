@@ -110,6 +110,7 @@ viewSeg.addEventListener('click', (e) => {
   view = b.dataset.value; store.set('libview', view); paintView();
 });
 document.addEventListener('folderchange', refresh);
+document.addEventListener('libchange', refresh);
 document.addEventListener('langchange', render);
 window.Capacitor?.Plugins?.App?.addListener('appStateChange', (s) => { if (s.isActive) refresh(); });
 refresh();

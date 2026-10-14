@@ -3,6 +3,7 @@ import { applyLang } from './i18n.js';
 import { goTo } from './tabs.js';
 import './settings.js';
 import './library.js';
+import './scan/controller.js';
 import './back.js';
 applyTheme();
 applyLang();

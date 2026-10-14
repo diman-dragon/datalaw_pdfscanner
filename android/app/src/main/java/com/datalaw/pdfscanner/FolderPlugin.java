@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
 import android.provider.OpenableColumns;
+import android.util.Base64;
 import androidx.activity.result.ActivityResult;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -22,7 +23,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-/** PDF folder via Storage Access Framework: pick, list, add (copy), remove, rename, open, preview. */
+/** PDF folder via Storage Access Framework: pick, list, add (copy), save, remove, rename, open, preview. */
 @CapacitorPlugin(name = "Folder")
 public class FolderPlugin extends Plugin {
 
@@ -245,6 +246,43 @@ public class FolderPlugin extends Plugin {
       call.resolve(o);
     } catch (Exception e) {
       call.reject("preview failed: " + e.getMessage());
+    }
+  }
+
+  /** Writes a new PDF (base64) into the tree. Name without extension; provider adds ".pdf" and resolves conflicts. */
+  @PluginMethod
+  public void save(PluginCall call) {
+    String t = call.getString("tree");
+    String name = call.getString("name");
+    String data = call.getString("data");
+    if (t == null || name == null || data == null) {
+      call.reject("tree, name and data required");
+      return;
+    }
+    Uri dst = null;
+    try {
+      byte[] bytes = Base64.decode(data, Base64.DEFAULT);
+      dst = DocumentsContract.createDocument(cr(), treeRoot(Uri.parse(t)), "application/pdf", name);
+      if (dst == null) {
+        call.reject("create failed");
+        return;
+      }
+      try (OutputStream out = cr().openOutputStream(dst)) {
+        out.write(bytes);
+      }
+      JSObject o = new JSObject();
+      o.put("uri", dst.toString());
+      String shown = queryName(dst, Document.COLUMN_DISPLAY_NAME);
+      o.put("name", shown == null ? name : shown);
+      call.resolve(o);
+    } catch (Exception e) {
+      if (dst != null) {
+        try {
+          DocumentsContract.deleteDocument(cr(), dst);
+        } catch (Exception ignored) {
+        }
+      }
+      call.reject("save failed: " + e.getMessage());
     }
   }
 }

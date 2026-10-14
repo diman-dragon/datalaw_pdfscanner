@@ -1,4 +1,9 @@
 # Changelog
+## 0.0.8
+- Scanner (single shot): camera or gallery -> auto edge detection (own engine) -> manual corner editor -> perspective correction -> PDF saved into the selected folder
+- If no folder is selected, the Scan tab offers to choose one
+- Own modules: www/js/scan/{load,detect,warp,pdf,editor,controller}.js; native Folder.save; CAMERA permission
+- System Back closes the edge editor
 ## 0.0.7
 - Settings: selected folder is shown (name + path, derived from the URI if the provider gives no name); pick errors are reported
 - Library: list/cards switch is pictograms only; folder name no longer shown
