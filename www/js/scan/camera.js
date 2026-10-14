@@ -86,7 +86,7 @@ ov.addEventListener('pointerup', () => { drag = -1; });
 ov.addEventListener('pointercancel', () => { drag = -1; });
 $('cam-cancel').addEventListener('click', closeCamera);
 
-const paintTimer = () => { timerBtn.textContent = cd ? t('ed.cancel') : `${t('cam.timer')} ${getShotDelay()} ${t('cam.sec')}`; };
+const paintTimer = () => { timerBtn.textContent = cd ? t('cam.stop') : `${t('cam.timer')} ${getShotDelay()} ${t('cam.sec')}`; };
 function stopCountdown() { clearInterval(cd); cd = 0; tickEl.hidden = true; paintTimer(); }
 function startCountdown() {
   if (!vw) return;
@@ -94,7 +94,10 @@ function startCountdown() {
   tickEl.textContent = n; tickEl.hidden = false;
   cd = setInterval(() => {
     n -= 1;
-    if (n <= 0) { stopCountdown(); shoot(); } else tickEl.textContent = n;
+    if (n > 0) { tickEl.textContent = n; return; }
+    shoot(); // single mode: closes the camera (stop() ends the countdown)
+    if (cd && multi) { n = getShotDelay(); tickEl.textContent = n; } // multi mode: keep shooting every N s until stopped
+    else stopCountdown();
   }, 1000);
   paintTimer();
 }

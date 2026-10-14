@@ -76,8 +76,10 @@ export const en = {
   'scan.prefix': 'Scan',
   'lib.openext': 'Open in another app',
   'vw.close': 'Close',
-  'vw.ext': 'Another app',
   'vw.zoomin': 'Zoom in',
   'vw.zoomout': 'Zoom out',
   'vw.fail': 'Could not open the PDF',
+  'cam.stop': 'Stop',
+  'vw.mode': 'Strip / page by page',
+  'vw.ext': 'Open in another app',
 };

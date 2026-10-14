@@ -1,4 +1,9 @@
 # Changelog
+## 0.1.2
+- Camera timer in the Scan tab is a series: press it once and pages are shot automatically every N seconds (countdown on screen) until you press Stop or close the camera; in Quick scan it still shoots one page
+- Viewer: pinch to zoom (1x-4x) around the fingers; +/- buttons stay
+- Viewer: two modes, switch in the bottom bar (remembered): strip (vertical scroll) and page by page (swipe left/right, page fitted to the screen)
+- Viewer: pages are rendered at the real on-screen size (sharp after zoom); page counter works in both modes
 ## 0.1.1
 - Camera: the unclear "Auto" button is now a self-timer (shoots after N seconds with an on-screen countdown, tap again to cancel); the delay 3 / 5 / 10 s is chosen in Settings (default 5)
 - Camera: double-tap outside the corners returns the frame to automatic detection; the edge editor's "Auto" is renamed "Detect edges"
