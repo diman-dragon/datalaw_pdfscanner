@@ -3,9 +3,10 @@ import { warp } from './warp.js';
 import { applyFilter, rotate90 } from './filters.js';
 import { openEditor } from './editor.js';
 import { t } from '../i18n.js';
+import { MAXSIDE } from './shot.js';
 const $ = (id) => document.getElementById(id);
 const root = $('result'), stage = $('rs-stage'), cv = $('rs-canvas'), seg = $('rs-filter');
-let src, quad, preview, turns = 0, filter = 'color', resolveFn = null;
+let src, quad, preview, turns = 0, filter = 'color', resolveFn = null, light = false;
 
 export const isResultOpen = () => !root.hidden;
 
@@ -34,22 +35,26 @@ $('rs-edges').addEventListener('click', async () => {
   const q = await openEditor(src, quad);
   if (q) { quad = q; rebuild(); }
 });
+$('rs-retake').addEventListener('click', () => finish('retake'));
 $('rs-save').addEventListener('click', () => {
+  if (light) { finish({ quad: quad.map((p) => p.slice()), filter, turns }); return; } // parameters only, no heavy render
   const b = $('rs-save');
   b.disabled = true;
   setTimeout(() => { // let the button repaint, then do the heavy full-size warp
-    const base = warp(src, quad, 4000);
+    const base = warp(src, quad, MAXSIDE);
     b.disabled = false;
     finish({ canvas: applyFilter(rotate90(base, turns), filter), quad: quad.map((p) => p.slice()), filter, turns });
   }, 30);
 });
 
 /**
- * opts: filter, turns (initial), saveKey (i18n key of the confirm button).
- * Resolves {canvas, quad, filter, turns} (full size), or null (cancelled).
+ * opts: filter, turns (initial), saveKey (i18n key of the confirm button), retake (show "Retake"), light (return only {quad, filter, turns}).
+ * Resolves {canvas, quad, filter, turns} (full size), 'retake', or null (cancelled).
  */
 export function openResult(srcCanvas, q, opts = {}) {
   src = srcCanvas; quad = q.map((p) => p.slice()); turns = opts.turns ?? 0; filter = opts.filter ?? 'color';
+  light = !!opts.light;
+  $('rs-retake').hidden = !opts.retake;
   const save = $('rs-save');
   save.dataset.i18n = opts.saveKey ?? 'rs.save';
   save.textContent = t(save.dataset.i18n);

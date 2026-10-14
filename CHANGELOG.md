@@ -1,4 +1,9 @@
 # Changelog
+## 0.1.5
+- Camera: the frame is back and mandatory: live auto-detection of the edges, draggable corners, double-tap = automatic again; the shot itself is still the ORIGINAL at the maximum camera quality (the preview is matched to the photo's aspect so the frame maps exactly; if it still does not fit, the edges are found automatically on the photo)
+- Quick scan: shot -> result screen (filter, rotation, edges, Retake) -> file name -> save; full-size render up to 4200 px
+- Scan tab: the frame is stored with every page; on Done you pick the filter for all pages; tap a page (or its menu) to adjust edges / filter / rotation; the heavy warp of each page runs in the background so Save only writes the file
+- Library / viewer: document editor and text recognition stay as in 0.1.3
 ## 0.1.4
 - Build fix: Tesseract4Android is on JitPack (not Maven Central): JitPack repository added, library 4.9.0
 

@@ -76,7 +76,8 @@
 <div id="camera" hidden>
   <div id="cam-count" hidden></div>
   <div class="ed-head" data-i18n="cam.title"></div>
-  <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><div id="cam-tick" hidden></div></div></div>
+  <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><canvas id="cam-overlay"></canvas><div id="cam-tick" hidden></div></div></div>
+  <p class="cam-hint" data-i18n="cam.hint"></p>
   <div id="cam-bar">
     <button class="btn ghost" id="cam-cancel" data-i18n="ed.cancel"></button>
     <button id="cam-shot" aria-label="Shoot"></button>
@@ -91,6 +92,7 @@
     <div class="rs-rot"><button id="rs-left" class="btn ghost" data-i18n-aria="rs.rotl"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button><button id="rs-right" class="btn ghost" data-i18n-aria="rs.rotr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button></div>
   </div>
   <div id="rs-bar">
+    <button class="btn ghost" id="rs-retake" data-i18n="rs.retake"></button>
     <button class="btn ghost" id="rs-edges" data-i18n="rs.edges"></button>
     <button class="btn" id="rs-save" data-i18n="rs.save"></button>
   </div>
