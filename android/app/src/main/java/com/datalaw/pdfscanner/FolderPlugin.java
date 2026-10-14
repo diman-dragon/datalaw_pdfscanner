@@ -283,7 +283,7 @@ public class FolderPlugin extends Plugin {
     }
     try {
       JSObject o = new JSObject();
-      o.put("data", viewer.page(id, call.getInt("index", 0), call.getInt("width", 1200)));
+      o.put("data", viewer.page(id, call.getInt("index", 0), call.getInt("width", 1200), call.getInt("quality", 85)));
       call.resolve(o);
     } catch (Exception e) {
       call.reject("page failed: " + e.getMessage());

@@ -4,6 +4,9 @@ import { Folder } from './folder.js';
 import { store } from './storage.js';
 import { t } from './i18n.js';
 import { toast } from './toast.js';
+import { openSheet } from './sheet.js';
+import { openOcr } from './ocr.js';
+import { openDocEdit } from './docedit.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('viewer'), titleEl = $('vw-title'), posEl = $('vw-pos'), scroll = $('vw-scroll'), list = $('vw-pages'), zoomEl = $('vw-zoom');
@@ -47,7 +50,7 @@ async function pump() {
     el._queued = false;
     if (!d || !el._vis || el._done) continue;
     try {
-      const width = Math.round(el._vi.offsetWidth * (window.devicePixelRatio || 1));
+      const width = Math.min(2400, Math.round(el._vi.offsetWidth * (window.devicePixelRatio || 1)));
       const r = await Folder.viewPage({ id: d.id, index: el._i, width });
       if (g === gen && doc === d && el._vis) { el._img.src = r.data; el._done = true; }
     } catch (e) { console.error(e); }
@@ -176,4 +179,12 @@ $('vw-close').addEventListener('click', closeViewer);
 $('vw-minus').addEventListener('click', () => zoomBy(1 / 1.5));
 $('vw-plus').addEventListener('click', () => zoomBy(1.5));
 $('vw-mode').addEventListener('click', () => { const m = mode === 'strip' ? 'paged' : 'strip'; store.set('vwmode', m); setMode(m); });
-$('vw-ext').addEventListener('click', () => { if (file) openExternal(file); });
+$('vw-menu').addEventListener('click', () => {
+  if (!doc || !file) return;
+  const f = file, page = current(), pages = doc.n;
+  openSheet(f.name, [
+    { label: t('lib.edit'), run: () => { closeViewer(); openDocEdit(f); } },
+    { label: t('ocr.menu'), run: () => openOcr({ file: f, page, pages }) },
+    { label: t('lib.openext'), run: () => openExternal(f) },
+  ]);
+});

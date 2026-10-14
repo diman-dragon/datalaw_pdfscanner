@@ -5,6 +5,7 @@ import { goTo } from './tabs.js';
 import { openSheet } from './sheet.js';
 import { loadPreview } from './previews.js';
 import { openViewer, openExternal } from './viewer.js';
+import { openDocEdit } from './docedit.js';
 
 const $ = (id) => document.getElementById(id);
 const bar = $('lib-bar'), items = $('lib-items');
@@ -92,6 +93,7 @@ async function remove(f) {
 function menu(f) {
   openSheet(f.name, [
     { label: t('lib.open'), run: () => openViewer(f) },
+    { label: t('lib.edit'), run: () => openDocEdit(f) },
     { label: t('lib.openext'), run: () => openExternal(f) },
     { label: t('lib.rename'), run: () => rename(f) },
     { label: t('lib.delete'), danger: true, run: () => remove(f) },

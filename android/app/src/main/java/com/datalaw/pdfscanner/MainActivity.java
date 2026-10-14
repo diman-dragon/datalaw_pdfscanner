@@ -7,6 +7,7 @@ public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(FolderPlugin.class);
+    registerPlugin(OcrPlugin.class);
     super.onCreate(savedInstanceState);
   }
 }

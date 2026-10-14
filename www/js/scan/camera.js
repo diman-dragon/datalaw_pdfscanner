@@ -1,147 +1,97 @@
-// Own camera screen: live preview, live auto frame, draggable corners, shutter.
-import { detectQuad, insetQuad } from './detect.js';
+// Camera screen: live preview, shutter, self-timer. Shots are ORIGINALS at the maximum camera quality:
+// no frame, no filters, no downscaling (ImageCapture.takePhoto at the largest photo size; full video frame as a fallback).
 import { t } from '../i18n.js';
 import { getShotDelay } from '../shotdelay.js';
 const $ = (id) => document.getElementById(id);
-const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
-const ctx = ov.getContext('2d');
-const timerBtn = $('cam-timer'), tickEl = $('cam-tick');
-const fxBar = $('cam-fx'), countEl = $('cam-count'), cancelBtn = $('cam-cancel');
-const paintCount = () => { countEl.hidden = !multi; countEl.textContent = `${t('sc.count')} ${shots}`; };
-const setFx = (v) => {
-  fx = v;
-  video.className = 'fx-' + v; // live preview via CSS filter; the saved scan uses the real engine filter
-  [...fxBar.children].forEach((b) => b.classList.toggle('on', b.dataset.value === v));
-};
-fxBar.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFx(b.dataset.value); });
-let multi = false, onShot = null, shots = 0, fx = 'color', stream = null, quad = null, manual = false, timer = 0, resolveFn = null, vw = 0, vh = 0, scale = 1, drag = -1, busy = false, cd = 0, lastTap = 0;
+const root = $('camera'), wrap = $('cam-wrap'), video = $('cam-video');
+const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick');
+let multi = false, onShot = null, shots = 0, stream = null, capture = null, photoOpts, resolveFn = null, cd = 0, shooting = false;
 
+const paintCount = () => { countEl.hidden = !multi; countEl.textContent = `${t('sc.count')} ${shots}`; };
 export const isCameraOpen = () => !root.hidden;
 
 function stop() {
   stopCountdown();
-  clearInterval(timer);
-  stream?.getTracks().forEach((t) => t.stop());
-  stream = null; video.srcObject = null; root.hidden = true; multi = false; onShot = null;
+  stream?.getTracks().forEach((tr) => tr.stop());
+  stream = null; capture = null; photoOpts = undefined; video.srcObject = null; root.hidden = true; multi = false; onShot = null;
 }
 function finish(v) { stop(); const r = resolveFn; resolveFn = null; r?.(v); }
 export const closeCamera = () => finish(null);
 
-function draw() {
-  const dpr = window.devicePixelRatio || 1;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, ov.width, ov.height);
-  if (!quad) return;
-  const p = quad.map(([x, y]) => [x * scale, y * scale]);
-  ctx.beginPath(); ctx.moveTo(...p[0]); p.slice(1).forEach((q) => ctx.lineTo(...q)); ctx.closePath();
-  ctx.fillStyle = 'rgba(56,217,245,.15)'; ctx.fill();
-  ctx.lineWidth = 3; ctx.strokeStyle = manual ? '#FFC247' : '#38D9F5'; ctx.stroke();
-  for (const [x, y] of p) {
-    ctx.beginPath(); ctx.arc(x, y, 13, 0, 7);
-    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke();
-  }
-}
-
-function layout() {
-  const dpr = window.devicePixelRatio || 1;
-  scale = Math.min(stage.clientWidth / vw, stage.clientHeight / vh);
-  const w = vw * scale, h = vh * scale;
-  wrap.style.width = w + 'px'; wrap.style.height = h + 'px';
-  ov.width = Math.round(w * dpr); ov.height = Math.round(h * dpr);
-  draw();
-}
-
-function detectTick() {
-  if (manual || busy || !vw) return;
-  busy = true;
+async function initCapture() {
+  capture = null; photoOpts = undefined;
+  if (typeof ImageCapture === 'undefined') return;
   try {
-    const k = Math.min(1, 240 / Math.max(vw, vh));
-    const c = document.createElement('canvas');
-    c.width = Math.round(vw * k); c.height = Math.round(vh * k);
-    c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
-    const q = detectQuad(c, 240).map(([x, y]) => [x / k, y / k]);
-    quad = quad ? q.map((p, i) => [quad[i][0] * 0.4 + p[0] * 0.6, quad[i][1] * 0.4 + p[1] * 0.6]) : q;
-    draw();
-  } finally { busy = false; }
+    capture = new ImageCapture(stream.getVideoTracks()[0]);
+    const c = await capture.getPhotoCapabilities();
+    if (c.imageWidth?.max && c.imageHeight?.max) photoOpts = { imageWidth: c.imageWidth.max, imageHeight: c.imageHeight.max };
+  } catch (e) { console.error(e); }
 }
 
-const pos = (e) => { const r = ov.getBoundingClientRect(); return [(e.clientX - r.left) / scale, (e.clientY - r.top) / scale]; };
-ov.addEventListener('pointerdown', (e) => {
-  const [x, y] = pos(e);
-  let best = -1, bd = 48 / scale;
-  quad.forEach((q, i) => { const d = Math.hypot(q[0] - x, q[1] - y); if (d < bd) { bd = d; best = i; } });
-  drag = best;
-  if (drag >= 0) { manual = true; ov.setPointerCapture(e.pointerId); return; }
-  const now = Date.now(); // double-tap outside the corners: back to the automatic frame
-  if (now - lastTap < 350) { manual = false; detectTick(); }
-  lastTap = now;
-});
-ov.addEventListener('pointermove', (e) => {
-  if (drag < 0) return;
-  const [x, y] = pos(e);
-  quad[drag] = [Math.min(vw, Math.max(0, x)), Math.min(vh, Math.max(0, y))];
-  draw();
-});
-ov.addEventListener('pointerup', () => { drag = -1; });
-ov.addEventListener('pointercancel', () => { drag = -1; });
-$('cam-cancel').addEventListener('click', closeCamera);
+async function grab() {
+  if (capture) {
+    try {
+      const b = await capture.takePhoto(photoOpts);
+      if (b?.size) return b;
+    } catch (e) { console.error(e); }
+  }
+  const c = document.createElement('canvas'); // fallback: the full video frame
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext('2d').drawImage(video, 0, 0);
+  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', 0.98));
+}
+
+async function shoot() {
+  if (shooting || !stream) return;
+  shooting = true;
+  navigator.vibrate?.(25);
+  wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
+  try {
+    const blob = await grab();
+    if (!stream) return; // closed meanwhile
+    if (!multi) return finish({ blob });
+    shots += 1; paintCount();
+    onShot?.({ blob }); // camera stays open for the next page
+  } catch (e) { console.error(e); } finally { shooting = false; }
+}
 
 const paintTimer = () => { timerBtn.textContent = cd ? t('cam.stop') : `${t('cam.timer')} ${getShotDelay()} ${t('cam.sec')}`; };
 function stopCountdown() { clearInterval(cd); cd = 0; tickEl.hidden = true; paintTimer(); }
 function startCountdown() {
-  if (!vw) return;
+  if (!stream) return;
   let n = getShotDelay();
   tickEl.textContent = n; tickEl.hidden = false;
   cd = setInterval(() => {
     n -= 1;
     if (n > 0) { tickEl.textContent = n; return; }
-    shoot(); // single mode: closes the camera (stop() ends the countdown)
-    if (cd && multi) { n = getShotDelay(); tickEl.textContent = n; } // multi mode: keep shooting every N s until stopped
+    shoot();
+    if (multi) { n = getShotDelay(); tickEl.textContent = n; } // series: shoot every N s until stopped
     else stopCountdown();
   }, 1000);
   paintTimer();
 }
 timerBtn.addEventListener('click', () => (cd ? stopCountdown() : startCountdown()));
+$('cam-shot').addEventListener('click', shoot);
+cancelBtn.addEventListener('click', closeCamera);
 document.addEventListener('delaychange', paintTimer);
 document.addEventListener('langchange', paintTimer);
-paintTimer();
-
-$('cam-shot').addEventListener('click', () => shoot());
-function shoot() {
-  if (!vw) return;
-  const k = Math.min(1, 3000 / Math.max(vw, vh));
-  const c = document.createElement('canvas');
-  c.width = Math.round(vw * k); c.height = Math.round(vh * k);
-  c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
-  const q = quad.map(([x, y]) => [x * k, y * k]);
-  const frame = { canvas: c, quad: q, filter: fx };
-  if (!multi) return finish(frame);
-  shots += 1; paintCount(); navigator.vibrate?.(25);
-  wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
-  onShot?.(frame); // camera stays open for the next page
-}
 
 /**
- * Single mode: resolves {canvas, quad, filter} after the shutter, or null if cancelled.
- * Multi mode (opts.multi): every shutter calls opts.onShot(frame) and the camera stays open; resolves null on close.
+ * Single mode: resolves {blob} after the shutter, or null if cancelled.
+ * Multi mode (opts.multi): every shot calls opts.onShot({blob}) and the camera stays open; resolves null on close.
  * Rejects if the camera is unavailable.
  */
 export async function openCamera(opts = {}) {
   multi = !!opts.multi; onShot = opts.onShot ?? null; shots = opts.start ?? 0;
   cancelBtn.dataset.i18n = multi ? 'cam.done' : 'ed.cancel';
   cancelBtn.textContent = t(cancelBtn.dataset.i18n);
-  paintCount();
+  paintCount(); paintTimer();
   stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false,
   });
   video.srcObject = stream;
   await video.play();
   root.hidden = false;
-  if (!video.videoWidth) await new Promise((r) => { video.onloadedmetadata = r; });
-  vw = video.videoWidth; vh = video.videoHeight;
-  quad = insetQuad(vw, vh); manual = false; setFx('color');
-  await new Promise((r) => requestAnimationFrame(r));
-  layout();
-  timer = setInterval(detectTick, 350);
+  await initCapture();
   return new Promise((res) => { resolveFn = res; });
 }

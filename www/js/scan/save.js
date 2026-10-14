@@ -21,20 +21,34 @@ export const stamp = () => {
 
 const clean = (s) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\.pdf$/i, '').trim();
 
-/** Asks for the file name (suggests the time stamp). null = user cancelled. */
-export function askName() {
-  const n = prompt(t('scan.nameq'), stamp());
+/** Asks for the file name (suggests `def`, the time stamp by default). null = user cancelled. */
+export function askName(def = stamp()) {
+  const n = prompt(t('scan.nameq'), def);
   return n === null ? null : clean(n) || stamp();
 }
 
 const CHUNK = 1500000;
-/** Writes PDF bytes into the selected folder. Returns {uri, name}. */
-export async function savePdf(bytes, name = stamp()) {
+/** Writes a PDF (async iterable of Uint8Array parts) into the selected folder in ~1.5 MB chunks. Returns {uri, name}. */
+export async function savePdf(parts, name = stamp()) {
   const { id } = await Folder.saveOpen({ tree: getFolder().uri, name });
+  let buf = [], size = 0;
+  const flush = async () => {
+    if (!size) return;
+    const u = new Uint8Array(size);
+    let o = 0;
+    for (const p of buf) { u.set(p, o); o += p.length; }
+    buf = []; size = 0;
+    await Folder.saveWrite({ id, data: await bytesToBase64(u) });
+  };
   try {
-    for (let o = 0; o < bytes.length; o += CHUNK) {
-      await Folder.saveWrite({ id, data: await bytesToBase64(bytes.subarray(o, o + CHUNK)) });
+    for await (const part of parts) {
+      for (let o = 0; o < part.length; o += CHUNK) {
+        const piece = part.subarray(o, Math.min(part.length, o + CHUNK));
+        buf.push(piece); size += piece.length;
+        if (size >= CHUNK) await flush();
+      }
     }
+    await flush();
     return await Folder.saveClose({ id });
   } catch (e) {
     await Folder.saveAbort({ id }).catch(() => {});

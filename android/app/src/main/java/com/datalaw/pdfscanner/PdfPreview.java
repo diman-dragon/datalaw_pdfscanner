@@ -22,18 +22,28 @@ final class PdfPreview {
   }
 
   static String firstPage(ContentResolver cr, Uri uri, int width) throws Exception {
+    return toDataUrl(renderPage(cr, uri, 0, width), 80);
+  }
+
+  /** Renders one page to a white-backed bitmap (caller recycles). Height is capped at 4200 px. */
+  static Bitmap renderPage(ContentResolver cr, Uri uri, int index, int width) throws Exception {
     ParcelFileDescriptor pfd = cr.openFileDescriptor(uri, "r");
     if (pfd == null) throw new Exception("cannot open");
     PdfRenderer renderer = null;
     PdfRenderer.Page page = null;
     try {
       renderer = new PdfRenderer(pfd);
-      page = renderer.openPage(0);
-      int h = Math.max(1, Math.round(width * (float) page.getHeight() / page.getWidth()));
-      Bitmap bmp = Bitmap.createBitmap(width, h, Bitmap.Config.ARGB_8888);
+      page = renderer.openPage(index);
+      int w = width;
+      int h = Math.max(1, Math.round(w * (float) page.getHeight() / page.getWidth()));
+      if (h > 4200) {
+        w = Math.max(1, Math.round(w * 4200f / h));
+        h = 4200;
+      }
+      Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
       bmp.eraseColor(Color.WHITE);
       page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-      return toDataUrl(bmp, 80);
+      return bmp;
     } finally {
       if (page != null) page.close();
       if (renderer != null) renderer.close();

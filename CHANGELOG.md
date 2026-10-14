@@ -1,4 +1,13 @@
 # Changelog
+## 0.1.3
+- Everywhere (Quick, Scan, camera, gallery) only the ORIGINAL is captured, at the maximum camera quality: ImageCapture.takePhoto at the largest photo size (full video frame as a fallback); no frame, no filters, no downscaling. The camera screen no longer shows the edge frame or filters
+- The original JPEG goes into the PDF untouched (EXIF orientation -> /Rotate), so saving is fast and lossless; PDF is streamed page by page (low memory)
+- Editing moved to the Library and the viewer: new document editor (Library menu / viewer menu -> Edit): per page edges, filter, rotation, reorder, delete; Save replaces the original or saves a new file
+- Scan tab: pages can only be deleted; the edge/filter editing there is removed
+- Full-size edge result: the preview is fast, the full-size warp (up to 4000 px) runs on Save
+- Text recognition (OCR) in the viewer menu: Russian, English, Italian, Serbian (Cyrillic + Latin), this page or the whole document, copy the text. Tesseract (tesseract4android); language data is downloaded once on first use (needs internet)
+- Viewer: header menu (Edit / Recognize text / Open in another app); the menu sheet now sits above all overlays
+- Native: OcrPlugin.java, PdfPreview.renderPage, viewPage quality parameter
 ## 0.1.2
 - Camera timer in the Scan tab is a series: press it once and pages are shot automatically every N seconds (countdown on screen) until you press Stop or close the camera; in Quick scan it still shoots one page
 - Viewer: pinch to zoom (1x-4x) around the fingers; +/- buttons stay

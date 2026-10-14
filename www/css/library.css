@@ -21,7 +21,7 @@
 .more{border:0;font:inherit;font-size:20px;line-height:1;display:grid;place-items:center}
 .list .more{width:40px;height:40px;background:transparent;color:var(--muted)}
 .cards .more{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff}
-.sheet{position:fixed;inset:0;z-index:10;display:flex;align-items:flex-end;background:rgba(0,0,0,.5)}
+.sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;background:rgba(0,0,0,.5)}
 .sheet-box{width:100%;display:grid;gap:6px;padding:12px 12px calc(12px + env(safe-area-inset-bottom));border-radius:18px 18px 0 0;background:var(--surface)}
 .sheet-title{padding:4px 8px 8px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sheet button{height:48px;border:0;border-radius:12px;background:var(--bg);color:var(--text);font:inherit}

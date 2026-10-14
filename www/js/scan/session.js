@@ -1,45 +1,25 @@
-// Scan tab: multi-page session. Pages are kept as JPEG blobs + quad/filter/turns; PDF is built on save.
+// Scan tab: multi-page capture. Pages are the ORIGINAL photos (blobs); editing lives in the Library / viewer.
+// Here a page can only be deleted (a bad shot). Save writes all originals into one PDF.
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { getFolder, folderInfo } from '../folder.js';
 import { openSheet } from '../sheet.js';
-import { loadImage } from './load.js';
-import { detectQuad } from './detect.js';
 import { openCamera } from './camera.js';
-import { openResult } from './result.js';
-import { warp } from './warp.js';
-import { applyFilter, rotate90, scaled } from './filters.js';
-import { canvasToJpeg, jpegsToPdf } from './pdf.js';
+import { pdfStream } from './pdf.js';
+import { pageFromBlob, thumbOf } from './page.js';
 import { ensureFolder, savePdf, askName } from './save.js';
 
 const $ = (id) => document.getElementById(id);
 const home = $('sc-home'), sess = $('sc-session'), grid = $('sc-grid'), count = $('sc-count'), target = $('sc-target');
 const fallback = $('sc-cam'), gallery = $('sc-pick');
-const pages = []; // {blob, quad, filter, turns, thumb, job}
+const pages = []; // {blob, thumb}
 let busy = false;
-const tick = () => new Promise((r) => setTimeout(r, 0));
 
-const thumbOf = (canvas, quad, filter, turns) =>
-  applyFilter(rotate90(warp(canvas, quad, 360), turns), filter).toDataURL('image/jpeg', 0.7);
-
-// Final JPEG of a page. Rendered in the background right after a page is added/edited, so "Save" only writes the file.
-async function renderPage(p) {
-  await tick();
-  const f = applyFilter(rotate90(warp(await loadImage(p.blob), p.quad), p.turns), p.filter);
-  return { jpeg: await canvasToJpeg(f), w: f.width, h: f.height };
-}
-let chain = Promise.resolve();
-function prepare(p) { // one page at a time, so the UI stays responsive
-  const job = chain.then(() => renderPage(p));
-  chain = job.catch(() => {});
-  p.job = job;
-}
-
-async function addPage(canvas, quad, filter = 'color') {
-  const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
-  const p = { blob, quad, filter, turns: 0, thumb: thumbOf(canvas, quad, filter, 0) };
-  pages.push(p);
-  prepare(p);
+async function addPage(blob) {
+  const p = { blob, thumb: '' };
+  pages.push(p); // order is fixed at once, the thumbnail arrives later
+  render();
+  try { p.thumb = await thumbOf(blob); } catch (e) { console.error(e); }
   render();
 }
 
@@ -52,10 +32,10 @@ function card(p, i) {
   const el = document.createElement('div');
   el.className = 'pg';
   el.innerHTML = '<img alt=""><span class="num"></span><button class="more">⋮</button>';
-  el.querySelector('img').src = p.thumb;
+  if (p.thumb) el.querySelector('img').src = p.thumb;
   el.querySelector('.num').textContent = i + 1;
-  el.querySelector('.more').addEventListener('click', (e) => { e.stopPropagation(); menu(i); });
-  el.addEventListener('click', () => edit(i));
+  el.querySelector('.more').addEventListener('click', (e) => { e.stopPropagation(); menu(p); });
+  el.addEventListener('click', () => menu(p));
   return el;
 }
 
@@ -66,35 +46,16 @@ function render() {
   grid.replaceChildren(...pages.map(card));
 }
 
-async function edit(i) {
-  if (busy) return;
-  busy = true;
-  try {
-    const p = pages[i];
-    const out = await openResult(await loadImage(p.blob), p.quad, { filter: p.filter, turns: p.turns, saveKey: 'ms.apply', retake: false });
-    if (out) {
-      Object.assign(p, { quad: out.quad, filter: out.filter, turns: out.turns, thumb: scaled(out.canvas, 360).toDataURL('image/jpeg', 0.7) });
-      const c = out.canvas;
-      p.job = chain.then(async () => ({ jpeg: await canvasToJpeg(c), w: c.width, h: c.height })); // already final, no re-warp
-      chain = p.job.catch(() => {});
-      render();
-    }
-  } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
-}
-
-function move(i, d) { [pages[i], pages[i + d]] = [pages[i + d], pages[i]]; render(); }
-function menu(i) {
-  const acts = [{ label: t('sc.edit'), run: () => edit(i) }];
-  if (i > 0) acts.push({ label: t('sc.left'), run: () => move(i, -1) });
-  if (i < pages.length - 1) acts.push({ label: t('sc.right'), run: () => move(i, 1) });
-  acts.push({ label: t('sc.delete'), danger: true, run: () => { pages.splice(i, 1); render(); } });
-  openSheet(`${t('sc.page')} ${i + 1}`, acts);
+function menu(p) {
+  openSheet(`${t('sc.page')} ${pages.indexOf(p) + 1}`, [
+    { label: t('sc.delete'), danger: true, run: () => { pages.splice(pages.indexOf(p), 1); render(); } },
+  ]);
 }
 
 async function shoot() {
   if (busy || !ensureFolder()) return;
   try {
-    await openCamera({ multi: true, start: pages.length, onShot: (f) => addPage(f.canvas, f.quad, f.filter) });
+    await openCamera({ multi: true, start: pages.length, onShot: (f) => addPage(f.blob) });
   } catch (e) {
     console.error(e);
     toast(t('cam.denied'));
@@ -103,10 +64,7 @@ async function shoot() {
 }
 
 async function fromFiles(files) {
-  busy = true;
-  try {
-    for (const f of files) { const img = await loadImage(f); await addPage(img, detectQuad(img)); await tick(); }
-  } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
+  for (const f of files) await addPage(f);
 }
 
 async function exportPdf() {
@@ -115,14 +73,11 @@ async function exportPdf() {
   if (name === null) return;
   busy = true;
   try {
-    const out = [];
-    for (let i = 0; i < pages.length; i++) {
-      toast(`${t('scan.saving')} ${i + 1}/${pages.length}`, 60000);
-      let r;
-      try { r = await pages[i].job; } catch { r = await renderPage(pages[i]); }
-      out.push(r);
-    }
-    const r = await savePdf(jpegsToPdf(out), name);
+    const list = pages.slice();
+    const r = await savePdf(pdfStream(list.length, async (i) => {
+      toast(`${t('scan.saving')} ${i + 1}/${list.length}`, 60000);
+      return pageFromBlob(list[i].blob);
+    }), name);
     pages.length = 0; render();
     toast(`${t('scan.saved')} ${r.name ?? ''}`);
     document.dispatchEvent(new Event('libchange'));

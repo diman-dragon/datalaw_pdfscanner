@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/library.css">
 <link rel="stylesheet" href="css/scan.css">
 <link rel="stylesheet" href="css/viewer.css">
+<link rel="stylesheet" href="css/tools.css">
 <script type="module" src="js/main.js"></script>
 </head>
 <body>
@@ -75,9 +76,7 @@
 <div id="camera" hidden>
   <div id="cam-count" hidden></div>
   <div class="ed-head" data-i18n="cam.title"></div>
-  <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><canvas id="cam-overlay"></canvas><div id="cam-tick" hidden></div></div></div>
-  <p class="cam-hint" data-i18n="cam.hint"></p>
-  <div id="cam-fx"><button data-value="color" data-i18n="fx.color"></button><button data-value="contrast" data-i18n="fx.contrast"></button><button data-value="gray" data-i18n="fx.gray"></button><button data-value="bw" data-i18n="fx.bw"></button></div>
+  <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><div id="cam-tick" hidden></div></div></div>
   <div id="cam-bar">
     <button class="btn ghost" id="cam-cancel" data-i18n="ed.cancel"></button>
     <button id="cam-shot" aria-label="Shoot"></button>
@@ -92,7 +91,6 @@
     <div class="rs-rot"><button id="rs-left" class="btn ghost" data-i18n-aria="rs.rotl"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button><button id="rs-right" class="btn ghost" data-i18n-aria="rs.rotr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button></div>
   </div>
   <div id="rs-bar">
-    <button class="btn ghost" id="rs-retake" data-i18n="rs.retake"></button>
     <button class="btn ghost" id="rs-edges" data-i18n="rs.edges"></button>
     <button class="btn" id="rs-save" data-i18n="rs.save"></button>
   </div>
@@ -101,6 +99,7 @@
   <div class="ed-head vw-head">
     <button id="vw-close" class="vw-btn" data-i18n-aria="vw.close"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
     <span id="vw-title"></span><span id="vw-pos" class="muted"></span>
+    <button id="vw-menu" class="vw-btn" data-i18n-aria="vw.menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
   </div>
   <div id="vw-scroll"><div id="vw-pages"></div></div>
   <div id="vw-bar">
@@ -111,8 +110,23 @@
       <svg class="ic-strip" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><rect x="5" y="3" width="14" height="8" rx="1.5"/><rect x="5" y="13" width="14" height="8" rx="1.5"/></svg>
       <svg class="ic-paged" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="4" width="10" height="16" rx="1.5"/><path d="M3.5 9L2 12l1.5 3M20.5 9L22 12l-1.5 3"/></svg>
     </button>
-    <button class="btn ghost" id="vw-ext" data-i18n-aria="vw.ext"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></button>
   </div>
+</div>
+<div id="ocr" hidden>
+  <div class="ed-head vw-head">
+    <button id="ocr-close" class="vw-btn" data-i18n-aria="vw.close"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+    <span data-i18n="ocr.title"></span>
+  </div>
+  <div id="ocr-langs" class="chips"><button data-lang="ru">Русский</button><button data-lang="en">English</button><button data-lang="it">Italiano</button><button data-lang="sr">Српски / Srpski</button></div>
+  <div id="ocr-run"><button class="btn" id="ocr-page" data-i18n="ocr.page"></button><button class="btn ghost" id="ocr-all" data-i18n="ocr.all"></button></div>
+  <p id="ocr-status" class="small muted"></p>
+  <textarea id="ocr-text" spellcheck="false"></textarea>
+  <div id="ocr-bar"><button class="btn" id="ocr-copy" data-i18n="ocr.copy"></button></div>
+</div>
+<div id="docedit" hidden>
+  <div class="ed-head" id="de-title"></div>
+  <div id="de-grid"></div>
+  <div id="de-bar"><button class="btn ghost" id="de-cancel" data-i18n="ed.cancel"></button><button class="btn" id="de-save" data-i18n="sc.save"></button></div>
 </div>
 <div id="editor" hidden>
   <div class="ed-head" data-i18n="ed.title"></div>

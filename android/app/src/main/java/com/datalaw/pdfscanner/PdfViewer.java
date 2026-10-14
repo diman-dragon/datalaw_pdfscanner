@@ -51,21 +51,21 @@ final class PdfViewer {
   }
 
   /** Renders one page to a JPEG data URL, width in pixels. */
-  synchronized String page(String id, int index, int width) throws Exception {
+  synchronized String page(String id, int index, int width, int quality) throws Exception {
     Doc d = docs.get(id);
     if (d == null) throw new Exception("closed");
-    int w = Math.max(200, Math.min(width, 2400));
+    int w = Math.max(200, Math.min(width, 3200));
     PdfRenderer.Page page = d.renderer.openPage(index);
     try {
       int h = Math.max(1, Math.round(w * (float) page.getHeight() / page.getWidth()));
-      if (h > 4000) {
-        w = Math.max(1, Math.round(w * 4000f / h));
-        h = 4000;
+      if (h > 4500) {
+        w = Math.max(1, Math.round(w * 4500f / h));
+        h = 4500;
       }
       Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
       bmp.eraseColor(Color.WHITE);
       page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-      return PdfPreview.toDataUrl(bmp, 85);
+      return PdfPreview.toDataUrl(bmp, Math.max(50, Math.min(quality, 100)));
     } finally {
       page.close();
     }
