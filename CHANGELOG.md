@@ -1,4 +1,7 @@
 # Changelog
+## 0.1.4
+- Build fix: Tesseract4Android is on JitPack (not Maven Central): JitPack repository added, library 4.9.0
+
 ## 0.1.3
 - Everywhere (Quick, Scan, camera, gallery) only the ORIGINAL is captured, at the maximum camera quality: ImageCapture.takePhoto at the largest photo size (full video frame as a fallback); no frame, no filters, no downscaling. The camera screen no longer shows the edge frame or filters
 - The original JPEG goes into the PDF untouched (EXIF orientation -> /Rotate), so saving is fast and lossless; PDF is streamed page by page (low memory)
