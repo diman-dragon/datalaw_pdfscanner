@@ -1,119 +1,136 @@
-// Document editor (opened from the Library or the viewer): pages of an existing PDF ->
-// per page edges / filter / rotation, reorder, delete -> save (replace the original or save as a new file).
+// Editor of an existing PDF (Library menu / viewer): the same single-scan editor over the pages
+// (edges / filter / rotation, Back / Next, caption), plus page order and deletion. Save replaces the original or writes a new file.
 import { Folder } from './folder.js';
 import { t } from './i18n.js';
 import { toast } from './toast.js';
 import { openSheet } from './sheet.js';
-import { loadImage } from './scan/load.js';
-import { detectQuad } from './scan/detect.js';
-import { openResult } from './scan/result.js';
-import { scaled } from './scan/filters.js';
-import { canvasToJpeg, pdfStream } from './scan/pdf.js';
-import { pageFromBlob, thumbOf } from './scan/page.js';
+import { pdfStream } from './scan/pdf.js';
+import { editPages } from './scan/pagesedit.js';
+import { FULL_QUAD, finalOf, thumbPage } from './scan/shot.js';
 import { savePdf, askName } from './scan/save.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('docedit'), grid = $('de-grid'), head = $('de-title');
-let pages = []; // {blob (JPEG of the page), thumb, quad?, filter?, turns?, out? (edited page record)}
-let file = null, busy = false, dirty = false;
+let pages = [];   // {i (index in the PDF), blob|null, qn, vr, filter, turns, keep, orig, thumb}
+let file = null, doc = null, opts = {}, busy = false, dirty = false;
 
 export const isDocEditOpen = () => !root.hidden;
+
+function reset() {
+  if (doc) Folder.viewClose({ id: doc.id }).catch(() => {});
+  doc = null; pages = []; file = null; opts = {}; dirty = false;
+  root.hidden = true; grid.replaceChildren();
+}
 export function closeDocEdit() {
   if (busy) return;
   if (dirty && !confirm(t('de.discardq'))) return;
-  root.hidden = true; pages = []; file = null; dirty = false;
-  grid.replaceChildren();
+  reset();
 }
 
-function card(p, i) {
+// a page of the PDF is rendered when it is needed (editing / saving), not all at once
+async function ensure(p) {
+  if (p.blob) return;
+  const r = await Folder.viewPage({ id: doc.id, index: p.i, width: 3000, quality: 95 });
+  p.blob = await (await fetch(r.data)).blob();
+}
+
+const refreshThumb = async (p) => { try { await ensure(p); p.thumb = await thumbPage(p); } catch (e) { console.error(e); } render(); };
+
+function card(p, n) {
   const el = document.createElement('div');
   el.className = 'pg';
   el.innerHTML = '<img alt=""><span class="num"></span><button class="more">⋮</button>';
-  el.querySelector('img').src = p.thumb;
-  el.querySelector('.num').textContent = i + 1;
-  el.querySelector('.more').addEventListener('click', (e) => { e.stopPropagation(); menu(i); });
-  el.addEventListener('click', () => edit(i));
+  if (p.thumb) el.querySelector('img').src = p.thumb;
+  el.querySelector('.num').textContent = n + 1;
+  el.querySelector('.more').addEventListener('click', (e) => { e.stopPropagation(); menu(p); });
+  el.addEventListener('click', () => edit(pages.indexOf(p), { single: true, lastKey: 'ms.apply' }));
   return el;
 }
 const render = () => grid.replaceChildren(...pages.map(card));
 
-async function edit(i) {
-  if (busy) return;
+/** Runs the editor; returns 'done' / 'cancel'. */
+async function edit(start, o = {}) {
+  if (busy) return 'cancel';
   busy = true;
+  let res = 'cancel';
   try {
-    const p = pages[i];
-    const img = await loadImage(p.blob, 4000);
-    const out = await openResult(img, p.quad ?? detectQuad(img), { filter: p.filter ?? 'color', turns: p.turns ?? 0, saveKey: 'ms.apply' });
-    if (out) {
-      const c = out.canvas;
-      Object.assign(p, {
-        quad: out.quad, filter: out.filter, turns: out.turns,
-        thumb: scaled(c, 360).toDataURL('image/jpeg', 0.7),
-        out: { jpeg: await canvasToJpeg(c, 0.92), w: c.width, h: c.height, comps: 3, rot: 0 },
-      });
-      dirty = true;
-      render();
-    }
+    res = await editPages(pages, {
+      start, del: true, lastKey: 'ed.done', ...o, ensure,
+      onChange: (p) => { dirty = true; refreshThumb(p); },
+      onDelete: () => { dirty = true; render(); },
+    });
   } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
+  if (!root.hidden) render();
+  return res;
 }
 
 function move(i, d) { [pages[i], pages[i + d]] = [pages[i + d], pages[i]]; dirty = true; render(); }
-function menu(i) {
-  const acts = [{ label: t('sc.edit'), run: () => edit(i) }];
+function menu(p) {
+  const i = pages.indexOf(p);
+  const acts = [{ label: t('sc.edit'), run: () => edit(i, { single: true, lastKey: 'ms.apply' }) }];
   if (i > 0) acts.push({ label: t('sc.left'), run: () => move(i, -1) });
   if (i < pages.length - 1) acts.push({ label: t('sc.right'), run: () => move(i, 1) });
   if (pages.length > 1) acts.push({ label: t('sc.delete'), danger: true, run: () => { pages.splice(i, 1); dirty = true; render(); } });
   openSheet(`${t('sc.page')} ${i + 1}`, acts);
 }
 
-export async function openDocEdit(f) {
+/** f: library file {uri, name}. o: {page, single} - edit one page right away (then save); onSaved(file). */
+export async function openDocEdit(f, o = {}) {
   if (busy) return;
   busy = true;
   try {
     const d = await Folder.viewOpen({ uri: f.uri });
-    const list = [];
-    try {
-      for (let i = 0; i < d.ratios.length; i++) {
-        toast(`${t('de.loading')} ${i + 1}/${d.ratios.length}`, 60000);
-        const r = await Folder.viewPage({ id: d.id, index: i, width: 3000, quality: 95 });
-        const blob = await (await fetch(r.data)).blob();
-        list.push({ blob, thumb: await thumbOf(blob) });
-      }
-    } finally { Folder.viewClose({ id: d.id }).catch(() => {}); }
-    pages = list; file = f; dirty = false;
+    doc = { id: d.id };
+    pages = d.ratios.map((ratio, i) => ({ i, blob: null, qn: FULL_QUAD.map((q) => q.slice()), vr: 1 / ratio, filter: 'color', turns: 0, keep: true, orig: true, thumb: '' }));
+    file = f; opts = o; dirty = false;
     head.textContent = f.name;
+    if (o.single) { // one page: no grid, edit it and save
+      busy = false;
+      const res = await edit(o.page ?? 0, { single: true, lastKey: 'sc.save' });
+      if (res === 'done') await save(); else reset();
+      return;
+    }
+    for (let k = 0; k < pages.length; k++) { // the grid needs thumbnails
+      toast(`${t('de.loading')} ${k + 1}/${pages.length}`, 60000);
+      await ensure(pages[k]);
+      pages[k].thumb = await thumbPage(pages[k]);
+    }
+    toast(t('ed.done'), 1000);
     root.hidden = false;
     render();
-    toast(t('ed.done'), 1200);
-  } catch (e) { toast(t('de.fail')); console.error(e); } finally { busy = false; }
+  } catch (e) { toast(t('de.fail')); console.error(e); reset(); } finally { busy = false; }
 }
 
 async function save() {
   if (busy || !pages.length) return;
   const base = file.name.replace(/\.pdf$/i, '');
   const name = askName(base);
-  if (name === null) return;
+  if (name === null) { if (opts.single) reset(); return; }
   const same = name.toLowerCase() === base.toLowerCase();
-  if (same && !confirm(t('de.replaceq'))) return;
+  if (same && !confirm(t('de.replaceq'))) { if (opts.single) reset(); return; }
   busy = true;
   try {
-    const list = pages.slice(), orig = file;
+    const list = pages.slice(), orig = file, onSaved = opts.onSaved;
     const r = await savePdf(pdfStream(list.length, async (i) => {
       toast(`${t('scan.saving')} ${i + 1}/${list.length}`, 60000);
-      return list[i].out ?? pageFromBlob(list[i].blob);
+      await ensure(list[i]);
+      return finalOf(list[i]);
     }), same ? `${base}~new` : name);
-    let shown = r.name ?? '';
+    let saved = { uri: r.uri, name: r.name ?? `${name}.pdf` };
+    if (doc) { Folder.viewClose({ id: doc.id }).catch(() => {}); doc = null; }
     if (same) { // replace: delete the original, give the new file its name
       await Folder.remove({ uri: orig.uri });
-      await Folder.rename({ uri: r.uri, name: `${base}.pdf` });
-      shown = `${base}.pdf`;
+      const rn = await Folder.rename({ uri: r.uri, name: `${base}.pdf` });
+      saved = { uri: rn?.uri ?? r.uri, name: `${base}.pdf` };
     }
-    toast(`${t('scan.saved')} ${shown}`);
+    toast(`${t('scan.saved')} ${saved.name}`);
     dirty = false; busy = false;
-    closeDocEdit();
+    reset();
     document.dispatchEvent(new Event('libchange'));
-  } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
+    onSaved?.(saved);
+  } catch (e) { toast(t('scan.fail')); console.error(e); if (opts.single) reset(); } finally { busy = false; }
 }
 
 $('de-cancel').addEventListener('click', closeDocEdit);
+$('de-all').addEventListener('click', () => edit(0));
 $('de-save').addEventListener('click', save);

@@ -1,4 +1,11 @@
 # Changelog
+## 0.1.7
+- Scan tab: after Done the pages are edited exactly like a single scan - frame, filter, rotation per page, Back / Next, the caption "Page i of n" at the bottom, the last button saves the PDF; the filter chosen on a page carries over to the next one; tap a page in the overview to adjust only it
+- One shared page editor (scan/pagesedit.js) is used by the Scan tab, the Library editor and the viewer
+- Viewer: page buttons (previous / next) in the bottom bar for both modes, all touch listeners passive, no nested scrolling blocks in paged mode; Edit this page (pencil button and menu), Edit the document (page grid: edit all, reorder, delete, save / replace)
+- Viewer / Library editor: pages are rendered only when needed; untouched pages keep their JPEG as it is; after saving the viewer reopens the new file
+- Fix: the page preview in the result and edge screens no longer runs under the right edge (stage padding)
+- Result screen can delete a page (trash icon) in sequence mode
 ## 0.1.6
 - Camera fix (black screen): the preview opens exactly as in the working 0.1.0 (one 3840x2160 stream, frame and overlay set up at once); ImageCapture (full-size photo) is attached in the background and can never block or restart the preview; no more re-opening of the stream; takePhoto has an 8 s timeout and falls back to the full video frame
 

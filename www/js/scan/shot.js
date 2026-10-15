@@ -5,10 +5,13 @@ import { detectQuad } from './detect.js';
 import { warp } from './warp.js';
 import { applyFilter, rotate90 } from './filters.js';
 import { canvasToJpeg } from './pdf.js';
+import { pageFromBlob } from './page.js';
 
 export const MAXSIDE = 4200; // long side cap of the working image (a 12 MP photo is used in full)
 export const FILTERS = ['color', 'contrast', 'gray', 'bw'];
 
+export const FULL_QUAD = [[0, 0], [1, 0], [1, 1], [0, 1]];
+export const isFull = (qn) => qn.every(([x, y], k) => Math.abs(x - FULL_QUAD[k][0]) < 0.003 && Math.abs(y - FULL_QUAD[k][1]) < 0.003);
 export const normQuad = (q, img) => q.map(([x, y]) => [x / img.width, y / img.height]);
 
 /** Frame in the pixel coordinates of img. If the camera frame does not fit this photo (other aspect), the edges are found automatically. */
@@ -31,6 +34,7 @@ export async function flatOf(p) {
 
 /** Stage 2: rotation + filter -> PDF page record. p.job = promise of stage 1 (made if missing). */
 export async function finalOf(p) {
+  if (p.keep) return pageFromBlob(p.blob); // untouched page of an existing PDF: as it is
   const f = await (p.job ??= flatOf(p));
   if (!p.turns && (p.filter ?? 'color') === 'color') return { jpeg: f.jpeg, w: f.w, h: f.h, comps: 3, rot: 0 };
   const c = await loadImage(new Blob([f.jpeg], { type: 'image/jpeg' }), MAXSIDE);

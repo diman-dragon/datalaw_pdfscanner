@@ -61,6 +61,7 @@ async function pump() {
 // ---- layout / position
 function layout() {
   zoomEl.textContent = Math.round(zoom * 100) + '%';
+  scroll.classList.toggle('zoomed', zoom > 1.001);
   if (mode === 'strip') {
     list.style.width = zoom * 100 + '%';
     for (const el of list.children) el._vi.style.width = '';
@@ -91,7 +92,7 @@ function setMode(m) {
   const cur = doc ? current() : 0;
   mode = m; zoom = 1;
   root.dataset.mode = m;
-  scroll.className = m;
+  scroll.classList.toggle('paged', m === 'paged');
   for (const el of list.children) el.scrollLeft = el.scrollTop = 0;
   layout();
   toPage(cur);
@@ -124,9 +125,8 @@ scroll.addEventListener('touchstart', (e) => {
 }, { passive: true });
 scroll.addEventListener('touchmove', (e) => {
   if (!pz || e.touches.length !== 2) return;
-  e.preventDefault();
   zoomAt(pz.z * dist(e.touches) / pz.d, pz.b, pz.fx, pz.fy, pz.cx, pz.cy);
-}, { passive: false });
+}, { passive: true });
 const endPinch = (e) => {
   if (!pz || e.touches.length >= 2) return;
   scroll.style.overflow = ''; pz.b.style.overflow = '';
@@ -178,12 +178,27 @@ window.addEventListener('resize', () => { if (!doc) return; const cur = current(
 $('vw-close').addEventListener('click', closeViewer);
 $('vw-minus').addEventListener('click', () => zoomBy(1 / 1.5));
 $('vw-plus').addEventListener('click', () => zoomBy(1.5));
+function go(d) {
+  if (!doc) return;
+  const i = Math.min(doc.n - 1, Math.max(0, current() + d));
+  const el = list.children[i];
+  if (mode === 'paged') scroll.scrollTo({ left: i * scroll.clientWidth, behavior: 'smooth' });
+  else scroll.scrollTo({ top: el.offsetTop - 10, behavior: 'smooth' });
+}
+$('vw-prev').addEventListener('click', () => go(-1));
+$('vw-next').addEventListener('click', () => go(1));
 $('vw-mode').addEventListener('click', () => { const m = mode === 'strip' ? 'paged' : 'strip'; store.set('vwmode', m); setMode(m); });
+const reopen = (f) => { closeViewer(); openViewer(f); }; // the file was replaced: show the new one
+function editPage() {
+  if (doc && file) openDocEdit(file, { single: true, page: current(), onSaved: reopen });
+}
+$('vw-edit').addEventListener('click', editPage);
 $('vw-menu').addEventListener('click', () => {
   if (!doc || !file) return;
   const f = file, page = current(), pages = doc.n;
   openSheet(f.name, [
-    { label: t('lib.edit'), run: () => { closeViewer(); openDocEdit(f); } },
+    { label: t('vw.editpage'), run: editPage },
+    { label: t('vw.editdoc'), run: () => openDocEdit(f, { onSaved: reopen }) },
     { label: t('ocr.menu'), run: () => openOcr({ file: f, page, pages }) },
     { label: t('lib.openext'), run: () => openExternal(f) },
   ]);

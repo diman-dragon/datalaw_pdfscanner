@@ -27,7 +27,8 @@ function draw() {
 }
 
 function layout() {
-  const sw = stage.clientWidth, sh = stage.clientHeight, dpr = window.devicePixelRatio || 1;
+  const sw = stage.clientWidth - 24, sh = stage.clientHeight - 24; // minus the stage padding
+  const dpr = window.devicePixelRatio || 1;
   scale = Math.min(sw / img.width, sh / img.height);
   const cw = img.width * scale, ch = img.height * scale;
   cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
