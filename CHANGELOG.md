@@ -1,4 +1,8 @@
 # Changelog
+## 0.1.8
+- Camera, steadiness: the on-screen frame no longer jumps - small detection jitter (< ~1.2% of the diagonal) is ignored, bigger moves are eased frame by frame
+- Camera, sharpness: continuous focus / exposure / white balance where the camera supports them; the shutter waits until the picture is still (~0.2 s, up to 1.2 s) so the shake of the tap does not blur the shot; the full-size photo settings are awaited before the shot; flash is off; the frame is taken at the moment of the shot
+- After a successful save (Quick and Scan) the app switches to the Library tab
 ## 0.1.7
 - Scan tab: after Done the pages are edited exactly like a single scan - frame, filter, rotation per page, Back / Next, the caption "Page i of n" at the bottom, the last button saves the PDF; the filter chosen on a page carries over to the next one; tap a page in the overview to adjust only it
 - One shared page editor (scan/pagesedit.js) is used by the Scan tab, the Library editor and the viewer

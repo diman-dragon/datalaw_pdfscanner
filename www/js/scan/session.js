@@ -2,6 +2,7 @@
 // like a single scan (edges / filter / rotation, "Back / Next", caption "Page i of n"); the last button saves the PDF.
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
+import { goTo } from '../tabs.js';
 import { getFolder, folderInfo } from '../folder.js';
 import { openSheet } from '../sheet.js';
 import { openCamera } from './camera.js';
@@ -115,6 +116,7 @@ async function exportPdf() {
     pages.length = 0; render();
     toast(`${t('scan.saved')} ${r.name ?? ''}`);
     document.dispatchEvent(new Event('libchange'));
+    goTo('library'); // show the saved file
   } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
 }
 

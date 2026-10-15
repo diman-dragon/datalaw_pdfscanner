@@ -2,6 +2,7 @@
 import { getFolder, folderInfo } from '../folder.js';
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
+import { goTo } from '../tabs.js';
 import { openCamera } from './camera.js';
 import { loadImage } from './load.js';
 import { openResult } from './result.js';
@@ -26,6 +27,7 @@ async function save(canvas, name) {
     const r = await savePdf(pdfStream(1, async () => page), name);
     toast(`${t('scan.saved')} ${r.name ?? ''}`);
     document.dispatchEvent(new Event('libchange'));
+    goTo('library'); // show the saved file
   } catch (e) {
     toast(t('scan.fail'));
     console.error(e);
