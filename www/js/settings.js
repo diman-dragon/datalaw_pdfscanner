@@ -2,9 +2,10 @@ import { getTheme, setTheme } from './theme.js';
 import { getLang, setLang, t } from './i18n.js';
 import { Folder, getFolder, setFolder, folderInfo } from './folder.js';
 import { getShotDelay, setShotDelay } from './shotdelay.js';
+import { getShotMode, setShotMode } from './shotmode.js';
 import { VERSION } from './version.js';
-const get = { theme: getTheme, lang: getLang, delay: () => String(getShotDelay()) };
-const set = { theme: setTheme, lang: setLang, delay: setShotDelay };
+const get = { theme: getTheme, lang: getLang, delay: () => String(getShotDelay()), shotmode: getShotMode };
+const set = { theme: setTheme, lang: setLang, delay: setShotDelay, shotmode: setShotMode };
 const segs = [...document.querySelectorAll('.seg[data-setting]')];
 const paint = () => segs.forEach((s) => [...s.children].forEach((b) => b.classList.toggle('on', b.dataset.value === get[s.dataset.setting]())));
 segs.forEach((s) => s.addEventListener('click', (e) => {

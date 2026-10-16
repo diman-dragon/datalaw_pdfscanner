@@ -1,4 +1,11 @@
 # Changelog
+## 0.1.9
+- App icon: the same look (dark background, scanner corners, beam) but the page is now a scroll with rolled ends; all launcher / round / adaptive / splash assets regenerated
+- Page editor redesigned: filter cards with live thumbnails of the current page (Original, Auto, Clean, Gray, B/W), an Adjust tab (shadows, folds & creases, brightness, contrast, sharpness), rotate, edges, Reset, hold "Original" to compare
+- New enhancement engine (scan/enhance.js): removes shadows, fold shading, uneven light, paper grain and pale creases (flat-field + white point), soft B/W, unsharp mask
+- Camera, WYSIWYG: the shot is the exact video frame at the moment of the press (no waiting, nothing is shot later), at the highest stream resolution; the stillness wait of 0.1.8 is removed; Settings > Shot mode: Instant / Max resolution (full sensor photo, slower)
+- Camera, smoothness: edge detection runs on a small reused canvas and slows down once the frame is steady; the frame is eased and ignores small jitter; torch button where supported; continuous focus
+- Working size 3600 px (300 dpi on A4) for faster saving
 ## 0.1.8
 - Camera, steadiness: the on-screen frame no longer jumps - small detection jitter (< ~1.2% of the diagonal) is ignored, bigger moves are eased frame by frame
 - Camera, sharpness: continuous focus / exposure / white balance where the camera supports them; the shutter waits until the picture is still (~0.2 s, up to 1.2 s) so the shake of the tap does not blur the shot; the full-size photo settings are awaited before the shot; flash is off; the frame is taken at the moment of the shot

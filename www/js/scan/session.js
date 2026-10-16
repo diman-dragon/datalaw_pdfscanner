@@ -9,12 +9,13 @@ import { openCamera } from './camera.js';
 import { pdfStream } from './pdf.js';
 import { editPages } from './pagesedit.js';
 import { flatOf, finalOf, thumbPage } from './shot.js';
+import { defaultLook } from './enhance.js';
 import { ensureFolder, savePdf, askName } from './save.js';
 
 const $ = (id) => document.getElementById(id);
 const home = $('sc-home'), sess = $('sc-session'), grid = $('sc-grid'), count = $('sc-count'), target = $('sc-target');
 const fallback = $('sc-cam'), gallery = $('sc-pick');
-const pages = []; // {blob, qn, vr, filter, turns, thumb, job}
+const pages = []; // {blob, qn, vr, look, turns, thumb, job}
 let busy = false, chain = Promise.resolve();
 
 // the heavy stage (decode + warp by the frame) runs in the background, one page at a time, so Save only writes the file
@@ -26,7 +27,7 @@ function prepare(p) {
 const refreshThumb = async (p) => { try { p.thumb = await thumbPage(p); } catch (e) { console.error(e); } render(); };
 
 async function addPage(shot) {
-  const p = { blob: shot.blob, qn: shot.quadN ?? null, vr: shot.vr, filter: 'color', turns: 0, thumb: '', job: null };
+  const p = { blob: shot.blob, qn: shot.quadN ?? null, vr: shot.vr, look: defaultLook('auto'), turns: 0, thumb: '', job: null };
   pages.push(p); // the order is fixed at once, the thumbnail arrives later
   render();
   prepare(p);

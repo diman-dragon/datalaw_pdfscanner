@@ -1,29 +1,31 @@
-// Camera screen: live preview, live auto frame, draggable corners, shutter, self-timer.
-// The shot is the ORIGINAL at the maximum camera quality (ImageCapture.takePhoto at the largest size; full video frame as a fallback).
-// The frame is stored with it (normalized); filters/warp are applied later.
-// Sharpness: continuous focus/exposure, and the shutter waits until the picture is still (the tap itself shakes the phone).
-// The on-screen frame is smoothed: small detection jitter is ignored, bigger moves are eased.
+// Camera screen: live preview, auto frame (smoothed), draggable corners, shutter, self-timer, torch.
+// WYSIWYG: the shot is the exact video frame at the moment of the press, at the highest stream resolution - no delay, nothing is
+// shot "later". (Settings can switch to the full sensor photo: sharper, but slower.) The frame is stored with the shot (normalized).
 import { detectQuad, insetQuad } from './detect.js';
 import { t } from '../i18n.js';
 import { getShotDelay } from '../shotdelay.js';
+import { getShotMode } from '../shotmode.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
-const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick');
+const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch');
 let multi = false, onShot = null, shots = 0, stream = null, quad = null, target = null, manual = false, detTimer = 0, raf = 0, resolveFn = null;
-let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, capture = null, photoOpts, capReady = Promise.resolve();
-const shotBtn = $('cam-shot');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, capture = null, photoOpts, calm = 0, torchOn = false;
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+const toBlob = (c, q) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', q));
 const paintCount = () => { countEl.hidden = !multi; countEl.textContent = `${t('sc.count')} ${shots}`; };
 export const isCameraOpen = () => !root.hidden;
 
 function stop() {
   stopCountdown();
-  clearInterval(detTimer);
+  clearTimeout(detTimer);
   cancelAnimationFrame(raf);
   stream?.getTracks().forEach((tr) => tr.stop());
-  stream = null; capture = null; photoOpts = undefined; quad = null; target = null; shooting = false; shotBtn.classList.remove('busy'); video.srcObject = null; root.hidden = true; multi = false; onShot = null;
+  stream = null; capture = null; photoOpts = undefined; quad = null; target = null; shooting = false; torchOn = false;
+  shotBtn.classList.remove('busy'); torchBtn.hidden = true; torchBtn.classList.remove('on');
+  video.srcObject = null; root.hidden = true; multi = false; onShot = null;
 }
 function finish(v) { stop(); const r = resolveFn; resolveFn = null; r?.(v); }
 export const closeCamera = () => finish(null);
@@ -53,7 +55,7 @@ function animate() {
     const dx = target[i][0] - p[0], dy = target[i][1] - p[1];
     if (Math.abs(dx) + Math.abs(dy) < 0.4) return p;
     moved = true;
-    return [p[0] + dx * 0.18, p[1] + dy * 0.18];
+    return [p[0] + dx * 0.2, p[1] + dy * 0.2];
   });
   if (moved) draw();
 }
@@ -67,22 +69,27 @@ function layout() {
   draw();
 }
 
+// ---- edge detection: a tiny reused canvas, and slower once the frame is steady (light on the CPU, the preview stays smooth)
+const dc = document.createElement('canvas');
+const dctx = dc.getContext('2d', { willReadFrequently: true });
 function detectTick() {
-  if (manual || busy || !vw) return;
+  if (manual || busy || shooting || !vw) return;
   busy = true;
   try {
-    const k = Math.min(1, 240 / Math.max(vw, vh));
-    const c = document.createElement('canvas');
-    c.width = Math.round(vw * k); c.height = Math.round(vh * k);
-    c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
-    const q = detectQuad(c, 240).map(([x, y]) => [x / k, y / k]);
+    const k = Math.min(1, 200 / Math.max(vw, vh));
+    dc.width = Math.round(vw * k); dc.height = Math.round(vh * k);
+    dctx.drawImage(video, 0, 0, dc.width, dc.height);
+    const q = detectQuad(dc, 200).map(([x, y]) => [x / k, y / k]);
     if (!quad) quad = q.map((p) => p.slice());
-    if (!target) target = q;
-    else {
+    if (!target) { target = q; calm = 0; } else {
       const d = q.reduce((m, p, i) => m + Math.hypot(p[0] - target[i][0], p[1] - target[i][1]), 0) / 4;
-      if (d > 0.012 * Math.hypot(vw, vh)) target = q; // below ~1.2% of the diagonal it is jitter: the frame stays put
+      if (d > 0.012 * Math.hypot(vw, vh)) { target = q; calm = 0; } else calm++; // below ~1.2% of the diagonal it is jitter: the frame stays put
     }
   } finally { busy = false; }
+}
+function detectLoop() {
+  detectTick();
+  detTimer = setTimeout(detectLoop, calm >= 3 ? 1000 : 450);
 }
 
 const pos = (e) => { const r = ov.getBoundingClientRect(); return [(e.clientX - r.left) / scale, (e.clientY - r.top) / scale]; };
@@ -94,7 +101,7 @@ ov.addEventListener('pointerdown', (e) => {
   drag = best;
   if (drag >= 0) { manual = true; ov.setPointerCapture(e.pointerId); return; }
   const now = Date.now(); // double-tap away from the corners: back to the automatic frame
-  if (now - lastTap < 350) { manual = false; target = null; detectTick(); }
+  if (now - lastTap < 350) { manual = false; target = null; calm = 0; detectTick(); }
   lastTap = now;
 });
 ov.addEventListener('pointermove', (e) => {
@@ -106,10 +113,11 @@ ov.addEventListener('pointermove', (e) => {
 ov.addEventListener('pointerup', () => { drag = -1; });
 ov.addEventListener('pointercancel', () => { drag = -1; });
 
-// ---- stream + original photo
+// ---- stream
 async function openStream() {
+  // the highest resolution the camera offers for the preview stream (the browser picks the closest supported mode)
   stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } }, audio: false,
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 4096 }, height: { ideal: 3072 }, frameRate: { ideal: 30 } }, audio: false,
   });
   video.srcObject = stream;
   await video.play();
@@ -118,78 +126,58 @@ async function openStream() {
   vw = video.videoWidth; vh = video.videoHeight;
 }
 
-// continuous focus / exposure / white balance where the camera offers them
-async function tuneTrack(tr) {
+// continuous focus and the torch button, where the camera offers them (never blocks the preview)
+async function tuneTrack(st) {
   try {
-    const caps = tr.getCapabilities?.() ?? {}, adv = {};
-    for (const k of ['focusMode', 'exposureMode', 'whiteBalanceMode']) if (caps[k]?.includes('continuous')) adv[k] = 'continuous';
-    if (Object.keys(adv).length) await tr.applyConstraints({ advanced: [adv] });
+    const tr = st.getVideoTracks()[0], caps = tr.getCapabilities?.() ?? {};
+    if (caps.focusMode?.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+    if (st === stream && caps.torch) torchBtn.hidden = false;
   } catch (e) { console.error(e); }
 }
+torchBtn.addEventListener('click', async () => {
+  if (!stream) return;
+  try {
+    torchOn = !torchOn;
+    await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: torchOn }] });
+    torchBtn.classList.toggle('on', torchOn);
+  } catch (e) { console.error(e); torchOn = false; torchBtn.classList.remove('on'); }
+});
 
-// ---- stillness: average difference of two tiny frames
-const mc = document.createElement('canvas');
-mc.width = 48; mc.height = 36;
-const mctx = mc.getContext('2d', { willReadFrequently: true });
-let prevG = null;
-function motion() {
-  mctx.drawImage(video, 0, 0, 48, 36);
-  const d = mctx.getImageData(0, 0, 48, 36).data, g = new Uint8Array(48 * 36);
-  for (let i = 0, j = 0; i < d.length; i += 4, j++) g[j] = (d[i] * 3 + d[i + 1] * 6 + d[i + 2]) / 10;
-  let sum = 0;
-  if (prevG) for (let j = 0; j < g.length; j++) sum += Math.abs(g[j] - prevG[j]);
-  const m = prevG ? sum / g.length : 99;
-  prevG = g;
-  return m;
-}
-async function waitStill(maxMs = 1200) { // 3 calm samples in a row (~0.2 s) or the time limit
-  prevG = null;
-  const t0 = Date.now();
-  let calm = 0;
-  while (stream && Date.now() - t0 < maxMs) {
-    await sleep(70);
-    if (motion() < 2.2) { if (++calm >= 3) return; } else calm = 0;
-  }
-}
-
-// Runs in the background: the preview must never wait for it. Until it is ready (or if it fails) the default photo size is used.
+// sensor mode only: full-size photo settings
 async function initCapture(st) {
-  if (typeof ImageCapture === 'undefined') return;
+  if (getShotMode() !== 'sensor' || typeof ImageCapture === 'undefined') return;
   try {
-    tuneTrack(st.getVideoTracks()[0]);
     const cap = new ImageCapture(st.getVideoTracks()[0]);
+    const c = await withTimeout(cap.getPhotoCapabilities(), 3000);
+    if (st !== stream) return;
     capture = cap;
-    const c = await Promise.race([cap.getPhotoCapabilities(), new Promise((r) => setTimeout(r, 3000))]);
-    if (st === stream && c?.imageWidth?.max && c?.imageHeight?.max) photoOpts = { imageWidth: c.imageWidth.max, imageHeight: c.imageHeight.max, fillLightMode: 'off' };
+    if (c?.imageWidth?.max && c?.imageHeight?.max) photoOpts = { imageWidth: c.imageWidth.max, imageHeight: c.imageHeight.max, fillLightMode: 'off' };
   } catch (e) { console.error(e); }
 }
 
-async function grab() {
-  if (capture) {
-    try {
-      const b = await Promise.race([capture.takePhoto(photoOpts), new Promise((_, rej) => setTimeout(() => rej(new Error('takePhoto timeout')), 8000))]);
-      if (b?.size) return b;
-    } catch (e) { console.error(e); }
-  }
-  const c = document.createElement('canvas'); // fallback: the full video frame, no downscale
+// ---- shutter
+const snapshot = () => {
+  const c = document.createElement('canvas');
   c.width = vw; c.height = vh;
-  c.getContext('2d').drawImage(video, 0, 0);
-  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', 0.98));
-}
+  c.getContext('2d').drawImage(video, 0, 0); // synchronous: exactly the frame on the screen right now
+  return c;
+};
 
 async function shoot() {
   if (shooting || !stream || !vw) return;
   shooting = true;
   shotBtn.classList.add('busy');
+  // everything that defines the shot is taken at the moment of the press
+  const frame = snapshot(), q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh;
+  navigator.vibrate?.(20);
+  wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
   try {
-    await Promise.race([capReady, sleep(1500)]); // full-size photo settings
-    await waitStill();                           // let the shake of the tap settle
-    if (!stream) return;                         // closed meanwhile
-    const q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh; // the frame as it is at the moment of the shot
-    navigator.vibrate?.(25);
-    wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
-    const blob = await grab();
-    if (!stream) return;
+    let blob = null;
+    if (capture) { // sensor mode: full photo, the frame above is the fallback
+      try { blob = await withTimeout(capture.takePhoto(photoOpts), 6000); } catch (e) { console.error(e); }
+    }
+    if (!blob?.size) blob = await toBlob(frame, 0.97);
+    if (!stream) return; // closed meanwhile
     const shot = { blob, quadN: q, vr };
     if (!multi) return finish(shot);
     shots += 1; paintCount();
@@ -213,7 +201,7 @@ function startCountdown() {
   paintTimer();
 }
 timerBtn.addEventListener('click', () => (cd ? stopCountdown() : startCountdown()));
-$('cam-shot').addEventListener('click', shoot);
+shotBtn.addEventListener('click', shoot);
 cancelBtn.addEventListener('click', closeCamera);
 document.addEventListener('delaychange', paintTimer);
 document.addEventListener('langchange', paintTimer);
@@ -221,7 +209,7 @@ document.addEventListener('langchange', paintTimer);
 /**
  * Single mode: resolves {blob, quadN, vr} after the shutter, or null if cancelled.
  * Multi mode (opts.multi): every shot calls opts.onShot({blob, quadN, vr}) and the camera stays open; resolves null on close.
- * quadN = frame (TL,TR,BR,BL) normalized to 0..1 of the preview; vr = preview aspect. Rejects if the camera is unavailable.
+ * quadN = frame (TL,TR,BR,BL) normalized to 0..1 of the picture; vr = its aspect. Rejects if the camera is unavailable.
  */
 export async function openCamera(opts = {}) {
   multi = !!opts.multi; onShot = opts.onShot ?? null; shots = opts.start ?? 0;
@@ -229,11 +217,11 @@ export async function openCamera(opts = {}) {
   cancelBtn.textContent = t(cancelBtn.dataset.i18n);
   paintCount(); paintTimer();
   await openStream();
-  quad = insetQuad(vw, vh); target = quad.map((p) => p.slice()); manual = false;
+  quad = insetQuad(vw, vh); target = quad.map((p) => p.slice()); manual = false; calm = 0;
   await new Promise((r) => requestAnimationFrame(r));
   layout();
-  detTimer = setInterval(detectTick, 350);
-  capReady = initCapture(stream); // not awaited
+  detectLoop();
   raf = requestAnimationFrame(animate);
+  tuneTrack(stream); initCapture(stream); // in the background, never awaited
   return new Promise((res) => { resolveFn = res; });
 }

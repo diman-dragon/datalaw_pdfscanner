@@ -7,6 +7,7 @@ import { openSheet } from './sheet.js';
 import { pdfStream } from './scan/pdf.js';
 import { editPages } from './scan/pagesedit.js';
 import { FULL_QUAD, finalOf, thumbPage } from './scan/shot.js';
+import { defaultLook } from './scan/enhance.js';
 import { savePdf, askName } from './scan/save.js';
 
 const $ = (id) => document.getElementById(id);
@@ -81,7 +82,7 @@ export async function openDocEdit(f, o = {}) {
   try {
     const d = await Folder.viewOpen({ uri: f.uri });
     doc = { id: d.id };
-    pages = d.ratios.map((ratio, i) => ({ i, blob: null, qn: FULL_QUAD.map((q) => q.slice()), vr: 1 / ratio, filter: 'color', turns: 0, keep: true, orig: true, thumb: '' }));
+    pages = d.ratios.map((ratio, i) => ({ i, blob: null, qn: FULL_QUAD.map((q) => q.slice()), vr: 1 / ratio, look: defaultLook('color'), turns: 0, keep: true, orig: true, thumb: '' }));
     file = f; opts = o; dirty = false;
     head.textContent = f.name;
     if (o.single) { // one page: no grid, edit it and save

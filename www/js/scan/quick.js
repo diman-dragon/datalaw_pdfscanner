@@ -8,6 +8,7 @@ import { loadImage } from './load.js';
 import { openResult } from './result.js';
 import { canvasToJpeg, pdfStream } from './pdf.js';
 import { MAXSIDE, quadFor, normQuad } from './shot.js';
+import { defaultLook } from './enhance.js';
 import { ensureFolder, savePdf, askName } from './save.js';
 
 const $ = (id) => document.getElementById(id);
@@ -40,7 +41,7 @@ async function save(canvas, name) {
 async function run(shot, fromCamera) {
   busy = true;
   try {
-    let cur = shot, state = { filter: 'color', turns: 0 };
+    let cur = shot, state = { look: defaultLook('auto'), turns: 0 };
     for (;;) {
       const img = await loadImage(cur.blob, MAXSIDE); // the original, 12 MP photos are used in full
       const p = { qn: cur.quadN ?? null, vr: cur.vr };
@@ -48,14 +49,14 @@ async function run(shot, fromCamera) {
       if (out === 'retake') {
         cur = await openCamera();
         if (!cur) return;
-        state = { filter: state.filter, turns: 0 };
+        state = { look: state.look, turns: 0 };
         continue;
       }
       if (!out) return;
       const name = askName();
       if (name === null) { // back to the result with the same settings
         cur = { blob: cur.blob, quadN: normQuad(out.quad, img), vr: img.width / img.height };
-        state = { filter: out.filter, turns: out.turns };
+        state = { look: out.look, turns: out.turns };
         continue;
       }
       await save(out.canvas, name);
