@@ -34,6 +34,29 @@ export async function* pdfStream(n, getPage) {
   yield out(`${x}trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
 }
 
+const blobOf = (c, q) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', q));
+const pack = async (b, c) => ({ jpeg: new Uint8Array(await b.arrayBuffer()), w: c.width, h: c.height, comps: 3, rot: 0 });
+
+/** The best JPEG of at most `max` bytes: quality is searched; if even the lowest does not fit, the picture is scaled down. */
+export async function encodeToBudget(canvas, max) {
+  let c = canvas;
+  for (let round = 0; round < 4; round++) {
+    const first = await blobOf(c, 0.82);
+    if (first.size <= max) return pack(first, c);
+    let lo = 0.3, hi = 0.82, best = null;
+    for (let i = 0; i < 4; i++) {
+      const q = (lo + hi) / 2, b = await blobOf(c, q);
+      if (b.size <= max) { best = b; lo = q; } else hi = q;
+    }
+    if (best) return pack(best, c);
+    const n = document.createElement('canvas');
+    n.width = Math.round(c.width * 0.85); n.height = Math.round(c.height * 0.85);
+    n.getContext('2d').drawImage(c, 0, 0, n.width, n.height);
+    c = n;
+  }
+  return pack(await blobOf(c, 0.3), c);
+}
+
 export const canvasToJpeg = (canvas, q = 0.92) => new Promise((res, rej) => canvas.toBlob(
   (b) => (b ? b.arrayBuffer().then((a) => res(new Uint8Array(a))) : rej(new Error('jpeg'))), 'image/jpeg', q));
 

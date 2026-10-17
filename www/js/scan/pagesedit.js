@@ -22,7 +22,7 @@ export async function editPages(pages, opts = {}) {
         look: p.look ?? defaultLook('color'), turns: p.turns ?? 0, light: true, stay: true,
         saveKey: last ? (opts.lastKey ?? 'ms.apply') : 'rs.next',
         caption: opts.single ? '' : `${t('sc.page')} ${i + 1} ${t('rs.of')} ${pages.length}`,
-        back: !opts.single && i > 0, del: !!opts.del && pages.length > 1,
+        back: !opts.single && i > 0, del: !!opts.del && pages.length > 1, swipeNext: !last,
       });
       if (!out) return 'cancel';
       if (out === 'delete') {

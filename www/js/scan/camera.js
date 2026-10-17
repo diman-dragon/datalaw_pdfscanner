@@ -1,17 +1,29 @@
 // Camera screen: live preview, auto frame (smoothed), draggable corners, shutter, self-timer, torch.
-// WYSIWYG: the shot is the exact video frame at the moment of the press, at the highest stream resolution - no delay, nothing is
-// shot "later". (Settings can switch to the full sensor photo: sharper, but slower.) The frame is stored with the shot (normalized).
+// WYSIWYG: the shot is the exact video frame at the moment of the press, at the highest stream resolution -
+// no delay, nothing is shot "later". The frame is stored with the shot (normalized).
 import { detectQuad, insetQuad } from './detect.js';
 import { t } from '../i18n.js';
 import { getShotDelay } from '../shotdelay.js';
-import { getShotMode } from '../shotmode.js';
+import { skewOf } from './quality.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
-const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch');
+const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch'), warnEl = $('cam-warn');
 let multi = false, onShot = null, shots = 0, stream = null, quad = null, target = null, manual = false, detTimer = 0, raf = 0, resolveFn = null;
-let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, capture = null, photoOpts, calm = 0, torchOn = false;
+let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, calm = 0, torchOn = false, gyro = 0, warnTimer = 0;
 
+// ---- steadiness (gyroscope) and tilt warnings
+const onMotion = (e) => {
+  const r = e.rotationRate;
+  if (r) gyro = gyro * 0.6 + Math.hypot(r.alpha || 0, r.beta || 0, r.gamma || 0) * 0.4; // deg/s, smoothed
+};
+function paintWarn() {
+  let msg = '';
+  if (quad) { const sk = skewOf(quad); if (sk > 0.1) msg = `${t('cam.warn.tilt')} ${Math.round(sk * 100)}%`; }
+  if (!msg && gyro > 30) msg = t('cam.warn.shake');
+  warnEl.hidden = !msg;
+  warnEl.textContent = msg;
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 const toBlob = (c, q) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', q));
@@ -21,9 +33,12 @@ export const isCameraOpen = () => !root.hidden;
 function stop() {
   stopCountdown();
   clearTimeout(detTimer);
+  clearInterval(warnTimer);
+  window.removeEventListener('devicemotion', onMotion);
+  warnEl.hidden = true; gyro = 0;
   cancelAnimationFrame(raf);
   stream?.getTracks().forEach((tr) => tr.stop());
-  stream = null; capture = null; photoOpts = undefined; quad = null; target = null; shooting = false; torchOn = false;
+  stream = null; quad = null; target = null; shooting = false; torchOn = false;
   shotBtn.classList.remove('busy'); torchBtn.hidden = true; torchBtn.classList.remove('on');
   video.srcObject = null; root.hidden = true; multi = false; onShot = null;
 }
@@ -143,18 +158,6 @@ torchBtn.addEventListener('click', async () => {
   } catch (e) { console.error(e); torchOn = false; torchBtn.classList.remove('on'); }
 });
 
-// sensor mode only: full-size photo settings
-async function initCapture(st) {
-  if (getShotMode() !== 'sensor' || typeof ImageCapture === 'undefined') return;
-  try {
-    const cap = new ImageCapture(st.getVideoTracks()[0]);
-    const c = await withTimeout(cap.getPhotoCapabilities(), 3000);
-    if (st !== stream) return;
-    capture = cap;
-    if (c?.imageWidth?.max && c?.imageHeight?.max) photoOpts = { imageWidth: c.imageWidth.max, imageHeight: c.imageHeight.max, fillLightMode: 'off' };
-  } catch (e) { console.error(e); }
-}
-
 // ---- shutter
 const snapshot = () => {
   const c = document.createElement('canvas');
@@ -167,16 +170,14 @@ async function shoot() {
   if (shooting || !stream || !vw) return;
   shooting = true;
   shotBtn.classList.add('busy');
+  if (gyro > 45) for (let i = 0; i < 10 && gyro > 25; i++) await sleep(25); // shaken by the tap: wait up to 0.25 s for calm
+  if (!stream) { shooting = false; shotBtn.classList.remove('busy'); return; }
   // everything that defines the shot is taken at the moment of the press
   const frame = snapshot(), q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh;
   navigator.vibrate?.(20);
   wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
   try {
-    let blob = null;
-    if (capture) { // sensor mode: full photo, the frame above is the fallback
-      try { blob = await withTimeout(capture.takePhoto(photoOpts), 6000); } catch (e) { console.error(e); }
-    }
-    if (!blob?.size) blob = await toBlob(frame, 0.97);
+    const blob = await toBlob(frame, 0.97);
     if (!stream) return; // closed meanwhile
     const shot = { blob, quadN: q, vr };
     if (!multi) return finish(shot);
@@ -222,6 +223,8 @@ export async function openCamera(opts = {}) {
   layout();
   detectLoop();
   raf = requestAnimationFrame(animate);
-  tuneTrack(stream); initCapture(stream); // in the background, never awaited
+  tuneTrack(stream); // in the background, never awaited
+  window.addEventListener('devicemotion', onMotion);
+  warnTimer = setInterval(paintWarn, 300);
   return new Promise((res) => { resolveFn = res; });
 }

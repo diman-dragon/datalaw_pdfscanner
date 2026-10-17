@@ -6,7 +6,8 @@ import { goTo } from '../tabs.js';
 import { openCamera } from './camera.js';
 import { loadImage } from './load.js';
 import { openResult } from './result.js';
-import { canvasToJpeg, pdfStream } from './pdf.js';
+import { encodeToBudget, pdfStream } from './pdf.js';
+import { pdfTarget } from '../pdfquality.js';
 import { MAXSIDE, quadFor, normQuad } from './shot.js';
 import { defaultLook } from './enhance.js';
 import { ensureFolder, savePdf, askName } from './save.js';
@@ -24,13 +25,13 @@ async function save(canvas, name) {
   busy = true;
   try {
     toast(t('scan.saving'), 60000);
-    const page = { jpeg: await canvasToJpeg(canvas, 0.93), w: canvas.width, h: canvas.height, comps: 3, rot: 0 };
+    const page = await encodeToBudget(canvas, pdfTarget().budget);
     const r = await savePdf(pdfStream(1, async () => page), name);
     toast(`${t('scan.saved')} ${r.name ?? ''}`);
     document.dispatchEvent(new Event('libchange'));
     goTo('library'); // show the saved file
   } catch (e) {
-    toast(t('scan.fail'));
+    toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000);
     console.error(e);
   } finally {
     busy = false;
@@ -43,9 +44,9 @@ async function run(shot, fromCamera) {
   try {
     let cur = shot, state = { look: defaultLook('auto'), turns: 0 };
     for (;;) {
-      const img = await loadImage(cur.blob, MAXSIDE); // the original, 12 MP photos are used in full
+      const img = await loadImage(cur.blob, MAXSIDE); // the original: the frame is set on it, the PDF is made from it
       const p = { qn: cur.quadN ?? null, vr: cur.vr };
-      const out = await openResult(img, quadFor(img, p), { ...state, retake: fromCamera });
+      const out = await openResult(img, quadFor(img, p), { ...state, retake: fromCamera, blob: cur.blob });
       if (out === 'retake') {
         cur = await openCamera();
         if (!cur) return;
@@ -63,7 +64,7 @@ async function run(shot, fromCamera) {
       return;
     }
   } catch (e) {
-    toast(t('scan.fail'));
+    toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000);
     console.error(e);
   } finally {
     busy = false;

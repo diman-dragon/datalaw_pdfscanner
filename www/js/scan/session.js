@@ -75,7 +75,7 @@ async function review(start, o = {}) {
       onChange: (p) => { prepare(p); refreshThumb(p); },
       onDelete: render,
     });
-  } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; render(); }
+  } catch (e) { toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000); console.error(e); } finally { busy = false; render(); }
   return res;
 }
 
@@ -118,7 +118,7 @@ async function exportPdf() {
     toast(`${t('scan.saved')} ${r.name ?? ''}`);
     document.dispatchEvent(new Event('libchange'));
     goTo('library'); // show the saved file
-  } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
+  } catch (e) { toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000); console.error(e); } finally { busy = false; }
 }
 
 for (const id of ['sc-shoot', 'sc-add']) $(id).addEventListener('click', shoot);

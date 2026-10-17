@@ -31,12 +31,47 @@ function homography(from, to) {
   return solve(A, b);
 }
 
-export function warp(src, quad, maxSide = 2200) {
-  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/**
+ * Real width / height of the rectangle that is seen as `quad` (TL, TR, BR, BL) in a picture of cx*2 x cy*2 px.
+ * The focal length is recovered from the orthogonality of the sheet's sides (Zhang & He, principal point = picture centre);
+ * when that is impossible (the phone is tilted about one axis only) or implausible, a typical phone lens is assumed
+ * (f = 0.75 x the long side of the picture, ~26 mm equivalent).
+ */
+export function trueAspect(quad, cx, cy) {
+  const m = (p) => [p[0] - cx, p[1] - cy, 1];
+  const m1 = m(quad[0]), m2 = m(quad[1]), m3 = m(quad[3]), m4 = m(quad[2]);
+  const k2 = dot(cross(m1, m4), m3) / dot(cross(m2, m4), m3);
+  const k3 = dot(cross(m1, m4), m2) / dot(cross(m3, m4), m2);
+  if (!Number.isFinite(k2) || !Number.isFinite(k3)) return null;
+  const n2 = m2.map((v, i) => k2 * v - m1[i]), n3 = m3.map((v, i) => k3 * v - m1[i]);
+  const L = Math.max(cx, cy) * 2, prior = 0.75 * L;
+  let f2 = -(n2[0] * n3[0] + n2[1] * n3[1]) / (n2[2] * n3[2]);
+  const f = Math.sqrt(f2);
+  // the focal length is only trustworthy when the sheet converges in BOTH directions (tilted about two axes)
+  const wellPosed = Math.abs(k2 - 1) > 0.05 && Math.abs(k3 - 1) > 0.05;
+  if (!wellPosed || !(f2 > 0) || !Number.isFinite(f) || f < 0.35 * L || f > 2 * L) f2 = prior * prior; // otherwise: typical lens
+  const len2 = (n) => (n[0] * n[0] + n[1] * n[1]) / f2 + n[2] * n[2];
+  const r = Math.sqrt(len2(n2) / len2(n3));
+  return Number.isFinite(r) && r > 0.2 && r < 5 ? r : null;
+}
+
+/** Output size of the straightened page: the right proportions, the detail of the nearest side kept, long side <= maxSide. */
+export function pageSize(quad, srcW, srcH, maxSide) {
   const [tl, tr, br, bl] = quad;
-  let W = Math.max(dist(tl, tr), dist(bl, br)), H = Math.max(dist(tl, bl), dist(tr, br));
+  const wMax = Math.max(dist(tl, tr), dist(bl, br)), hMax = Math.max(dist(tl, bl), dist(tr, br));
+  const a = trueAspect(quad, srcW / 2, srcH / 2) ?? wMax / hMax; // w / h
+  let W = wMax, H = wMax / a;
+  if (H < hMax) { H = hMax; W = hMax * a; }
   const k = Math.min(1, maxSide / Math.max(W, H));
-  W = Math.max(16, Math.round(W * k)); H = Math.max(16, Math.round(H * k));
+  return [Math.max(16, Math.round(W * k)), Math.max(16, Math.round(H * k))];
+}
+
+export function warp(src, quad, maxSide = 2200) {
+  const [W, H] = pageSize(quad, src.width, src.height, maxSide);
   const h = homography([[0, 0], [W, 0], [W, H], [0, H]], quad);
   const sw = src.width, sh = src.height;
   const sd = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;

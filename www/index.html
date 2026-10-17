@@ -59,8 +59,8 @@
       <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="strong"></div><div id="folder-path" class="small muted"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
       <div class="row"><span data-i18n="set.delay"></span>
         <div class="seg" data-setting="delay"><button data-value="3">3</button><button data-value="5">5</button><button data-value="10">10</button></div></div>
-      <div class="row"><span data-i18n="set.shotmode"></span>
-        <div class="seg" data-setting="shotmode"><button data-value="frame" data-i18n="set.mode.frame"></button><button data-value="sensor" data-i18n="set.mode.sensor"></button></div></div>
+      <div class="row"><span data-i18n="set.pdfdpi"></span>
+        <div class="seg" data-setting="pdfdpi"><button data-value="150">150</button><button data-value="300">300</button><button data-value="600">600</button></div></div>
       <div class="row"><span data-i18n="set.theme"></span>
         <div class="seg" data-setting="theme"><button data-value="light" data-i18n="set.light"></button><button data-value="dark" data-i18n="set.dark"></button></div></div>
       <div class="row"><span data-i18n="set.lang"></span>
@@ -77,6 +77,7 @@
 </div>
 <div id="camera" hidden>
   <div id="cam-count" hidden></div>
+  <div id="cam-warn" hidden></div>
   <button id="cam-torch" hidden data-i18n-aria="cam.torch"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M13 2L5 14h5l-1 8 8-12h-5z"/></svg></button>
   <div class="ed-head" data-i18n="cam.title"></div>
   <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><canvas id="cam-overlay"></canvas><div id="cam-tick" hidden></div></div></div>
@@ -89,41 +90,22 @@
 </div>
 <div id="result" hidden>
   <div class="ed-head"><span data-i18n="rs.title"></span>
-    <span class="rs-head-btns">
-      <button id="rs-cmp" class="rs-pill" data-i18n="rs.compare"></button>
-      <button id="rs-del" class="vw-btn" data-i18n-aria="sc.delete" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
-    </span>
+    <button id="rs-del" class="vw-btn" data-i18n-aria="sc.delete" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
   </div>
-  <div id="rs-stage"><canvas id="rs-canvas"></canvas></div>
+  <div id="rs-stage"><canvas id="rs-canvas"></canvas><canvas id="rs-mini" hidden></canvas></div>
+  <p id="rs-hint" data-i18n="rs.hint"></p>
   <p id="rs-caption" hidden></p>
   <div id="rs-panel">
-    <div id="rs-row">
-      <div class="seg" id="rs-tabs"><button data-tab="filters" class="on" data-i18n="rs.tab.filters"></button><button data-tab="adjust" data-i18n="rs.tab.adjust"></button></div>
-      <div class="rs-rot">
-        <button id="rs-left" class="rs-ic" data-i18n-aria="rs.rotl"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></button>
-        <button id="rs-right" class="rs-ic" data-i18n-aria="rs.rotr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg></button>
-        <button id="rs-edges" class="rs-ic" data-i18n-aria="rs.edges"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3H4v3M17 3h3v3M7 21H4v-3M17 21h3v-3"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></button>
-      </div>
-    </div>
-    <div id="rs-filters">
-      <button data-value="color"><canvas width="96" height="96"></canvas><span data-i18n="fx.color"></span></button>
-      <button data-value="auto"><canvas width="96" height="96"></canvas><span data-i18n="fx.auto"></span></button>
-      <button data-value="clean"><canvas width="96" height="96"></canvas><span data-i18n="fx.clean"></span></button>
-      <button data-value="gray"><canvas width="96" height="96"></canvas><span data-i18n="fx.gray"></span></button>
-      <button data-value="bw"><canvas width="96" height="96"></canvas><span data-i18n="fx.bw"></span></button>
-    </div>
-    <div id="rs-adjust" hidden>
-      <label><span data-i18n="adj.fix"></span><output></output><input type="range" data-key="fix" min="0" max="100"></label>
-      <label><span data-i18n="adj.bright"></span><output></output><input type="range" data-key="bright" min="-50" max="50"></label>
-      <label><span data-i18n="adj.contrast"></span><output></output><input type="range" data-key="contrast" min="-50" max="50"></label>
-      <label><span data-i18n="adj.sharp"></span><output></output><input type="range" data-key="sharp" min="0" max="100"></label>
-      <button id="rs-reset" class="rs-pill" data-i18n="rs.reset"></button>
+    <div class="seg" id="rs-look"><button data-value="color" data-i18n="fx.color"></button><button data-value="auto" class="on" data-i18n="fx.auto"></button></div>
+    <div class="rs-rot">
+      <button id="rs-left" class="rs-ic" data-i18n-aria="rs.rotl"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></button>
+      <button id="rs-right" class="rs-ic" data-i18n-aria="rs.rotr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg></button>
     </div>
   </div>
   <div id="rs-bar">
+    <button class="btn" id="rs-save" data-i18n="rs.save"></button>
     <button class="btn ghost" id="rs-back" data-i18n="rs.back" hidden></button>
     <button class="btn ghost" id="rs-retake" data-i18n="rs.retake"></button>
-    <button class="btn" id="rs-save" data-i18n="rs.save"></button>
   </div>
 </div>
 <div id="viewer" hidden>
@@ -161,15 +143,6 @@
   <div class="ed-head" id="de-title"></div>
   <div id="de-grid"></div>
   <div id="de-bar"><button class="btn ghost" id="de-cancel" data-i18n="ed.cancel"></button><button class="btn ghost" id="de-all" data-i18n="de.all"></button><button class="btn" id="de-save" data-i18n="sc.save"></button></div>
-</div>
-<div id="editor" hidden>
-  <div class="ed-head" data-i18n="ed.title"></div>
-  <div id="ed-stage"><canvas id="ed-canvas"></canvas></div>
-  <div id="ed-bar">
-    <button class="btn ghost" id="ed-cancel" data-i18n="ed.cancel"></button>
-    <button class="btn ghost" id="ed-auto" data-i18n="ed.auto"></button>
-    <button class="btn" id="ed-done" data-i18n="ed.done"></button>
-  </div>
 </div>
 </body>
 </html>

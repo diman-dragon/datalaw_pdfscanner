@@ -1,4 +1,16 @@
 # Changelog
+## 0.1.11
+- PDF quality in Settings: 150 / 300 / 600 dpi. The PDF is always made from the ORIGINAL photo (frame -> straighten -> Auto), never from an already compressed picture; each page is compressed to a size budget (about 300 KB at 150 dpi, 800 KB at 300, 2.2 MB at 600); pages are never enlarged beyond what the camera captured, so 600 dpi needs a camera that really has the pixels
+- "As if shot parallel": the straightened page now gets its real proportions (the focal length is recovered from the sheet's perspective, a typical phone lens is assumed when that is impossible) - the error of the page proportions drops from up to 35% to about 3% in the worst tilt
+- Warnings: in the camera - "tilted, hold the phone parallel" (from the frame) and "hold steadier" (gyroscope; if the tap shakes the phone the shutter waits up to 0.25 s for calm); in the editor - "the shot may be blurry" and "strong tilt N%"
+- Editing existing PDFs renders pages at the chosen PDF quality instead of a fixed large size
+## 0.1.10
+- Fix "could not save the scan": the clean-up of a full-size page needed several hundred MB; it now works in strips (about 3x faster, low memory); if the device still runs out of memory a smaller render is tried, then the plain crop - saving no longer fails because of it; the real error text is shown in the message
+- After the shot only two looks: Original and Auto (Auto fixes shadows, fold shading, creases, uneven light and sharpens); all sliders / extra filters removed
+- The frame is right on the editor screen: drag the corners, double-tap = automatic frame; no separate "Edges" button / screen; a small live preview of the result (tap it to see the result large, tap again to return)
+- Batch editor: "Next / Save" is always on the left, "Back" on the right; swipe left = next page, swipe right = previous (a swipe never saves on the last page)
+- Viewer (paged mode) has its own gestures: swipe left / right flips the page, pinch zoom, drag when zoomed, double-tap zoom
+- Camera: the "max resolution" sensor mode and its setting are removed (the shot is always the exact frame at the moment of the press)
 ## 0.1.9
 - App icon: the same look (dark background, scanner corners, beam) but the page is now a scroll with rolled ends; all launcher / round / adaptive / splash assets regenerated
 - Page editor redesigned: filter cards with live thumbnails of the current page (Original, Auto, Clean, Gray, B/W), an Adjust tab (shadows, folds & creases, brightness, contrast, sharpness), rotate, edges, Reset, hold "Original" to compare

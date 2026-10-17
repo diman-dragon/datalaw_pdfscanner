@@ -9,6 +9,7 @@ import { editPages } from './scan/pagesedit.js';
 import { FULL_QUAD, finalOf, thumbPage } from './scan/shot.js';
 import { defaultLook } from './scan/enhance.js';
 import { savePdf, askName } from './scan/save.js';
+import { pdfTarget } from './pdfquality.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('docedit'), grid = $('de-grid'), head = $('de-title');
@@ -31,7 +32,7 @@ export function closeDocEdit() {
 // a page of the PDF is rendered when it is needed (editing / saving), not all at once
 async function ensure(p) {
   if (p.blob) return;
-  const r = await Folder.viewPage({ id: doc.id, index: p.i, width: 3000, quality: 95 });
+  const r = await Folder.viewPage({ id: doc.id, index: p.i, width: Math.min(2400, pdfTarget().side), quality: 88 });
   p.blob = await (await fetch(r.data)).blob();
 }
 
@@ -60,7 +61,7 @@ async function edit(start, o = {}) {
       onChange: (p) => { dirty = true; refreshThumb(p); },
       onDelete: () => { dirty = true; render(); },
     });
-  } catch (e) { toast(t('scan.fail')); console.error(e); } finally { busy = false; }
+  } catch (e) { toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000); console.error(e); } finally { busy = false; }
   if (!root.hidden) render();
   return res;
 }
@@ -129,7 +130,7 @@ async function save() {
     reset();
     document.dispatchEvent(new Event('libchange'));
     onSaved?.(saved);
-  } catch (e) { toast(t('scan.fail')); console.error(e); if (opts.single) reset(); } finally { busy = false; }
+  } catch (e) { toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000); console.error(e); if (opts.single) reset(); } finally { busy = false; }
 }
 
 $('de-cancel').addEventListener('click', closeDocEdit);

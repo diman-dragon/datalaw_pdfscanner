@@ -1,5 +1,7 @@
-// Light in-app PDF viewer. Two modes: strip (vertical scroll) and paged (swipe left/right).
-// Pinch to zoom (1x-4x), +/- buttons, pages rendered lazily by the native plugin.
+// Light in-app PDF viewer. Two modes:
+//  - strip: vertical scrolling, pinch to zoom;
+//  - paged: one page at a time, own gestures (swipe left/right = next/previous page, pinch, drag when zoomed, double-tap zoom).
+// Page buttons and +/- are always there. Pages are rendered lazily by the native plugin.
 import { Folder } from './folder.js';
 import { store } from './storage.js';
 import { t } from './i18n.js';
@@ -12,6 +14,7 @@ const $ = (id) => document.getElementById(id);
 const root = $('viewer'), titleEl = $('vw-title'), posEl = $('vw-pos'), scroll = $('vw-scroll'), list = $('vw-pages'), zoomEl = $('vw-zoom');
 const MAXZ = 4;
 let doc = null, file = null, zoom = 1, mode = 'strip', gen = 0, queue = [], pumping = false, raf = 0, io = null, soon = 0, pz = null;
+let pi = 0, pdx = 0, pan = { x: 0, y: 0 }; // paged mode: page index, drag offset, pan of the zoomed page
 
 export const isViewerOpen = () => !root.hidden;
 
@@ -61,7 +64,6 @@ async function pump() {
 // ---- layout / position
 function layout() {
   zoomEl.textContent = Math.round(zoom * 100) + '%';
-  scroll.classList.toggle('zoomed', zoom > 1.001);
   if (mode === 'strip') {
     list.style.width = zoom * 100 + '%';
     for (const el of list.children) el._vi.style.width = '';
@@ -73,7 +75,7 @@ function layout() {
 }
 
 const current = () => {
-  if (mode === 'paged') return Math.round(scroll.scrollLeft / Math.max(1, scroll.clientWidth));
+  if (mode === 'paged') return Math.min(pi, Math.max(0, (doc?.n ?? 1) - 1));
   const mid = scroll.scrollTop + scroll.clientHeight / 3;
   let cur = 0;
   for (let i = 0; i < list.children.length; i++) { if (list.children[i].offsetTop <= mid) cur = i; else break; }
@@ -83,25 +85,49 @@ function paintPos() {
   raf = 0;
   if (doc) posEl.textContent = `${Math.min(current(), doc.n - 1) + 1} / ${doc.n}`;
 }
-function toPage(i) {
-  if (mode === 'paged') scroll.scrollLeft = i * scroll.clientWidth;
-  else scroll.scrollTop = list.children[i]?.offsetTop ?? 0;
+
+// ---- paged mode helpers
+function clampPan() {
+  const el = list.children[pi];
+  if (!el) return;
+  const mx = Math.max(0, (el._vi.offsetWidth - scroll.clientWidth) / 2), my = Math.max(0, (el._vi.offsetHeight - scroll.clientHeight) / 2);
+  pan.x = Math.min(mx, Math.max(-mx, pan.x)); pan.y = Math.min(my, Math.max(-my, pan.y));
+}
+function applyPaged(anim = true) {
+  list.classList.toggle('drag', !anim);
+  list.style.transform = `translate3d(${-pi * scroll.clientWidth + pdx}px,0,0)`;
+  const el = list.children[pi];
+  if (el) { el.style.setProperty('--tx', pan.x + 'px'); el.style.setProperty('--ty', pan.y + 'px'); }
+}
+function setPage(i) {
+  if (!doc) return;
+  const n = Math.min(doc.n - 1, Math.max(0, i));
+  if (n !== pi) {
+    const old = list.children[pi];
+    if (old) { old.style.removeProperty('--tx'); old.style.removeProperty('--ty'); }
+    pi = n; zoom = 1; pan = { x: 0, y: 0 };
+    layout();
+    restartSoon();
+  }
+  pdx = 0;
+  applyPaged(true);
+  paintPos();
 }
 
 function setMode(m) {
   const cur = doc ? current() : 0;
-  mode = m; zoom = 1;
+  mode = m; zoom = 1; pan = { x: 0, y: 0 }; pdx = 0;
   root.dataset.mode = m;
   scroll.classList.toggle('paged', m === 'paged');
-  for (const el of list.children) el.scrollLeft = el.scrollTop = 0;
+  for (const el of list.children) { el.style.removeProperty('--tx'); el.style.removeProperty('--ty'); }
+  list.style.transform = '';
   layout();
-  toPage(cur);
+  if (m === 'paged') { pi = cur; applyPaged(false); } else scroll.scrollTop = list.children[cur]?.offsetTop ?? 0;
   if (doc) restart();
   paintPos();
 }
 
-// ---- zoom (around a point of the viewport)
-const box = () => (mode === 'paged' ? list.children[current()] : scroll); // the element that scrolls the page content
+// ---- zoom: strip mode around a point of the viewport (native scrolling), paged mode by our own pan
 function zoomAt(z, b, fx, fy, cx, cy) {
   zoom = Math.min(MAXZ, Math.max(1, z));
   layout();
@@ -110,36 +136,101 @@ function zoomAt(z, b, fx, fy, cx, cy) {
 }
 function zoomBy(k) {
   if (!doc) return;
-  const b = box(), cx = scroll.clientWidth / 2, cy = scroll.clientHeight / 2;
-  zoomAt(zoom * k, b, (b.scrollLeft + cx) / b.scrollWidth, (b.scrollTop + cy) / b.scrollHeight, cx, cy);
+  if (mode === 'paged') {
+    const z0 = zoom;
+    zoom = Math.min(MAXZ, Math.max(1, zoom * k));
+    layout(); pan.x *= zoom / z0; pan.y *= zoom / z0; clampPan(); applyPaged(true);
+  } else {
+    const cx = scroll.clientWidth / 2, cy = scroll.clientHeight / 2;
+    zoomAt(zoom * k, scroll, (scroll.scrollLeft + cx) / scroll.scrollWidth, (scroll.scrollTop + cy) / scroll.scrollHeight, cx, cy);
+  }
   restartSoon();
 }
 
-const dist = (t2) => Math.hypot(t2[0].clientX - t2[1].clientX, t2[0].clientY - t2[1].clientY);
+// strip mode: pinch (touch events; native scrolling is switched off while two fingers are down)
+const dist2 = (t2) => Math.hypot(t2[0].clientX - t2[1].clientX, t2[0].clientY - t2[1].clientY);
 scroll.addEventListener('touchstart', (e) => {
-  if (e.touches.length !== 2 || !doc) return;
-  const r = scroll.getBoundingClientRect(), b = box();
+  if (mode !== 'strip' || e.touches.length !== 2 || !doc) return;
+  const r = scroll.getBoundingClientRect(), b = scroll;
   const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
-  pz = { d: dist(e.touches), z: zoom, b, cx, cy, fx: (b.scrollLeft + cx) / b.scrollWidth, fy: (b.scrollTop + cy) / b.scrollHeight };
-  scroll.style.overflow = 'hidden'; b.style.overflow = 'hidden'; // no native scrolling while pinching
+  pz = { d: dist2(e.touches), z: zoom, b, cx, cy, fx: (b.scrollLeft + cx) / b.scrollWidth, fy: (b.scrollTop + cy) / b.scrollHeight };
+  scroll.style.overflow = 'hidden';
 }, { passive: true });
 scroll.addEventListener('touchmove', (e) => {
   if (!pz || e.touches.length !== 2) return;
-  zoomAt(pz.z * dist(e.touches) / pz.d, pz.b, pz.fx, pz.fy, pz.cx, pz.cy);
+  zoomAt(pz.z * dist2(e.touches) / pz.d, pz.b, pz.fx, pz.fy, pz.cx, pz.cy);
 }, { passive: true });
 const endPinch = (e) => {
   if (!pz || e.touches.length >= 2) return;
-  scroll.style.overflow = ''; pz.b.style.overflow = '';
+  scroll.style.overflow = '';
   pz = null;
   restartSoon(); // re-render sharp at the new size
 };
 scroll.addEventListener('touchend', endPinch, { passive: true });
 scroll.addEventListener('touchcancel', endPinch, { passive: true });
 
+// paged mode: own gestures with pointer events
+const ptrs = new Map();
+let g = null, pinch = null, lastTap = 0;
+scroll.addEventListener('pointerdown', (e) => {
+  if (mode !== 'paged' || !doc) return;
+  scroll.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom, px: pan.x, py: pan.y };
+    g = null; pdx = 0; applyPaged(false);
+  } else if (ptrs.size === 1) {
+    g = { x: e.clientX, y: e.clientY, t: Date.now(), px: pan.x, py: pan.y };
+    list.classList.add('drag');
+  }
+});
+scroll.addEventListener('pointermove', (e) => {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && ptrs.size >= 2) {
+    const [a, b] = [...ptrs.values()], z0 = pinch.z;
+    zoom = Math.min(MAXZ, Math.max(1, z0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d));
+    layout(); pan.x = pinch.px * zoom / z0; pan.y = pinch.py * zoom / z0; clampPan(); applyPaged(false);
+  } else if (g) {
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (zoom > 1.001) { pan.x = g.px + dx; pan.y = g.py + dy; clampPan(); applyPaged(false); } else {
+      const edge = (dx > 0 && pi === 0) || (dx < 0 && pi === (doc?.n ?? 1) - 1);
+      pdx = edge ? dx * 0.3 : dx; // resistance at the first / last page
+      applyPaged(false);
+    }
+  }
+});
+const endPtr = (e) => {
+  if (!ptrs.has(e.pointerId)) return;
+  const wasPinch = !!pinch;
+  ptrs.delete(e.pointerId);
+  if (wasPinch) { if (ptrs.size < 2) { pinch = null; restartSoon(); } if (!ptrs.size) g = null; return; }
+  if (!g) return;
+  const dx = e.clientX - g.x, dy = e.clientY - g.y, dt = Math.max(1, Date.now() - g.t), s = g; g = null;
+  if (zoom > 1.001) { applyPaged(true); } else if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy)) {
+    const W = scroll.clientWidth;
+    if (Math.abs(dx) > W * 0.18 || Math.abs(dx / dt) > 0.45) setPage(pi + (dx < 0 ? 1 : -1)); else setPage(pi); // swipe: flip, or snap back
+  } else { pdx = 0; applyPaged(true); }
+  if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 350) { // tap; the second one within 350 ms = double-tap zoom
+    const now = Date.now();
+    if (now - lastTap < 350) {
+      const r = scroll.getBoundingClientRect();
+      if (zoom > 1.001) { zoom = 1; pan = { x: 0, y: 0 }; } else {
+        zoom = 2.5; layout();
+        pan = { x: (r.width / 2 - (s.x - r.left)) * (zoom - 1), y: (r.height / 2 - (s.y - r.top)) * (zoom - 1) };
+      }
+      layout(); clampPan(); applyPaged(true); restartSoon(); lastTap = 0;
+    } else lastTap = now;
+  }
+};
+scroll.addEventListener('pointerup', endPtr);
+scroll.addEventListener('pointercancel', endPtr);
+
 // ---- open / close
 export function closeViewer() {
   if (root.hidden) return;
-  root.hidden = true; gen++; queue = []; pz = null;
+  root.hidden = true; gen++; queue = []; pz = null; pinch = null; g = null; ptrs.clear();
   scroll.style.overflow = '';
   io?.disconnect(); io = null;
   list.replaceChildren();
@@ -149,7 +240,8 @@ export function closeViewer() {
 
 export async function openViewer(f) {
   if (!root.hidden) return;
-  file = f; zoom = 1; mode = store.get('vwmode') === 'paged' ? 'paged' : 'strip';
+  file = f; zoom = 1; pi = 0; pdx = 0; pan = { x: 0, y: 0 };
+  mode = store.get('vwmode') === 'paged' ? 'paged' : 'strip';
   titleEl.textContent = f.name; posEl.textContent = '';
   list.replaceChildren();
   root.hidden = false;
@@ -164,7 +256,7 @@ export async function openViewer(f) {
       el._i = i; el._r = ratio; el._vi = vi; el._img = img;
       vi.append(img); el.append(vi); list.append(el);
     });
-    layout(); scroll.scrollTop = scroll.scrollLeft = 0;
+    layout(); scroll.scrollTop = 0; applyPaged(false);
     restart(); paintPos();
   } catch (e) {
     console.error(e);
@@ -174,16 +266,20 @@ export async function openViewer(f) {
 }
 
 scroll.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(paintPos); }, { passive: true });
-window.addEventListener('resize', () => { if (!doc) return; const cur = current(); layout(); toPage(cur); restartSoon(); });
+window.addEventListener('resize', () => {
+  if (!doc) return;
+  const cur = current(); layout();
+  if (mode === 'paged') { clampPan(); applyPaged(false); } else scroll.scrollTop = list.children[cur]?.offsetTop ?? 0;
+  restartSoon();
+});
 $('vw-close').addEventListener('click', closeViewer);
 $('vw-minus').addEventListener('click', () => zoomBy(1 / 1.5));
 $('vw-plus').addEventListener('click', () => zoomBy(1.5));
 function go(d) {
   if (!doc) return;
+  if (mode === 'paged') { setPage(pi + d); return; }
   const i = Math.min(doc.n - 1, Math.max(0, current() + d));
-  const el = list.children[i];
-  if (mode === 'paged') scroll.scrollTo({ left: i * scroll.clientWidth, behavior: 'smooth' });
-  else scroll.scrollTo({ top: el.offsetTop - 10, behavior: 'smooth' });
+  scroll.scrollTo({ top: list.children[i].offsetTop - 10, behavior: 'smooth' });
 }
 $('vw-prev').addEventListener('click', () => go(-1));
 $('vw-next').addEventListener('click', () => go(1));
