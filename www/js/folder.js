@@ -24,6 +24,7 @@ const mock = {
     return { uri: 'mock://' + id, name: st.name + '.pdf' };
   },
   async saveAbort({ id }) { delete this._streams[id]; },
+  async replaceWith({ uri, from }) { const src = mockFiles.find((f) => f.uri === from), dst = mockFiles.find((f) => f.uri === uri); if (!dst) throw new Error('Missing file'); if (src) { dst.size = src.size; dst.modified = Date.now(); } mockFiles = mockFiles.filter((f) => f.uri !== from); return { uri }; },
   async remove({ uri }) { mockFiles = mockFiles.filter((f) => f.uri !== uri); },
   async rename({ uri, name }) { mockFiles.forEach((f) => { if (f.uri === uri) f.name = name; }); return { uri }; },
   async open() { alert('open (browser mock)'); },

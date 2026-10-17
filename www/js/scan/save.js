@@ -28,9 +28,22 @@ export function askName(def = stamp()) {
 }
 
 const CHUNK = 1500000;
+
+// If the folder we save to is gone (deleted, moved, card removed) the user picks another one and the save goes on.
+async function openOut(name) {
+  try {
+    return await Folder.saveOpen({ tree: getFolder().uri, name });
+  } catch (e) {
+    if (!/folder_missing|Missing file/i.test(String(e?.message ?? e)) || !confirm(t('save.folderlost'))) throw e;
+    const f = await Folder.pickFolder();
+    setFolder(f);
+    return Folder.saveOpen({ tree: f.uri, name });
+  }
+}
+
 /** Writes a PDF (async iterable of Uint8Array parts) into the selected folder in ~1.5 MB chunks. Returns {uri, name}. */
 export async function savePdf(parts, name = stamp()) {
-  const { id } = await Folder.saveOpen({ tree: getFolder().uri, name });
+  const { id } = await openOut(name);
   let buf = [], size = 0;
   const flush = async () => {
     if (!size) return;

@@ -120,10 +120,17 @@ async function save() {
     }), same ? `${base}~new` : name);
     let saved = { uri: r.uri, name: r.name ?? `${name}.pdf` };
     if (doc) { Folder.viewClose({ id: doc.id }).catch(() => {}); doc = null; }
-    if (same) { // replace: delete the original, give the new file its name
-      await Folder.remove({ uri: orig.uri });
-      const rn = await Folder.rename({ uri: r.uri, name: `${base}.pdf` });
-      saved = { uri: rn?.uri ?? r.uri, name: `${base}.pdf` };
+    if (same) { // replace the original in place (it is never deleted or renamed); if that fails the new file stays as it is
+      try {
+        await Folder.replaceWith({ uri: orig.uri, from: r.uri });
+        saved = { uri: orig.uri, name: orig.name };
+      } catch (e1) {
+        console.error(e1);
+        try { // the original is gone (deleted elsewhere): the new file simply takes its name
+          const rn = await Folder.rename({ uri: r.uri, name: `${base}.pdf` });
+          saved = { uri: rn?.uri ?? r.uri, name: `${base}.pdf` };
+        } catch (e2) { console.error(e2); alert(`${t('de.keptnew')} ${saved.name}`); }
+      }
     }
     toast(`${t('scan.saved')} ${saved.name}`);
     dirty = false; busy = false;

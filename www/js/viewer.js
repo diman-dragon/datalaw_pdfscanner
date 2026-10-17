@@ -262,6 +262,7 @@ export async function openViewer(f) {
     console.error(e);
     toast(t('vw.fail'));
     closeViewer();
+    document.dispatchEvent(new Event('libchange')); // the file may be gone: refresh the list
   }
 }
 

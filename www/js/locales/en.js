@@ -110,4 +110,6 @@ export const en = {
   'cam.warn.shake': 'Hold the phone steadier',
   'rs.warn.blur': 'The shot may be blurry - better retake',
   'rs.warn.tilt': 'Strong tilt',
+  'save.folderlost': 'The save folder is not available (deleted, moved or the card was removed). Choose another folder?',
+  'de.keptnew': 'Could not replace the original. The new version is saved as:',
 };

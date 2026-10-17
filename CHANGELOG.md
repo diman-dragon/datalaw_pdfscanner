@@ -1,4 +1,6 @@
 # Changelog
+## 0.1.12
+- Fix "could not save: Missing file": (1) if the folder we save to is gone (deleted, moved, card removed) the app now offers to pick another folder and carries on with the save; (2) a name containing a path separator can no longer make the provider look for a missing sub-folder; (3) editing a PDF and saving it under the same name now overwrites the original in place (new native replaceWith) instead of delete + rename - the original is never deleted first, and if the replace fails the new version stays as a separate file with a message; (4) opening a vanished file refreshes the library
 ## 0.1.11
 - PDF quality in Settings: 150 / 300 / 600 dpi. The PDF is always made from the ORIGINAL photo (frame -> straighten -> Auto), never from an already compressed picture; each page is compressed to a size budget (about 300 KB at 150 dpi, 800 KB at 300, 2.2 MB at 600); pages are never enlarged beyond what the camera captured, so 600 dpi needs a camera that really has the pixels
 - "As if shot parallel": the straightened page now gets its real proportions (the focal length is recovered from the sheet's perspective, a typical phone lens is assumed when that is impossible) - the error of the page proportions drops from up to 35% to about 3% in the worst tilt

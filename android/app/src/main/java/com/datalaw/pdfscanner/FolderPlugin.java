@@ -315,7 +315,9 @@ public class FolderPlugin extends Plugin {
       return;
     }
     try {
-      Uri dst = DocumentsContract.createDocument(cr(), treeRoot(Uri.parse(t)), "application/pdf", name);
+      String safe = name.replaceAll("[\\\\/:*?\"<>|]+", "_").trim(); // the provider turns a path separator into a missing sub-folder
+      if (safe.isEmpty()) safe = "scan";
+      Uri dst = DocumentsContract.createDocument(cr(), treeRoot(Uri.parse(t)), "application/pdf", safe);
       if (dst == null) {
         call.reject("create failed");
         return;
@@ -328,8 +330,45 @@ public class FolderPlugin extends Plugin {
       o.put("id", id);
       call.resolve(o);
     } catch (Exception e) {
-      call.reject("save failed: " + e.getMessage());
+      String m = String.valueOf(e.getMessage());
+      // the chosen folder was deleted / moved / its card removed: the app asks for a new one
+      call.reject((m.contains("Missing file") || m.contains("No such file") ? "folder_missing: " : "save failed: ") + m);
     }
+  }
+
+  /** Overwrites the document `uri` with the contents of `from` (then deletes `from`). The original is never deleted or renamed. */
+  @PluginMethod
+  public void replaceWith(PluginCall call) {
+    String u = call.getString("uri");
+    String f = call.getString("from");
+    if (u == null || f == null) {
+      call.reject("uri and from required");
+      return;
+    }
+    new Thread(
+            () -> {
+              try {
+                Uri dst = Uri.parse(u);
+                Uri src = Uri.parse(f);
+                try (InputStream in = cr().openInputStream(src);
+                    OutputStream out = cr().openOutputStream(dst, "wt")) {
+                  if (in == null || out == null) throw new java.io.IOException("cannot open");
+                  byte[] buf = new byte[64 * 1024];
+                  int len;
+                  while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                }
+                try {
+                  DocumentsContract.deleteDocument(cr(), src);
+                } catch (Exception ignored) {
+                }
+                JSObject o = new JSObject();
+                o.put("uri", dst.toString());
+                call.resolve(o);
+              } catch (Exception e) {
+                call.reject("replace failed: " + e.getMessage());
+              }
+            })
+        .start();
   }
 
   @PluginMethod
