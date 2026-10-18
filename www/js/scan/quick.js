@@ -72,7 +72,7 @@ async function run(shot, fromCamera) {
 }
 
 $('quick-shoot').addEventListener('click', async () => {
-  if (busy || !ensureFolder()) return;
+  if (busy || !(await ensureFolder())) return;
   try {
     const shot = await openCamera();
     if (shot) run(shot, true);
@@ -82,7 +82,7 @@ $('quick-shoot').addEventListener('click', async () => {
     fallback.click(); // system camera as a fallback
   }
 });
-$('quick-gallery').addEventListener('click', () => { if (!busy && ensureFolder()) gallery.click(); });
+$('quick-gallery').addEventListener('click', async () => { if (busy) return; if (getFolder()) gallery.click(); else await ensureFolder(); }); // the file chooser needs the tap itself, so after choosing a folder tap again
 for (const input of [fallback, gallery]) {
   input.addEventListener('change', () => { const f = input.files[0]; input.value = ''; if (f) run({ blob: f }, false); });
 }

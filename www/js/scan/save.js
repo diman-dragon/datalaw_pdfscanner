@@ -4,14 +4,19 @@ import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { bytesToBase64 } from './pdf.js';
 
-/** true if a folder is selected; otherwise offers to choose one and returns false. */
-export function ensureFolder() {
+/** true if a folder is selected; otherwise explains, opens the folder picker (it has a "New folder" button) and waits for the choice. */
+export async function ensureFolder() {
   if (getFolder()) return true;
-  if (confirm(t('scan.nofolder'))) {
-    Folder.pickFolder().then((f) => { setFolder(f); toast(t('scan.folderset')); })
-      .catch((e) => { if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail')); });
+  if (!confirm(t('scan.nofolder'))) return false;
+  try {
+    const f = await Folder.pickFolder();
+    setFolder(f);
+    toast(t('scan.folderset'));
+    return true;
+  } catch (e) {
+    if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail'));
+    return false;
   }
-  return false;
 }
 
 export const stamp = () => {

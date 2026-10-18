@@ -10,3 +10,8 @@ export function setPdfDpi(v) { cur = Number(v); store.set('pdfdpi', String(cur))
 // side = long side of a page in px (A4: 11.69 in; 600 dpi would be 7000 px, capped for phone memory), budget = bytes per page
 const TARGETS = { 150: { side: 1754, budget: 300000 }, 300: { side: 3508, budget: 800000 }, 600: { side: 4800, budget: 2200000 } };
 export const pdfTarget = () => TARGETS[cur];
+
+// Invisible text layer (recognition on the phone, slower): search and copy in any PDF viewer.
+let search = store.get('pdfsearch') === '1';
+export const getPdfSearch = () => (search ? '1' : '0');
+export function setPdfSearch(v) { search = v === '1'; store.set('pdfsearch', search ? '1' : '0'); }

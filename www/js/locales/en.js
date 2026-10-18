@@ -32,8 +32,6 @@ export const en = {
   'scan.gallery': 'From gallery',
   'scan.to': 'Saving to:',
   'scan.nofolder.label': 'Scan folder not selected',
-  'scan.nofolder': 'No folder selected for scans. Choose one now?',
-  'scan.folderset': 'Folder selected. Tap “Shoot”',
   'scan.saving': 'Saving…',
   'scan.saved': 'Saved:',
   'scan.fail': 'Could not save the scan',
@@ -112,4 +110,9 @@ export const en = {
   'rs.warn.tilt': 'Strong tilt',
   'save.folderlost': 'The save folder is not available (deleted, moved or the card was removed). Choose another folder?',
   'de.keptnew': 'Could not replace the original. The new version is saved as:',
+  'set.pdfsearch': 'Searchable text in PDF (slower)',
+  'set.off': 'Off',
+  'set.on': 'On',
+  'scan.nofolder': 'No folder for scans yet. Choose one now? The picker has a "New folder" button.',
+  'scan.folderset': 'Folder set. Repeat the action.',
 };

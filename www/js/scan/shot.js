@@ -6,7 +6,10 @@ import { warp } from './warp.js';
 import { rotate90 } from './filters.js';
 import { applyLook, defaultLook, lookIsPlain } from './enhance.js';
 import { canvasToJpeg, encodeToBudget } from './pdf.js';
-import { pdfTarget } from '../pdfquality.js';
+import { pdfTarget, getPdfSearch } from '../pdfquality.js';
+import { layered } from './layers.js';
+import { wordsOf } from './textlayer.js';
+import { sharpness } from './quality.js';
 import { pageFromBlob } from './page.js';
 
 export const MAXSIDE = 2800; // long side of the picture on the editing screens (frame / preview)
@@ -32,23 +35,35 @@ export async function flatOf(p) {
   await tick();
   const { side } = pdfTarget();
   const img = await loadImage(p.blob, loadSide());
-  const c = warp(img, quadFor(img, p), side);
+  let c = warp(img, quadFor(img, p), side);
+  const r = sharpness(c, 99999); // edges at the page's own pixel scale: a soft shot carries less detail than it has pixels
+  if (r < 0.85 && Math.max(c.width, c.height) > 1600) { // keep only the resolution the shot really has
+    const k = Math.max(0.55, r * 1.15), s = document.createElement('canvas');
+    s.width = Math.round(c.width * k); s.height = Math.round(c.height * k);
+    s.getContext('2d').drawImage(c, 0, 0, s.width, s.height);
+    c = s;
+  }
   return { jpeg: await canvasToJpeg(c, 0.92), w: c.width, h: c.height };
 }
 
-/** Stage 2: rotation + look, then the PDF compression of the chosen quality -> PDF page record.
- *  If the device runs out of memory on the clean-up, a smaller render is tried, then the plain page. */
+/** Stage 2: rotation + look, then the PDF packing of the chosen quality -> PDF page record:
+ *  Auto on a text page = layers (ink mask + paper), otherwise one JPEG within the page budget; optionally with the searchable text.
+ *  If the device runs out of memory on the clean-up, a smaller render is tried, then the intermediate as it is. */
 export async function finalOf(p) {
   if (p.keep) return pageFromBlob(p.blob); // untouched page of an existing PDF
   const { budget, side } = pdfTarget();
   const f = await (p.job ??= flatOf(p));
-  const look = p.look ?? defaultLook('color');
+  const look = p.look ?? defaultLook('color'), search = getPdfSearch() === '1';
   const rot = (((p.turns || 0) % 4) + 4) % 4 * 90;
-  if (lookIsPlain(look) && f.jpeg.length <= budget) return { jpeg: f.jpeg, w: f.w, h: f.h, comps: 3, rot }; // the rotation is the PDF's job
+  if (lookIsPlain(look) && !search && f.jpeg.length <= budget) return { jpeg: f.jpeg, w: f.w, h: f.h, comps: 3, rot }; // the rotation is the PDF's job
   for (const s of [side, Math.round(side * 0.6)]) {
     try {
       const c = await loadImage(new Blob([f.jpeg], { type: 'image/jpeg' }), s);
-      return await encodeToBudget(applyLook(rotate90(c, p.turns || 0), look), budget);
+      const out = applyLook(rotate90(c, p.turns || 0), look);
+      let page = lookIsPlain(look) ? null : await layered(out, budget);
+      page ??= await encodeToBudget(out, budget);
+      if (search) { try { const w = await wordsOf(out); if (w?.length) page.words = w; } catch (e) { console.error('text layer', e); } }
+      return page;
     } catch (e) { console.error('finalOf', s, e); await tick(); }
   }
   return { jpeg: f.jpeg, w: f.w, h: f.h, comps: 3, rot }; // last resort: the intermediate as it is

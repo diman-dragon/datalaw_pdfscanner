@@ -1,4 +1,10 @@
 # Changelog
+## 0.1.13
+- Layered PDF pages (Auto on a text page): the ink is a 1-bit mask at up to 2x the page resolution (smooth letter edges), the ink colour and the paper are low-resolution layers. Measured on a test page: 150 dpi 281 -> 188 KB, 300 dpi 773 -> 314 KB with sharper letters; a blue stamp keeps its colour. Photos / pages with big coloured areas automatically stay a single JPEG
+- Resolution follows the real sharpness of the shot: a soft shot is not stored with pixels it does not have
+- Camera: three frames within ~0.11 s after the press, the sharpest one is kept (it must beat the frame at the press by 15%); frames are not merged
+- Searchable text (Settings > Searchable text in PDF, off by default, slower): word boxes from Tesseract are written as an invisible text layer (Type3 font with a ToUnicode map, works for Cyrillic and Latin); new native Ocr.recognizeImage
+- Folder: with no folder chosen the app explains, opens the picker (it has a "New folder" button) and carries on with the action after the choice
 ## 0.1.12
 - Fix "could not save: Missing file": (1) if the folder we save to is gone (deleted, moved, card removed) the app now offers to pick another folder and carries on with the save; (2) a name containing a path separator can no longer make the provider look for a missing sub-folder; (3) editing a PDF and saving it under the same name now overwrites the original in place (new native replaceWith) instead of delete + rename - the original is never deleted first, and if the replace fails the new version stays as a separate file with a message; (4) opening a vanished file refreshes the library
 ## 0.1.11

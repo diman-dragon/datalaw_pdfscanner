@@ -4,7 +4,7 @@
 import { detectQuad, insetQuad } from './detect.js';
 import { t } from '../i18n.js';
 import { getShotDelay } from '../shotdelay.js';
-import { skewOf } from './quality.js';
+import { skewOf, focusScore } from './quality.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
@@ -173,10 +173,19 @@ async function shoot() {
   if (gyro > 45) for (let i = 0; i < 10 && gyro > 25; i++) await sleep(25); // shaken by the tap: wait up to 0.25 s for calm
   if (!stream) { shooting = false; shotBtn.classList.remove('busy'); return; }
   // everything that defines the shot is taken at the moment of the press
-  const frame = snapshot(), q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh;
+  let frame = snapshot();
+  const q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh;
   navigator.vibrate?.(20);
   wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
   try {
+    // series: two more frames within ~0.11 s, the sharpest one is kept (the picture at the press is the reference, a better one must beat it by 15%)
+    let best = focusScore(frame);
+    for (let i = 0; i < 2 && stream; i++) {
+      await sleep(55);
+      if (!stream) break;
+      const f2 = snapshot(), s2 = focusScore(f2);
+      if (s2 > best * 1.15) { frame = f2; best = s2; }
+    }
     const blob = await toBlob(frame, 0.97);
     if (!stream) return; // closed meanwhile
     const shot = { blob, quadN: q, vr };

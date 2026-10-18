@@ -85,7 +85,7 @@ async function afterShots(first) {
 }
 
 async function shoot() {
-  if (busy || !ensureFolder()) return;
+  if (busy || !(await ensureFolder())) return;
   const before = pages.length;
   try {
     await openCamera({ multi: true, start: pages.length, onShot: addPage });
@@ -104,7 +104,7 @@ async function fromFiles(files) {
 }
 
 async function exportPdf() {
-  if (busy || !pages.length || !ensureFolder()) return;
+  if (busy || !pages.length || !(await ensureFolder())) return;
   const name = askName();
   if (name === null) return;
   busy = true;
@@ -122,7 +122,7 @@ async function exportPdf() {
 }
 
 for (const id of ['sc-shoot', 'sc-add']) $(id).addEventListener('click', shoot);
-for (const id of ['sc-gallery', 'sc-add-gallery']) $(id).addEventListener('click', () => { if (!busy && ensureFolder()) gallery.click(); });
+for (const id of ['sc-gallery', 'sc-add-gallery']) $(id).addEventListener('click', async () => { if (busy) return; if (getFolder()) gallery.click(); else await ensureFolder(); });
 $('sc-save').addEventListener('click', exportPdf);
 $('sc-clear').addEventListener('click', () => { if (confirm(t('sc.clearq'))) { pages.length = 0; render(); } });
 gallery.addEventListener('change', () => { const fs = [...gallery.files]; gallery.value = ''; if (fs.length) fromFiles(fs); });

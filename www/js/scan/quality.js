@@ -11,8 +11,8 @@ export function skewOf(quad) {
  * Edge crispness 0..1 that does not depend on how much text the page has: for the contrasty edges, how steep they are
  * relative to their own contrast (a step edge = 1; the wider the edge is smeared, the lower). Measured on a ~1280 px grey copy.
  */
-export function sharpness(canvas) {
-  const k = Math.min(1, 1280 / Math.max(canvas.width, canvas.height));
+export function sharpness(canvas, maxPx = 1280) {
+  const k = Math.min(1, maxPx / Math.max(canvas.width, canvas.height));
   const w = Math.max(16, Math.round(canvas.width * k)), h = Math.max(16, Math.round(canvas.height * k));
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const x = c.getContext('2d', { willReadFrequently: true });
@@ -31,4 +31,23 @@ export function sharpness(canvas) {
   if (ratios.length < 40) return 1; // not enough edges to judge: no warning
   ratios.sort((a, b) => a - b);
   return ratios[Math.floor(ratios.length * 0.6)]; // upper-middle: the sharpest edges of the page represent it
+}
+
+/** For comparing frames of the SAME scene (the burst): the 97th percentile of the gradient on a ~640 px grey copy. Higher = sharper. */
+export function focusScore(canvas) {
+  const k = Math.min(1, 640 / Math.max(canvas.width, canvas.height));
+  const w = Math.max(8, Math.round(canvas.width * k)), h = Math.max(8, Math.round(canvas.height * k));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  x.drawImage(canvas, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, g = new Float32Array(w * h), hist = new Uint32Array(256);
+  for (let i = 0; i < w * h; i++) g[i] = d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114;
+  let n = 0;
+  for (let yy = 1; yy < h - 1; yy++) for (let xx = 1; xx < w - 1; xx++) {
+    const i = yy * w + xx;
+    hist[Math.min(255, Math.max(Math.abs(g[i + 1] - g[i - 1]), Math.abs(g[i + w] - g[i - w])) / 2) | 0]++; n++;
+  }
+  let acc = 0;
+  for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= n * 0.03) return v; }
+  return 0;
 }

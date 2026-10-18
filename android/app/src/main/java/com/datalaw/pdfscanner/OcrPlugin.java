@@ -113,22 +113,7 @@ public class OcrPlugin extends Plugin {
         Bitmap bmp = PdfPreview.renderPage(getContext().getContentResolver(), Uri.parse(u), page, OCR_WIDTH);
         String text;
         try {
-          synchronized (lock) {
-            String key = String.join("+", list);
-            if (tess == null || !key.equals(tessLangs)) {
-              if (tess != null) tess.recycle();
-              tess = null;
-              TessBaseAPI api = new TessBaseAPI();
-              if (!api.init(dataDir().getAbsolutePath(), key)) {
-                api.recycle();
-                throw new IOException("init failed");
-              }
-              tess = api;
-              tessLangs = key;
-            }
-            tess.setImage(bmp);
-            text = tess.getUTF8Text();
-          }
+          text = runOcr(bmp, list, false);
         } finally {
           bmp.recycle();
         }
@@ -139,6 +124,58 @@ public class OcrPlugin extends Plugin {
         call.reject("ocr failed: " + e.getMessage());
       }
     }).start();
+  }
+
+  /** One engine for all pages; the language set decides whether it must be re-created. */
+  private String runOcr(Bitmap bmp, List<String> list, boolean hocr) throws IOException {
+    synchronized (lock) {
+      String key = String.join("+", list);
+      if (tess == null || !key.equals(tessLangs)) {
+        if (tess != null) tess.recycle();
+        tess = null;
+        TessBaseAPI api = new TessBaseAPI();
+        if (!api.init(dataDir().getAbsolutePath(), key)) {
+          api.recycle();
+          throw new IOException("init failed");
+        }
+        tess = api;
+        tessLangs = key;
+      }
+      tess.setImage(bmp);
+      String r = hocr ? tess.getHOCRText(0) : tess.getUTF8Text();
+      return r == null ? "" : r;
+    }
+  }
+
+  /** Recognizes a JPEG sent as base64: {data, langs} -> {hocr} (word boxes), for the searchable text layer of a saved PDF. */
+  @PluginMethod
+  public void recognizeImage(PluginCall call) {
+    final String data = call.getString("data");
+    final List<String> list = langs(call);
+    if (data == null || list == null) {
+      call.reject("data and langs required");
+      return;
+    }
+    new Thread(
+            () -> {
+              try {
+                byte[] b = android.util.Base64.decode(data, android.util.Base64.DEFAULT);
+                Bitmap bmp = android.graphics.BitmapFactory.decodeByteArray(b, 0, b.length);
+                if (bmp == null) throw new IOException("bad image");
+                String h;
+                try {
+                  h = runOcr(bmp, list, true);
+                } finally {
+                  bmp.recycle();
+                }
+                JSObject o = new JSObject();
+                o.put("hocr", h);
+                call.resolve(o);
+              } catch (Exception e) {
+                call.reject("ocr failed: " + e.getMessage());
+              }
+            })
+        .start();
   }
 
   @PluginMethod

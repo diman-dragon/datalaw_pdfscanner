@@ -2,10 +2,10 @@ import { getTheme, setTheme } from './theme.js';
 import { getLang, setLang, t } from './i18n.js';
 import { Folder, getFolder, setFolder, folderInfo } from './folder.js';
 import { getShotDelay, setShotDelay } from './shotdelay.js';
-import { getPdfDpi, setPdfDpi } from './pdfquality.js';
+import { getPdfDpi, setPdfDpi, getPdfSearch, setPdfSearch } from './pdfquality.js';
 import { VERSION } from './version.js';
-const get = { theme: getTheme, lang: getLang, delay: () => String(getShotDelay()), pdfdpi: getPdfDpi };
-const set = { theme: setTheme, lang: setLang, delay: setShotDelay, pdfdpi: setPdfDpi };
+const get = { theme: getTheme, lang: getLang, delay: () => String(getShotDelay()), pdfdpi: getPdfDpi, pdfsearch: getPdfSearch };
+const set = { theme: setTheme, lang: setLang, delay: setShotDelay, pdfdpi: setPdfDpi, pdfsearch: setPdfSearch };
 const segs = [...document.querySelectorAll('.seg[data-setting]')];
 const paint = () => segs.forEach((s) => [...s.children].forEach((b) => b.classList.toggle('on', b.dataset.value === get[s.dataset.setting]())));
 segs.forEach((s) => s.addEventListener('click', (e) => {
