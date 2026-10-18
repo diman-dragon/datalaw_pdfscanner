@@ -1,6 +1,7 @@
 // Streaming PDF writer, page width = A4 (595.28 pt). Page = plain {jpeg, w, h, comps?, rot?}
 // or layered {layers: {bg, fg, mask}, w, h}; optional words [{t, x0, y0, x1, y1}] (0..1 of the page) = invisible searchable text.
 // Yields Uint8Array parts, so only one page is in memory at a time. /Rotate carries the EXIF orientation of originals.
+import { mk, toBlob } from './canvasx.js';
 const enc = new TextEncoder();
 const hex2 = (n) => n.toString(16).padStart(2, '0');
 const utf16hex = (ch) => {
@@ -85,7 +86,7 @@ export async function* pdfStream(n, getPage) {
 }
 
 // ---- JPEG helpers
-const blobOf = (c, q) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', q));
+const blobOf = (c, q) => toBlob(c, q);
 const pack = async (b, c) => ({ jpeg: new Uint8Array(await b.arrayBuffer()), w: c.width, h: c.height, comps: 3, rot: 0 });
 
 /** The best JPEG of at most `max` bytes: quality is searched; if even the lowest does not fit, the picture is scaled down. */
@@ -100,16 +101,14 @@ export async function encodeToBudget(canvas, max) {
       if (b.size <= max) { best = b; lo = q; } else hi = q;
     }
     if (best) return pack(best, c);
-    const nc = document.createElement('canvas');
-    nc.width = Math.round(c.width * 0.85); nc.height = Math.round(c.height * 0.85);
+    const nc = mk(Math.round(c.width * 0.85), Math.round(c.height * 0.85));
     nc.getContext('2d').drawImage(c, 0, 0, nc.width, nc.height);
     c = nc;
   }
   return pack(await blobOf(c, 0.3), c);
 }
 
-export const canvasToJpeg = (canvas, q = 0.92) => new Promise((res, rej) => canvas.toBlob(
-  (b) => (b ? b.arrayBuffer().then((a) => res(new Uint8Array(a))) : rej(new Error('jpeg'))), 'image/jpeg', q));
+export const canvasToJpeg = async (canvas, q = 0.92) => new Uint8Array(await (await toBlob(canvas, q)).arrayBuffer());
 
 export const bytesToBase64 = (bytes) => new Promise((res, rej) => {
   const r = new FileReader();

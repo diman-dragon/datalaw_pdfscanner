@@ -5,12 +5,14 @@ import { detectQuad, insetQuad } from './detect.js';
 import { t } from '../i18n.js';
 import { getShotDelay } from '../shotdelay.js';
 import { skewOf, focusScore } from './quality.js';
+import { openSheet } from '../sheet.js';
+import { getSeries, getFrameMode, setFrameMode, FRAME_RATIOS, FRAME_MODES } from '../camsettings.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
-const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch'), warnEl = $('cam-warn');
+const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch'), warnEl = $('cam-warn'), frameBtn = $('cam-frame');
 let multi = false, onShot = null, shots = 0, stream = null, quad = null, target = null, manual = false, detTimer = 0, raf = 0, resolveFn = null;
-let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, calm = 0, torchOn = false, gyro = 0, warnTimer = 0;
+let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, calm = 0, torchOn = false, gyro = 0, warnTimer = 0, frameMode = 'auto';
 
 // ---- steadiness (gyroscope) and tilt warnings
 const onMotion = (e) => {
@@ -52,6 +54,11 @@ function draw() {
   ctx.clearRect(0, 0, ov.width, ov.height);
   if (!quad) return;
   const p = quad.map(([x, y]) => [x * scale, y * scale]);
+  if (manual) { // fixed / own frame: dim everything outside, like a viewfinder
+    const w = ov.width / dpr, h = ov.height / dpr;
+    ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.moveTo(...p[0]); p.slice(1).forEach((q) => ctx.lineTo(...q)); ctx.closePath();
+    ctx.fillStyle = 'rgba(0,0,0,.42)'; ctx.fill('evenodd');
+  }
   ctx.beginPath(); ctx.moveTo(...p[0]); p.slice(1).forEach((q) => ctx.lineTo(...q)); ctx.closePath();
   ctx.fillStyle = 'rgba(56,217,245,.15)'; ctx.fill();
   ctx.lineWidth = 3; ctx.strokeStyle = manual ? '#FFC247' : '#38D9F5'; ctx.stroke();
@@ -114,9 +121,9 @@ ov.addEventListener('pointerdown', (e) => {
   let best = -1, bd = 48 / scale;
   quad.forEach((q, i) => { const d = Math.hypot(q[0] - x, q[1] - y); if (d < bd) { bd = d; best = i; } });
   drag = best;
-  if (drag >= 0) { manual = true; ov.setPointerCapture(e.pointerId); return; }
+  if (drag >= 0) { manual = true; if (frameMode !== 'free') applyFrameMode('free'); ov.setPointerCapture(e.pointerId); return; }
   const now = Date.now(); // double-tap away from the corners: back to the automatic frame
-  if (now - lastTap < 350) { manual = false; target = null; calm = 0; detectTick(); }
+  if (now - lastTap < 350) applyFrameMode('auto');
   lastTap = now;
 });
 ov.addEventListener('pointermove', (e) => {
@@ -127,6 +134,22 @@ ov.addEventListener('pointermove', (e) => {
 });
 ov.addEventListener('pointerup', () => { drag = -1; });
 ov.addEventListener('pointercancel', () => { drag = -1; });
+
+// ---- frame mode: automatic search, a fixed format chosen in advance (just bring the sheet into it), or the user's own frame
+const fixedQuad = (r) => {
+  let w = vw * 0.92, h = w / r;
+  if (h > vh * 0.92) { h = vh * 0.92; w = h * r; }
+  const x0 = (vw - w) / 2, y0 = (vh - h) / 2;
+  return [[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]];
+};
+function applyFrameMode(mode, persist = true) {
+  frameMode = mode;
+  if (persist) setFrameMode(mode);
+  frameBtn.textContent = `${t('cam.frame')}: ${t('cam.fm.' + mode)}`;
+  if (FRAME_RATIOS[mode]) { manual = true; quad = fixedQuad(FRAME_RATIOS[mode]); target = quad.map((p) => p.slice()); } else if (mode === 'free') manual = true; else { manual = false; target = null; calm = 0; detectTick(); }
+  draw();
+}
+frameBtn.addEventListener('click', () => openSheet(t('cam.frame'), FRAME_MODES.map((m) => ({ label: `${t('cam.fm.' + m)}${m === frameMode ? '  ✓' : ''}`, run: () => applyFrameMode(m) }))));
 
 // ---- stream
 async function openStream() {
@@ -166,29 +189,33 @@ const snapshot = () => {
   return c;
 };
 
+const thumbData = (cv) => {
+  const k = 120 / Math.max(cv.width, cv.height), s = document.createElement('canvas');
+  s.width = Math.round(cv.width * k); s.height = Math.round(cv.height * k);
+  s.getContext('2d').drawImage(cv, 0, 0, s.width, s.height);
+  return s.toDataURL('image/jpeg', 0.6);
+};
+
 async function shoot() {
   if (shooting || !stream || !vw) return;
   shooting = true;
   shotBtn.classList.add('busy');
   if (gyro > 45) for (let i = 0; i < 10 && gyro > 25; i++) await sleep(25); // shaken by the tap: wait up to 0.25 s for calm
   if (!stream) { shooting = false; shotBtn.classList.remove('busy'); return; }
-  // everything that defines the shot is taken at the moment of the press
-  let frame = snapshot();
-  const q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh;
+  // the frame and the first picture are taken at the moment of the press
+  const q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh, n = getSeries(), cands = [];
+  const take = () => { const cv = snapshot(); cands.push({ score: focusScore(cv), thumb: thumbData(cv), blob: toBlob(cv, 0.97) }); };
   navigator.vibrate?.(20);
   wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
   try {
-    // series: two more frames within ~0.11 s, the sharpest one is kept (the picture at the press is the reference, a better one must beat it by 15%)
-    let best = focusScore(frame);
-    for (let i = 0; i < 2 && stream; i++) {
-      await sleep(55);
-      if (!stream) break;
-      const f2 = snapshot(), s2 = focusScore(f2);
-      if (s2 > best * 1.15) { frame = f2; best = s2; }
-    }
-    const blob = await toBlob(frame, 0.97);
+    take();
+    for (let i = 1; i < n && stream; i++) { await sleep(120); if (!stream) break; take(); } // the series: the user chooses the best one later
+    const blobs = await Promise.all(cands.map((c) => c.blob));
     if (!stream) return; // closed meanwhile
-    const shot = { blob, quadN: q, vr };
+    let pick = 0; // the sharpest, but a later picture must beat the one at the press by 15%
+    cands.forEach((c, i) => { if (i && c.score > cands[pick].score * (pick === 0 ? 1.15 : 1)) pick = i; });
+    const alts = cands.map((c, i) => ({ blob: blobs[i], thumb: c.thumb, score: c.score }));
+    const shot = { blob: blobs[pick], quadN: q, vr, alts: n > 1 ? alts : undefined, pick, best: pick };
     if (!multi) return finish(shot);
     shots += 1; paintCount();
     onShot?.(shot); // camera stays open for the next page
@@ -217,8 +244,8 @@ document.addEventListener('delaychange', paintTimer);
 document.addEventListener('langchange', paintTimer);
 
 /**
- * Single mode: resolves {blob, quadN, vr} after the shutter, or null if cancelled.
- * Multi mode (opts.multi): every shot calls opts.onShot({blob, quadN, vr}) and the camera stays open; resolves null on close.
+ * Single mode: resolves {blob, quadN, vr, alts?, pick, best} after the shutter, or null if cancelled (alts = the pictures of the series).
+ * Multi mode (opts.multi): every shot calls opts.onShot(shot) and the camera stays open; resolves null on close.
  * quadN = frame (TL,TR,BR,BL) normalized to 0..1 of the picture; vr = its aspect. Rejects if the camera is unavailable.
  */
 export async function openCamera(opts = {}) {
@@ -230,6 +257,7 @@ export async function openCamera(opts = {}) {
   quad = insetQuad(vw, vh); target = quad.map((p) => p.slice()); manual = false; calm = 0;
   await new Promise((r) => requestAnimationFrame(r));
   layout();
+  applyFrameMode(getFrameMode(), false);
   detectLoop();
   raf = requestAnimationFrame(animate);
   tuneTrack(stream); // in the background, never awaited

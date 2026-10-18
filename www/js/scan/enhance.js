@@ -1,7 +1,7 @@
+import { mk } from './canvasx.js';
 // "Auto" clean-up of a photographed page: removes shadows, fold shading, uneven light, paper grain and pale creases
 // (flat-field by the estimated paper colour + white point) and sharpens a little. Works in horizontal strips, so even a
 // 10 MP page needs little memory. look = {filter: 'color' (original) | 'auto'}.
-const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export const FILTERS = ['color', 'auto'];

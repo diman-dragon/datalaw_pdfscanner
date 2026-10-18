@@ -55,5 +55,11 @@
 #rs-bar{justify-content:flex-start}
 #rs-bar #rs-back,#rs-bar #rs-retake{margin-left:auto}
 #rs-bar #rs-back+#rs-retake{margin-left:0}
-#cam-warn{position:absolute;z-index:1;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 48px);max-width:88%;padding:6px 12px;border-radius:14px;background:rgba(255,194,71,.95);color:#2a1d00;font-size:13px;font-weight:600;text-align:center}
+#cam-warn{position:absolute;z-index:1;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 92px);max-width:88%;padding:6px 12px;border-radius:14px;background:rgba(255,194,71,.95);color:#2a1d00;font-size:13px;font-weight:600;text-align:center}
 #rs-hint.warn{color:#b86e00;font-weight:600}
+#cam-frame{position:absolute;z-index:1;top:calc(env(safe-area-inset-top) + 50px);left:12px;height:36px;padding:0 12px;border:0;border-radius:18px;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:13px;font-weight:600}
+#rs-alts{display:flex;gap:8px;justify-content:center;padding:6px 12px 0;background:var(--bg)}
+#rs-alts button{position:relative;width:54px;height:54px;border:2px solid transparent;border-radius:8px;padding:0;overflow:hidden;background:#fff}
+#rs-alts img{width:100%;height:100%;object-fit:cover;display:block}
+#rs-alts button.on{border-color:var(--accent)}
+#rs-alts .star{position:absolute;right:3px;top:0;font-size:13px;color:#FFC247;text-shadow:0 0 3px #000}

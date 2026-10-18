@@ -1,3 +1,4 @@
+import { mk } from './canvasx.js';
 // Quick quality checks used for warnings: how crooked the sheet was photographed, and how sharp the picture is.
 
 /** 0 = the sheet is parallel to the lens; 0.1 = opposite sides differ by 10% (the phone was tilted). quad: TL, TR, BR, BL. */
@@ -14,7 +15,7 @@ export function skewOf(quad) {
 export function sharpness(canvas, maxPx = 1280) {
   const k = Math.min(1, maxPx / Math.max(canvas.width, canvas.height));
   const w = Math.max(16, Math.round(canvas.width * k)), h = Math.max(16, Math.round(canvas.height * k));
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const c = mk(w, h);
   const x = c.getContext('2d', { willReadFrequently: true });
   x.drawImage(canvas, 0, 0, w, h);
   const d = x.getImageData(0, 0, w, h).data, g = new Float32Array(w * h);
@@ -37,7 +38,7 @@ export function sharpness(canvas, maxPx = 1280) {
 export function focusScore(canvas) {
   const k = Math.min(1, 640 / Math.max(canvas.width, canvas.height));
   const w = Math.max(8, Math.round(canvas.width * k)), h = Math.max(8, Math.round(canvas.height * k));
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const c = mk(w, h);
   const x = c.getContext('2d', { willReadFrequently: true });
   x.drawImage(canvas, 0, 0, w, h);
   const d = x.getImageData(0, 0, w, h).data, g = new Float32Array(w * h), hist = new Uint32Array(256);

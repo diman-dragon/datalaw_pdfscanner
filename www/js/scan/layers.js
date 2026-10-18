@@ -1,9 +1,9 @@
+import { mk, toBlob } from './canvasx.js';
 // Layered ("MRC") page: ink as a 1-bit mask in high resolution + colour of the ink + the paper as low-resolution layers.
 // A text page then weighs about a quarter of a single JPEG at the same sharpness of the letters. Returns null when the page
 // is not a text document (photos, big coloured areas) or the result would not be smaller - the caller then makes a plain JPEG.
-const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-const blobOf = (c, q) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', q));
+const blobOf = (c, q) => toBlob(c, q);
 const bytesOf = async (b) => new Uint8Array(await b.arrayBuffer());
 
 function otsu(hist, total) {

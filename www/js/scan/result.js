@@ -5,15 +5,15 @@ import { warp } from './warp.js';
 import { rotate90, scaled } from './filters.js';
 import { applyLook, defaultLook } from './enhance.js';
 import { detectQuad } from './detect.js';
-import { t } from '../i18n.js';
-import { loadSide } from './shot.js';
 import { loadImage } from './load.js';
-import { pdfTarget } from '../pdfquality.js';
+import { t } from '../i18n.js';
+import { MAXSIDE } from './shot.js';
 import { sharpness, skewOf } from './quality.js';
 const $ = (id) => document.getElementById(id);
 const root = $('result'), stage = $('rs-stage'), cv = $('rs-canvas'), mini = $('rs-mini'), lookBar = $('rs-look');
-let src, origBlob = null, blurry = false, disp, kd = 1, shown, quad, turns = 0, look = defaultLook('auto'), view = 'frame', ks = 1;
-let resolveFn = null, light = false, stay = false, nav = { back: false, next: false }, drag = -1, sw = null, lastTap = 0, raf = 0;
+let alts = null, pick = 0, best = 0, picking = false;
+let src, blurry = false, disp, kd = 1, shown, quad, turns = 0, look = defaultLook('auto'), view = 'frame', ks = 1;
+let resolveFn = null, stay = false, nav = { back: false, next: false }, drag = -1, sw = null, lastTap = 0, raf = 0;
 
 export const isResultOpen = () => !root.hidden;
 
@@ -66,12 +66,36 @@ function drawMini() {
   mini.width = Math.round(f.width * k * dpr); mini.height = Math.round(f.height * k * dpr);
   mini.getContext('2d').drawImage(f, 0, 0, mini.width, mini.height);
 }
-const hint = $('rs-hint');
+const altsEl = $('rs-alts'), hint = $('rs-hint');
+function renderAlts() { // the pictures of the series: tap one to use it instead (the star marks the sharpest)
+  altsEl.hidden = !alts;
+  if (!alts) return;
+  altsEl.replaceChildren(...alts.map((a, i) => {
+    const b = document.createElement('button'), img = document.createElement('img');
+    img.src = a.thumb; img.alt = '';
+    b.append(img);
+    if (i === best) { const st = document.createElement('span'); st.className = 'star'; st.textContent = '★'; b.append(st); }
+    b.classList.toggle('on', i === pick);
+    b.addEventListener('click', () => choose(i));
+    return b;
+  }));
+}
+async function choose(i) {
+  if (picking || i === pick || !alts) return;
+  picking = true; cv.style.opacity = '.35';
+  try {
+    src = await loadImage(alts[i].blob, MAXSIDE);
+    disp = scaled(src, 1400); kd = disp.width / src.width; shown = rotate90(disp, turns);
+    pick = i;
+    try { blurry = sharpness(disp) < 0.75; } catch { blurry = false; }
+  } finally { picking = false; }
+  renderAlts(); paint();
+}
 function paintHint() { // warnings about the shot: smeared picture, strongly tilted phone (the sheet is straightened anyway, but its far side has less detail)
   const sk = skewOf(quad), msgs = [];
   if (blurry) msgs.push(t('rs.warn.blur'));
   if (sk > 0.12) msgs.push(`${t('rs.warn.tilt')} ${Math.round(sk * 100)}%`);
-  hint.textContent = msgs.length ? msgs.join(' · ') : t('rs.hint');
+  hint.textContent = msgs.length ? msgs.join(' · ') : (alts ? t('rs.hint.alts') : t('rs.hint'));
   hint.classList.toggle('warn', msgs.length > 0);
 }
 function paint() {
@@ -89,25 +113,8 @@ function rotate(d) { turns += d; shown = rotate90(disp, turns); paint(); }
 // ---- finishing
 function finish(v) { if (!stay) root.hidden = true; const r = resolveFn; resolveFn = null; r?.(v); } // stay: a sequence replaces the screen in place
 export function closeResult() { root.hidden = true; const r = resolveFn; resolveFn = null; r?.(null); }
-const params = () => ({ quad: quad.map((p) => p.slice()), look: { ...look }, turns });
+const params = () => ({ quad: quad.map((p) => p.slice()), look: { ...look }, turns, pick });
 const goBack = () => finish({ ...params(), back: true });
-
-// full render from the ORIGINAL at the size of the chosen PDF quality; if the device cannot afford it, a smaller one, then a plain crop
-async function renderFull() {
-  const { side } = pdfTarget();
-  let img = src, q = quad;
-  if (origBlob && side > Math.max(src.width, src.height)) { // the editing copy is smaller than the quality needs: decode the original again
-    try {
-      img = await loadImage(origBlob, loadSide());
-      const k = img.width / src.width;
-      q = quad.map((p) => [p[0] * k, p[1] * k]);
-    } catch (e) { console.error(e); img = src; q = quad; }
-  }
-  for (const side2 of [side, Math.round(side * 0.6)]) {
-    try { return applyLook(rotate90(warp(img, q, side2), turns), look); } catch (e) { console.error('render', side2, e); }
-  }
-  return rotate90(warp(src, quad, 1600), turns);
-}
 
 // ---- gestures on the picture
 const pt = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -150,30 +157,21 @@ $('rs-right').addEventListener('click', () => rotate(1));
 $('rs-retake').addEventListener('click', () => finish('retake'));
 $('rs-back').addEventListener('click', goBack);
 $('rs-del').addEventListener('click', () => { if (confirm(t('sc.deleteq'))) finish('delete'); });
-$('rs-save').addEventListener('click', async () => {
-  if (light) { finish(params()); return; } // parameters only, no heavy render
-  const b = $('rs-save');
-  b.disabled = true;
-  await new Promise((r) => setTimeout(r, 30)); // let the button repaint, then do the heavy render
-  let canvas;
-  try { canvas = await renderFull(); } finally { b.disabled = false; }
-  finish({ canvas, ...params() });
-});
+$('rs-save').addEventListener('click', () => finish(params())); // the page itself is made in the background workers from the original
 window.addEventListener('resize', () => { if (!root.hidden && shown) schedule(); });
 
 /**
  * opts: look, turns (initial), saveKey (i18n key of the confirm button), retake ("Retake"), back ("Back"), del (delete icon),
- *       caption (text above the panel), light (return only {quad, look, turns}), stay (keep the screen open for the next call),
- *       swipeNext (a left swipe goes on to the next page), blob (the original photo: the full render is made from it).
- * Resolves {quad, look, turns, canvas? (full size, unless light), back?}, 'retake', 'delete', or null (cancelled).
+ *       alts / pick / best (the pictures of a series: {blob, thumb}; the chosen one; the sharpest), caption (text above the panel), stay (keep the screen open for the next call), swipeNext (a left swipe goes on to the next page).
+ * Resolves {quad, look, turns, back?}, 'retake', 'delete', or null (cancelled).
  */
 export function openResult(srcCanvas, q, opts = {}) {
   src = srcCanvas; quad = q.map((p) => p.slice()); turns = opts.turns ?? 0; look = { ...(opts.look ?? defaultLook('auto')) };
-  origBlob = opts.blob ?? null;
   disp = scaled(src, 1400); kd = disp.width / src.width; shown = rotate90(disp, turns);
   try { blurry = sharpness(disp) < 0.75; } catch { blurry = false; }
+  alts = opts.alts ?? null; pick = opts.pick ?? 0; best = opts.best ?? pick; renderAlts();
   view = 'frame'; drag = -1; sw = null;
-  light = !!opts.light; stay = !!opts.stay;
+  stay = !!opts.stay;
   nav = { back: !!opts.back, next: !!opts.swipeNext };
   $('rs-retake').hidden = !opts.retake;
   $('rs-back').hidden = !opts.back;

@@ -6,9 +6,8 @@ import { goTo } from '../tabs.js';
 import { openCamera } from './camera.js';
 import { loadImage } from './load.js';
 import { openResult } from './result.js';
-import { encodeToBudget, pdfStream } from './pdf.js';
-import { pdfTarget } from '../pdfquality.js';
-import { MAXSIDE, quadFor, normQuad } from './shot.js';
+import { pdfStream } from './pdf.js';
+import { MAXSIDE, quadFor, normQuad, finalOf } from './shot.js';
 import { defaultLook } from './enhance.js';
 import { ensureFolder, savePdf, askName } from './save.js';
 
@@ -21,11 +20,10 @@ function paintTarget() {
   target.textContent = info ? `${t('scan.to')} ${info.path}` : t('scan.nofolder.label');
 }
 
-async function save(canvas, name) {
+async function save(page, name) {
   busy = true;
   try {
     toast(t('scan.saving'), 60000);
-    const page = await encodeToBudget(canvas, pdfTarget().budget);
     const r = await savePdf(pdfStream(1, async () => page), name);
     toast(`${t('scan.saved')} ${r.name ?? ''}`);
     document.dispatchEvent(new Event('libchange'));
@@ -46,7 +44,7 @@ async function run(shot, fromCamera) {
     for (;;) {
       const img = await loadImage(cur.blob, MAXSIDE); // the original: the frame is set on it, the PDF is made from it
       const p = { qn: cur.quadN ?? null, vr: cur.vr };
-      const out = await openResult(img, quadFor(img, p), { ...state, retake: fromCamera, blob: cur.blob });
+      const out = await openResult(img, quadFor(img, p), { ...state, retake: fromCamera, alts: cur.alts, pick: cur.pick ?? 0, best: cur.best ?? cur.pick ?? 0 });
       if (out === 'retake') {
         cur = await openCamera();
         if (!cur) return;
@@ -54,13 +52,17 @@ async function run(shot, fromCamera) {
         continue;
       }
       if (!out) return;
+      if (cur.alts && out.pick != null) cur = { ...cur, blob: cur.alts[out.pick].blob, pick: out.pick }; // the chosen picture of the series
+      const job = finalOf({ blob: cur.blob, qn: normQuad(out.quad, img), vr: img.width / img.height, look: out.look, turns: out.turns }); // the page is made while the name is typed
+      job.catch(() => {});
       const name = askName();
       if (name === null) { // back to the result with the same settings
-        cur = { blob: cur.blob, quadN: normQuad(out.quad, img), vr: img.width / img.height };
+        cur = { ...cur, quadN: normQuad(out.quad, img), vr: img.width / img.height };
         state = { look: out.look, turns: out.turns };
         continue;
       }
-      await save(out.canvas, name);
+      toast(t('scan.saving'), 60000);
+      await save(await job, name);
       return;
     }
   } catch (e) {

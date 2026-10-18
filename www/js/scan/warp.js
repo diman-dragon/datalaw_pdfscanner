@@ -1,3 +1,4 @@
+import { mk } from './canvasx.js';
 // Perspective correction: quad -> upright rectangle (homography + bilinear sampling).
 function solve(A, b) { // Gaussian elimination, 8x8
   const n = b.length;
@@ -75,8 +76,7 @@ export function warp(src, quad, maxSide = 2200) {
   const h = homography([[0, 0], [W, 0], [W, H], [0, H]], quad);
   const sw = src.width, sh = src.height;
   const sd = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;
-  const out = document.createElement('canvas');
-  out.width = W; out.height = H;
+  const out = mk(W, H);
   const octx = out.getContext('2d');
   const od = octx.createImageData(W, H), o = od.data;
   for (let y = 0; y < H; y++) {

@@ -1,4 +1,9 @@
 # Changelog
+## 0.1.14
+- Settings are three screens: Shooting (timer, frames per shot), PDF and files (folder, PDF quality, searchable text), App (theme, language, About); About is a framed card: DataLaw DesignLab, PDF Scanner + version, copyright
+- Much faster saving: the whole page (decode, straighten, Auto, layers, JPEG) is made in background Web Workers (2 in parallel, the screen stays smooth) in ONE pass without the intermediate JPEG, and it starts as soon as you finish with a page, so Save mostly just writes the file; in Quick scan the page is made while the file name is typed. 8 test pages at 150 dpi: about 18 s with a frozen screen -> 7.7 s, usually hidden behind editing
+- Series of shots: Settings > Shooting > Frames per shot (1 / 3 / 5, default 3); on the editor screen the pictures of the series are shown as thumbnails, the sharpest is starred, tap another to use it
+- Fixed frame: the Frame button in the camera (auto-detect / A4 portrait / A4 landscape / card / receipt / own); pick it in advance and bring the sheet into the frame; the outside is dimmed; dragging a corner makes it your own frame, double-tap = auto-detect again; the choice is remembered
 ## 0.1.13
 - Layered PDF pages (Auto on a text page): the ink is a 1-bit mask at up to 2x the page resolution (smooth letter edges), the ink colour and the paper are low-resolution layers. Measured on a test page: 150 dpi 281 -> 188 KB, 300 dpi 773 -> 314 KB with sharper letters; a blue stamp keeps its colour. Photos / pages with big coloured areas automatically stay a single JPEG
 - Resolution follows the real sharpness of the shot: a soft shot is not stored with pixels it does not have

@@ -56,18 +56,39 @@
       <input type="file" id="sc-pick" accept="image/*" multiple hidden>
     </section>
     <section class="page" data-page="settings">
-      <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="strong"></div><div id="folder-path" class="small muted"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
-      <div class="row"><span data-i18n="set.delay"></span>
-        <div class="seg" data-setting="delay"><button data-value="3">3</button><button data-value="5">5</button><button data-value="10">10</button></div></div>
-      <div class="row"><span data-i18n="set.pdfdpi"></span>
-        <div class="seg" data-setting="pdfdpi"><button data-value="150">150</button><button data-value="300">300</button><button data-value="600">600</button></div></div>
-      <div class="row"><span data-i18n="set.pdfsearch"></span>
-        <div class="seg" data-setting="pdfsearch"><button data-value="0" data-i18n="set.off"></button><button data-value="1" data-i18n="set.on"></button></div></div>
-      <div class="row"><span data-i18n="set.theme"></span>
-        <div class="seg" data-setting="theme"><button data-value="light" data-i18n="set.light"></button><button data-value="dark" data-i18n="set.dark"></button></div></div>
-      <div class="row"><span data-i18n="set.lang"></span>
-        <div class="seg" data-setting="lang"><button data-value="auto" data-i18n="set.auto"></button><button data-value="ru">Русский</button><button data-value="en">English</button></div></div>
-      <div class="row"><span data-i18n="set.version"></span><span id="ver" class="muted"></span></div>
+      <div id="set-home" class="set-menu">
+        <button data-open="shoot"><img src="img/emoji/1f4f7.svg" alt=""><b data-i18n="set.s.shoot"></b><i>›</i></button>
+        <button data-open="pdf"><img src="img/emoji/1f4da.svg" alt=""><b data-i18n="set.s.pdf"></b><i>›</i></button>
+        <button data-open="app"><img src="img/emoji/2699.svg" alt=""><b data-i18n="set.s.app"></b><i>›</i></button>
+      </div>
+      <div class="set-screen" data-screen="shoot" hidden>
+        <div class="set-head"><button class="vw-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><b data-i18n="set.s.shoot"></b></div>
+        <div class="row"><span data-i18n="set.delay"></span>
+          <div class="seg" data-setting="delay"><button data-value="3">3</button><button data-value="5">5</button><button data-value="10">10</button></div></div>
+        <div class="row"><span data-i18n="set.series"></span>
+          <div class="seg" data-setting="series"><button data-value="1">1</button><button data-value="3">3</button><button data-value="5">5</button></div></div>
+      </div>
+      <div class="set-screen" data-screen="pdf" hidden>
+        <div class="set-head"><button class="vw-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><b data-i18n="set.s.pdf"></b></div>
+        <div class="row"><div><div data-i18n="set.folder"></div><div id="folder-name" class="strong"></div><div id="folder-path" class="small muted"></div></div><button class="btn" id="folder-pick" data-i18n="set.folderpick"></button></div>
+        <div class="row"><span data-i18n="set.pdfdpi"></span>
+          <div class="seg" data-setting="pdfdpi"><button data-value="150">150</button><button data-value="300">300</button><button data-value="600">600</button></div></div>
+        <div class="row"><span data-i18n="set.pdfsearch"></span>
+          <div class="seg" data-setting="pdfsearch"><button data-value="0" data-i18n="set.off"></button><button data-value="1" data-i18n="set.on"></button></div></div>
+      </div>
+      <div class="set-screen" data-screen="app" hidden>
+        <div class="set-head"><button class="vw-btn" data-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><b data-i18n="set.s.app"></b></div>
+        <div class="row"><span data-i18n="set.theme"></span>
+          <div class="seg" data-setting="theme"><button data-value="light" data-i18n="set.light"></button><button data-value="dark" data-i18n="set.dark"></button></div></div>
+        <div class="row"><span data-i18n="set.lang"></span>
+          <div class="seg" data-setting="lang"><button data-value="auto" data-i18n="set.auto"></button><button data-value="ru">Русский</button><button data-value="en">English</button></div></div>
+        <div id="about">
+          <div class="about-cap" data-i18n="about.title"></div>
+          <div class="about-name">DataLaw DesignLab</div>
+          <div class="about-app">PDF Scanner · <span id="ver"></span></div>
+          <div class="about-copy">© 2026 DataLaw DesignLab.<br><span data-i18n="about.rights"></span></div>
+        </div>
+      </div>
     </section>
   </main>
   <nav id="tabbar">
@@ -80,6 +101,7 @@
 <div id="camera" hidden>
   <div id="cam-count" hidden></div>
   <div id="cam-warn" hidden></div>
+  <button id="cam-frame"></button>
   <button id="cam-torch" hidden data-i18n-aria="cam.torch"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M13 2L5 14h5l-1 8 8-12h-5z"/></svg></button>
   <div class="ed-head" data-i18n="cam.title"></div>
   <div id="cam-stage"><div id="cam-wrap"><video id="cam-video" playsinline muted autoplay></video><canvas id="cam-overlay"></canvas><div id="cam-tick" hidden></div></div></div>
@@ -95,6 +117,7 @@
     <button id="rs-del" class="vw-btn" data-i18n-aria="sc.delete" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
   </div>
   <div id="rs-stage"><canvas id="rs-canvas"></canvas><canvas id="rs-mini" hidden></canvas></div>
+  <div id="rs-alts" hidden></div>
   <p id="rs-hint" data-i18n="rs.hint"></p>
   <p id="rs-caption" hidden></p>
   <div id="rs-panel">

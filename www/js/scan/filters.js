@@ -1,5 +1,5 @@
+import { mk } from './canvasx.js';
 // Rotation and scaling helpers (the filters themselves are in enhance.js).
-const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
 export function rotate90(src, turns) {
   const t = ((turns % 4) + 4) % 4;

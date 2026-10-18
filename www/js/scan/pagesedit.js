@@ -19,7 +19,7 @@ export async function editPages(pages, opts = {}) {
       await opts.ensure?.(p);
       const img = await loadImage(p.blob, MAXSIDE);
       const out = await openResult(img, quadFor(img, p), {
-        look: p.look ?? defaultLook('color'), turns: p.turns ?? 0, light: true, stay: true,
+        look: p.look ?? defaultLook('color'), turns: p.turns ?? 0, stay: true, alts: p.alts, pick: p.pick ?? 0, best: p.best ?? p.pick ?? 0,
         saveKey: last ? (opts.lastKey ?? 'ms.apply') : 'rs.next',
         caption: opts.single ? '' : `${t('sc.page')} ${i + 1} ${t('rs.of')} ${pages.length}`,
         back: !opts.single && i > 0, del: !!opts.del && pages.length > 1, swipeNext: !last,
@@ -32,6 +32,7 @@ export async function editPages(pages, opts = {}) {
         if (i >= pages.length) i = pages.length - 1;
         continue;
       }
+      if (p.alts && out.pick != null && out.pick !== (p.pick ?? 0)) { p.blob = p.alts[out.pick].blob; p.pick = out.pick; } // the chosen picture of the series
       const qn = normQuad(out.quad, img);
       const unchanged = lookIsPlain(out.look) && !out.turns && isFull(qn);
       Object.assign(p, { qn, vr: img.width / img.height, look: out.look, turns: out.turns, touched: true, job: null, keep: !!p.orig && unchanged });

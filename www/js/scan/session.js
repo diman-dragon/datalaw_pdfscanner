@@ -8,7 +8,7 @@ import { openSheet } from '../sheet.js';
 import { openCamera } from './camera.js';
 import { pdfStream } from './pdf.js';
 import { editPages } from './pagesedit.js';
-import { flatOf, finalOf, thumbPage } from './shot.js';
+import { startRender, finalOf, thumbPage } from './shot.js';
 import { defaultLook } from './enhance.js';
 import { ensureFolder, savePdf, askName } from './save.js';
 
@@ -18,19 +18,14 @@ const fallback = $('sc-cam'), gallery = $('sc-pick');
 const pages = []; // {blob, qn, vr, look, turns, thumb, job}
 let busy = false, chain = Promise.resolve();
 
-// the heavy stage (decode + warp by the frame) runs in the background, one page at a time, so Save only writes the file
-function prepare(p) {
-  const job = chain.then(() => flatOf(p));
-  chain = job.catch(() => {});
-  p.job = job;
-}
+// the page is made in a render worker as soon as the user has finished with it; Save then only writes the file
+const prepare = (p) => { p.job = startRender(p); };
 const refreshThumb = async (p) => { try { p.thumb = await thumbPage(p); } catch (e) { console.error(e); } render(); };
 
 async function addPage(shot) {
-  const p = { blob: shot.blob, qn: shot.quadN ?? null, vr: shot.vr, look: defaultLook('auto'), turns: 0, thumb: '', job: null };
+  const p = { blob: shot.blob, alts: shot.alts, pick: shot.pick, best: shot.best, qn: shot.quadN ?? null, vr: shot.vr, look: defaultLook('auto'), turns: 0, thumb: '', job: null };
   pages.push(p); // the order is fixed at once, the thumbnail arrives later
   render();
-  prepare(p);
   await refreshThumb(p);
 }
 
@@ -110,6 +105,7 @@ async function exportPdf() {
   busy = true;
   try {
     const list = pages.slice();
+    list.forEach((p) => { if (!p.job && !p.keep) prepare(p); }); // all pages at once, the workers run in parallel
     const r = await savePdf(pdfStream(list.length, async (i) => {
       toast(`${t('scan.saving')} ${i + 1}/${list.length}`, 60000);
       return finalOf(list[i]);
