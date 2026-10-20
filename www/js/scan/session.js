@@ -11,6 +11,7 @@ import { editPages } from './pagesedit.js';
 import { startRender, finalOf, thumbPage } from './shot.js';
 import { defaultLook } from './enhance.js';
 import { ensureFolder, savePdf, askName } from './save.js';
+import { isTyped, paintTypes, shootTyped, typedFromFiles } from './typed.js';
 
 const $ = (id) => document.getElementById(id);
 const home = $('sc-home'), sess = $('sc-session'), grid = $('sc-grid'), count = $('sc-count'), target = $('sc-target');
@@ -80,6 +81,7 @@ async function afterShots(first) {
 }
 
 async function shoot() {
+  if (isTyped()) { if (!(await shootTyped())) fallback.click(); return; } // a card, a passport, a receipt...
   if (busy || !(await ensureFolder())) return;
   const before = pages.length;
   try {
@@ -93,6 +95,7 @@ async function shoot() {
 }
 
 async function fromFiles(files) {
+  if (isTyped()) { typedFromFiles(files); return; }
   const before = pages.length;
   for (const f of files) await addPage({ blob: f });
   afterShots(before);
@@ -124,6 +127,7 @@ $('sc-clear').addEventListener('click', () => { if (confirm(t('sc.clearq'))) { p
 gallery.addEventListener('change', () => { const fs = [...gallery.files]; gallery.value = ''; if (fs.length) fromFiles(fs); });
 fallback.addEventListener('change', () => { const fs = [...fallback.files]; fallback.value = ''; if (fs.length) fromFiles(fs); });
 document.addEventListener('folderchange', paintTarget);
-document.addEventListener('langchange', () => { paintTarget(); render(); });
+document.addEventListener('langchange', () => { paintTarget(); render(); paintTypes($('sc-types')); });
 paintTarget();
 render();
+paintTypes($('sc-types'));

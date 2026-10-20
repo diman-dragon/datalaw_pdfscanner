@@ -1,5 +1,5 @@
-// Quick scan tab: pick WHAT you scan (document, card with two sides, passport, business card, receipt), shoot, edit, name, save.
-import { getFolder, folderInfo } from '../folder.js';
+// Scan tab, document types other than a plain document: a card with two sides (one A4 sheet at real size), a business card,
+// a passport, a receipt. Shoot (the camera of the Scan tab with the frame of the type), edit, name, save.
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { goTo } from '../tabs.js';
@@ -13,24 +13,19 @@ import { MAXSIDE, quadFor, normQuad, finalOf, finalSheet } from './shot.js';
 import { defaultLook } from './enhance.js';
 import { ensureFolder, savePdf, askName } from './save.js';
 
-const $ = (id) => document.getElementById(id);
-const target = $('quick-target'), fallback = $('quick-cam'), gallery = $('quick-pick'), typesEl = $('quick-types');
 let busy = false;
-
 const type = () => DOC_TYPES[getDocType()];
-function paintTarget() {
-  const info = folderInfo(getFolder());
-  target.textContent = info ? `${t('scan.to')} ${info.path}` : t('scan.nofolder.label');
-}
-function paintTypes() {
-  typesEl.replaceChildren(...TYPE_IDS.map((id) => {
+export const isTyped = () => getDocType() !== 'doc';
+
+/** Paints the type chips into el; onChange() is called after a choice. */
+export function paintTypes(el, onChange) {
+  el.replaceChildren(...TYPE_IDS.map((id) => {
     const b = document.createElement('button');
     b.textContent = t('dt.' + id);
     b.classList.toggle('on', id === getDocType());
-    b.addEventListener('click', () => { setDocType(id); paintTypes(); });
+    b.addEventListener('click', () => { setDocType(id); paintTypes(el, onChange); onChange?.(); });
     return b;
   }));
-  gallery.multiple = type().sides > 1; // a card: both sides in one go
 }
 
 async function save(page, name) {
@@ -100,34 +95,26 @@ async function process(shots, fromCamera) {
   } catch (e) { fail(e); } finally { busy = false; }
 }
 
-$('quick-shoot').addEventListener('click', async () => {
-  if (busy || !(await ensureFolder())) return;
+
+/** The camera flow of the chosen type. Returns false if the camera is not available (the caller can offer the system camera). */
+export async function shootTyped() {
+  if (busy || !(await ensureFolder())) return true;
   const ty = type(), shots = [];
   try {
     for (let s = 0; s < ty.sides; s++) {
       const title = ty.sides > 1 ? `${t('dt.side')} ${s + 1} ${t('rs.of')} ${ty.sides}: ${t(s === 0 ? 'dt.front' : 'dt.back')}` : null;
       const shot = await openCamera({ frame: ty.frame, title });
-      if (!shot) return;
+      if (!shot) return true;
       shots.push(shot);
     }
-    process(shots, true);
-  } catch (e) {
-    console.error(e);
-    toast(t('cam.denied'));
-    fallback.click(); // system camera as a fallback
-  }
-});
-$('quick-gallery').addEventListener('click', async () => { if (busy) return; if (getFolder()) gallery.click(); else await ensureFolder(); }); // the file chooser needs the tap itself, so after choosing a folder tap again
-for (const input of [fallback, gallery]) {
-  input.addEventListener('change', () => {
-    const files = [...input.files].slice(0, type().sides);
-    input.value = '';
-    if (!files.length) return;
-    if (files.length < type().sides) { toast(t('dt.need2')); return; } // a card needs both sides
-    process(files.map((f) => ({ blob: f })), false);
-  });
+  } catch (e) { console.error(e); toast(t('cam.denied')); return false; }
+  process(shots, true);
+  return true;
 }
-document.addEventListener('folderchange', paintTarget);
-document.addEventListener('langchange', () => { paintTarget(); paintTypes(); });
-paintTarget();
-paintTypes();
+
+/** Files from the gallery / the system camera for the chosen type (a card takes two). */
+export function typedFromFiles(files) {
+  const ty = type(), list = files.slice(0, ty.sides);
+  if (list.length < ty.sides) { toast(t('dt.need2')); return; }
+  process(list.map((f) => ({ blob: f })), false);
+}

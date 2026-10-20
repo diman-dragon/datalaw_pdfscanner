@@ -51,3 +51,10 @@ export async function finalSheet(pages, mm) {
   });
   try { return (await run(1)).page; } catch (e) { console.error('sheet', e); return (await run(0.6)).page; } // low memory: smaller
 }
+
+/** Quick scan: the photo WITHOUT any processing, pressed into the PDF quality of the Settings (size of the page and its weight). */
+export async function finalRaw(blob) {
+  const { side, budget } = pdfTarget();
+  const run = (k) => render({ raw: true, blob, side: Math.round(side * k), budget });
+  try { return (await run(1)).page; } catch (e) { console.error('raw', e); return (await run(0.6)).page; }
+}

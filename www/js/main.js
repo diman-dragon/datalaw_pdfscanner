@@ -3,7 +3,7 @@ import { applyLang } from './i18n.js';
 import { goTo } from './tabs.js';
 import './settings.js';
 import './library.js';
-import './scan/quick.js';
+import './scan/qscan.js';
 import './scan/session.js';
 import './back.js';
 applyTheme();

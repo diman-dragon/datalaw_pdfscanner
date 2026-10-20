@@ -27,18 +27,16 @@
     <section class="page" data-page="quick">
       <div class="scan-home">
         <img class="em" src="img/emoji/26a1.svg" alt="">
-        <div id="quick-types" class="types"></div>
         <p data-i18n="quick.hint"></p>
         <button class="btn" id="quick-shoot" data-i18n="scan.shoot"></button>
-        <button class="btn ghost" id="quick-gallery" data-i18n="scan.gallery"></button>
         <p id="quick-target"></p>
         <input type="file" id="quick-cam" accept="image/*" capture="environment" hidden>
-        <input type="file" id="quick-pick" accept="image/*" hidden>
       </div>
     </section>
     <section class="page" data-page="scan">
       <div id="sc-home" class="scan-home">
         <img class="em" src="img/emoji/1f4f7.svg" alt="">
+        <div id="sc-types" class="types"></div>
         <p data-i18n="scan.hint2"></p>
         <button class="btn" id="sc-shoot" data-i18n="scan.shoot"></button>
         <button class="btn ghost" id="sc-gallery" data-i18n="scan.gallery"></button>
@@ -128,6 +126,13 @@
     <button class="btn ghost" id="rs-back" data-i18n="rs.back" hidden></button>
     <button class="btn ghost" id="rs-retake" data-i18n="rs.retake"></button>
   </div>
+</div>
+<div id="qcam" hidden>
+  <video id="qcam-video" playsinline muted autoplay></video>
+  <button id="qcam-close" aria-label="Close"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+  <div id="qcam-focus"></div>
+  <div id="qcam-status"></div>
+  <button id="qcam-shot" aria-label="Shoot"></button>
 </div>
 <div id="viewer" hidden>
   <div class="ed-head vw-head">

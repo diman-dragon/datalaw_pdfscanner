@@ -13,6 +13,7 @@ import { mk, toBlob } from './canvasx.js';
 /** job: {blob, qn, vr, look, turns, side, budget, loadSide, search} -> {page, ocr?: {jpeg}} */
 export async function renderPage(job) {
   if (job.sheet) return renderSheet(job);
+  if (job.raw) return { page: await encodeToBudget(await loadImage(job.blob, job.side), job.budget), ocr: null }; // quick scan: the photo as it is, only pressed into the PDF quality
   const { blob, look, turns, side, budget, loadSide, search, mm } = job;
   const img = await loadImage(blob, loadSide);
   const quad = quadFor(img, job);

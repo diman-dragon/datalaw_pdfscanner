@@ -130,7 +130,6 @@ export const en = {
   'dt.back': 'back',
   'dt.need2': 'For a card choose 2 files: the front and the back',
   'fx.enhance': 'Enhance',
-  'quick.hint': 'Choose what you scan. A card: both sides on one A4 sheet at real size. A passport and a receipt are shot in a frame of the right shape.',
   'cam.fm.auto': 'Auto',
   'cam.fm.a4': 'A4',
   'cam.fm.card': 'Card',
@@ -142,4 +141,7 @@ export const en = {
   'cam.coach.ok': 'Great — shoot now',
   'cam.coach.focus': 'Blurry: tap the text to focus',
   'cam.focusing': 'Focusing…',
+  'qs.shot': 'Shot',
+  'qs.pick': 'Choosing the sharpest…',
+  'quick.hint': 'Quick scan: tap Shoot and you are done. A full-quality photo, no processing, straight into a PDF in the chosen folder (named qscan_date_time).',
 };

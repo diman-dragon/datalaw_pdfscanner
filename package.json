@@ -1,6 +1,6 @@
 {
   "name": "datalaw_pdfscanner",
-  "version": "0.1.15",
+  "version": "0.2.0",
   "private": true,
   "description": "PDF scanner for Android (Capacitor)",
   "scripts": {

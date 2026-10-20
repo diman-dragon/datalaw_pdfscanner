@@ -7,7 +7,9 @@ import { isOcrOpen, closeOcr } from './ocr.js';
 import { isDocEditOpen, closeDocEdit } from './docedit.js';
 import { isViewerOpen, closeViewer } from './viewer.js';
 import { isCameraOpen, closeCamera } from './scan/camera.js';
+import { isQcamOpen, closeQcam } from './scan/qscan.js';
 window.Capacitor?.Plugins?.App?.addListener('backButton', () => {
+  if (isQcamOpen()) return closeQcam();
   if (isSheetOpen()) return closeSheet();
   if (isResultOpen()) return closeResult();
   if (isOcrOpen()) return closeOcr();
