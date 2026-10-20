@@ -161,14 +161,17 @@ $('rs-save').addEventListener('click', () => finish(params())); // the page itse
 window.addEventListener('resize', () => { if (!root.hidden && shown) schedule(); });
 
 /**
- * opts: look, turns (initial), saveKey (i18n key of the confirm button), retake ("Retake"), back ("Back"), del (delete icon),
+ * opts: look, looks (the look buttons, default Original / Auto), turns (initial), saveKey (i18n key of the confirm button), retake ("Retake"), back ("Back"), del (delete icon),
  *       alts / pick / best (the pictures of a series: {blob, thumb}; the chosen one; the sharpest), caption (text above the panel), stay (keep the screen open for the next call), swipeNext (a left swipe goes on to the next page).
  * Resolves {quad, look, turns, back?}, 'retake', 'delete', or null (cancelled).
  */
+const looks0 = (o) => (o.looks ?? ['color', 'auto']).slice(-1)[0];
 export function openResult(srcCanvas, q, opts = {}) {
-  src = srcCanvas; quad = q.map((p) => p.slice()); turns = opts.turns ?? 0; look = { ...(opts.look ?? defaultLook('auto')) };
+  src = srcCanvas; quad = q.map((p) => p.slice()); turns = opts.turns ?? 0; look = { ...(opts.look ?? defaultLook(looks0(opts))) };
   disp = scaled(src, 1400); kd = disp.width / src.width; shown = rotate90(disp, turns);
   try { blurry = sharpness(disp) < 0.75; } catch { blurry = false; }
+  const looks = opts.looks ?? ['color', 'auto'];
+  lookBar.replaceChildren(...looks.map((v) => { const b = document.createElement('button'); b.dataset.value = v; b.textContent = t('fx.' + v); return b; }));
   alts = opts.alts ?? null; pick = opts.pick ?? 0; best = opts.best ?? pick; renderAlts();
   view = 'frame'; drag = -1; sw = null;
   stay = !!opts.stay;

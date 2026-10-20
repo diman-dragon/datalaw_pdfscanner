@@ -23,14 +23,13 @@ nav button.on{background:var(--accent-soft);color:var(--text);font-weight:600}
 .strong{font-weight:600;word-break:break-word}
 #folder-path{word-break:break-all}
 
-/* ---- settings: three screens + About */
-.set-menu{display:grid;gap:10px;padding-top:6px}
-.set-menu button{display:flex;align-items:center;gap:14px;width:100%;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--text);font:inherit;text-align:left}
-.set-menu img{width:30px;height:30px}
-.set-menu b{flex:1;font-size:17px}
-.set-menu i{font-style:normal;font-size:24px;color:var(--muted)}
-.set-head{display:flex;align-items:center;gap:6px;padding:0 0 6px;margin-left:-8px}
-.set-head b{font-size:18px}
+/* ---- settings: three swipeable screens + About */
+#set-tabs{display:flex;gap:6px;margin:2px 0 10px;border-bottom:1px solid var(--line)}
+#set-tabs button{flex:1;padding:10px 4px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font:inherit;font-size:14px;font-weight:600}
+#set-tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+#set-pager{overflow:hidden;touch-action:pan-y}
+#set-track{display:flex;transition:transform .22s ease}
+.set-screen{flex:0 0 100%;min-width:0;padding:0 2px}
 #about{margin-top:22px;padding:22px 16px;border:2px solid var(--accent);border-radius:16px;text-align:center;background:var(--surface)}
 .about-cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .about-name{margin:8px 0 4px;font-size:24px;font-weight:800;letter-spacing:.01em}

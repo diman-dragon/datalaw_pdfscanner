@@ -63,3 +63,17 @@
 #rs-alts img{width:100%;height:100%;object-fit:cover;display:block}
 #rs-alts button.on{border-color:var(--accent)}
 #rs-alts .star{position:absolute;right:3px;top:0;font-size:13px;color:#FFC247;text-shadow:0 0 3px #000}
+
+.types{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:100%;margin:2px 0 6px}
+.types button{border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text);padding:8px 14px;font:inherit;font-size:14px;font-weight:600}
+.types button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+#cam-frames{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;scrollbar-width:none}
+#cam-frames::-webkit-scrollbar{display:none}
+#cam-frames button{flex:none;border:1px solid rgba(255,255,255,.35);border-radius:16px;background:transparent;color:#fff;padding:6px 14px;font:inherit;font-size:13px;font-weight:600}
+#cam-frames button.on{background:#fff;color:#000;border-color:#fff}
+#cam-coach{padding:2px 12px 6px;text-align:center;font-size:13px;color:#ddd;min-height:22px}
+#cam-coach.ok{color:#3DDC84;font-weight:700}
+#cam-focus{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border:2px solid #FFC247;border-radius:50%;pointer-events:none;opacity:0}
+#cam-focus.go{animation:camfocus .9s ease-out}
+@keyframes camfocus{0%{opacity:1;transform:scale(1.5)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}

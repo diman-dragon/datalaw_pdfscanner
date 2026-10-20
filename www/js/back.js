@@ -7,7 +7,6 @@ import { isOcrOpen, closeOcr } from './ocr.js';
 import { isDocEditOpen, closeDocEdit } from './docedit.js';
 import { isViewerOpen, closeViewer } from './viewer.js';
 import { isCameraOpen, closeCamera } from './scan/camera.js';
-import { isSettingsSubOpen, closeSettingsSub } from './settings.js';
 window.Capacitor?.Plugins?.App?.addListener('backButton', () => {
   if (isSheetOpen()) return closeSheet();
   if (isResultOpen()) return closeResult();
@@ -15,6 +14,5 @@ window.Capacitor?.Plugins?.App?.addListener('backButton', () => {
   if (isDocEditOpen()) return closeDocEdit();
   if (isViewerOpen()) return closeViewer();
   if (isCameraOpen()) return closeCamera();
-  if (isSettingsSubOpen()) return closeSettingsSub();
   if (getTab() !== 'library') goTo('library');
 });

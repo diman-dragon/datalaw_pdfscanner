@@ -19,9 +19,9 @@ export async function editPages(pages, opts = {}) {
       await opts.ensure?.(p);
       const img = await loadImage(p.blob, MAXSIDE);
       const out = await openResult(img, quadFor(img, p), {
-        look: p.look ?? defaultLook('color'), turns: p.turns ?? 0, stay: true, alts: p.alts, pick: p.pick ?? 0, best: p.best ?? p.pick ?? 0,
+        look: p.look ?? defaultLook('color'), looks: opts.looks, turns: p.turns ?? 0, stay: true, alts: p.alts, pick: p.pick ?? 0, best: p.best ?? p.pick ?? 0,
         saveKey: last ? (opts.lastKey ?? 'ms.apply') : 'rs.next',
-        caption: opts.single ? '' : `${t('sc.page')} ${i + 1} ${t('rs.of')} ${pages.length}`,
+        caption: opts.single || pages.length === 1 ? '' : `${t(opts.word ?? 'sc.page')} ${i + 1} ${t('rs.of')} ${pages.length}`,
         back: !opts.single && i > 0, del: !!opts.del && pages.length > 1, swipeNext: !last,
       });
       if (!out) return 'cancel';

@@ -18,7 +18,7 @@ const loadSide = () => Math.round(Math.min(4200, Math.max(1800, pdfTarget().side
 export function startRender(p, k = 1) {
   const { side, budget } = pdfTarget();
   const job = render({
-    blob: p.blob, qn: p.qn, vr: p.vr, look: p.look ?? defaultLook('color'), turns: p.turns || 0,
+    blob: p.blob, qn: p.qn, vr: p.vr, look: p.look ?? defaultLook('color'), turns: p.turns || 0, mm: p.mm,
     side: Math.round(side * k), budget, loadSide: Math.round(loadSide() * k), search: getPdfSearch() === '1',
   });
   job.catch(() => {}); // the failure is handled where the result is awaited
@@ -40,4 +40,14 @@ export async function thumbPage(p) {
   const img = await loadImage(p.blob, 360);
   const c = applyLook(rotate90(warp(img, quadFor(img, p), 360), p.turns || 0), p.look ?? defaultLook('color'));
   return c.toDataURL('image/jpeg', 0.7);
+}
+
+/** One A4 sheet with the sides (pages) of a card at real size -> PDF page record. */
+export async function finalSheet(pages, mm) {
+  const { side, budget } = pdfTarget();
+  const run = (k) => render({
+    sheet: { sides: pages.map((p) => ({ blob: p.blob, qn: p.qn, vr: p.vr, look: p.look ?? defaultLook('color'), turns: p.turns || 0 })), mm },
+    side: Math.round(side * k), budget, loadSide: Math.round(loadSide() * k),
+  });
+  try { return (await run(1)).page; } catch (e) { console.error('sheet', e); return (await run(0.6)).page; } // low memory: smaller
 }

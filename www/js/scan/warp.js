@@ -71,8 +71,8 @@ export function pageSize(quad, srcW, srcH, maxSide) {
   return [Math.max(16, Math.round(W * k)), Math.max(16, Math.round(H * k))];
 }
 
-export function warp(src, quad, maxSide = 2200) {
-  const [W, H] = pageSize(quad, src.width, src.height, maxSide);
+export function warp(src, quad, maxSide = 2200, size = null) {
+  const [W, H] = size ? [Math.max(16, Math.round(size[0])), Math.max(16, Math.round(size[1]))] : pageSize(quad, src.width, src.height, maxSide); // size: the physical proportion is known
   const h = homography([[0, 0], [W, 0], [W, H], [0, H]], quad);
   const sw = src.width, sh = src.height;
   const sd = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;

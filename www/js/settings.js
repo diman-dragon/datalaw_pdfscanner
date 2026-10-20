@@ -3,6 +3,7 @@ import { getLang, setLang, t } from './i18n.js';
 import { Folder, getFolder, setFolder, folderInfo } from './folder.js';
 import { getShotDelay, setShotDelay } from './shotdelay.js';
 import { getSeriesStr, setSeries } from './camsettings.js';
+import { goTo } from './tabs.js';
 import { getPdfDpi, setPdfDpi, getPdfSearch, setPdfSearch } from './pdfquality.js';
 import { VERSION } from './version.js';
 const get = { theme: getTheme, lang: getLang, delay: () => String(getShotDelay()), pdfdpi: getPdfDpi, pdfsearch: getPdfSearch, series: getSeriesStr };
@@ -31,15 +32,34 @@ document.getElementById('ver').textContent = VERSION;
 paint();
 paintFolder();
 
-// three screens: Shooting / PDF and files / App (+ About)
-const home = document.getElementById('set-home'), screens = [...document.querySelectorAll('.set-screen')];
-let sub = null;
-function showSub(name) {
-  sub = name;
-  home.hidden = !!name;
-  screens.forEach((el) => { el.hidden = el.dataset.screen !== name; });
+// three screens - Shooting / PDF and files / App (+ About) - switched by swipe or by the tabs on top
+const pager = document.getElementById('set-pager'), track = document.getElementById('set-track'), tabsEl = document.getElementById('set-tabs');
+let idx = 0, dxs = 0, sg = null;
+function applySet(anim = true) {
+  track.style.transition = anim ? '' : 'none';
+  track.style.transform = `translateX(calc(${-idx * 100}% + ${dxs}px))`;
+  [...tabsEl.children].forEach((b, i) => b.classList.toggle('on', i === idx));
 }
-home.addEventListener('click', (e) => { const b = e.target.closest('[data-open]'); if (b) showSub(b.dataset.open); });
-document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => showSub(null)));
-export const isSettingsSubOpen = () => !!sub;
-export const closeSettingsSub = () => showSub(null);
+tabsEl.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { idx = +b.dataset.i; dxs = 0; applySet(); } });
+pager.addEventListener('pointerdown', (e) => { sg = { x: e.clientX, y: e.clientY, t: Date.now(), drag: false, id: e.pointerId }; });
+pager.addEventListener('pointermove', (e) => {
+  if (!sg) return;
+  const dx = e.clientX - sg.x, dy = e.clientY - sg.y;
+  if (!sg.drag && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) { sg.drag = true; pager.setPointerCapture(sg.id); } // a taps on the buttons stay taps
+  if (!sg.drag) return;
+  const edge = (dx > 0 && idx === 0) || (dx < 0 && idx === 2);
+  dxs = edge ? dx * 0.25 : dx;
+  applySet(false);
+});
+const endSet = (e) => {
+  if (!sg) return;
+  const s = sg; sg = null;
+  if (!s.drag) return;
+  const dx = e.clientX - s.x, W = pager.clientWidth, fast = Math.abs(dx / Math.max(1, Date.now() - s.t)) > 0.45;
+  if ((Math.abs(dx) > W * 0.2 || fast) && dx < 0 && idx < 2) idx++;
+  else if ((Math.abs(dx) > W * 0.2 || fast) && dx > 0) { if (idx > 0) idx--; else goTo('scan'); } // past the first screen: the previous tab
+  dxs = 0; applySet();
+};
+pager.addEventListener('pointerup', endSet);
+pager.addEventListener('pointercancel', endSet);
+applySet(false);

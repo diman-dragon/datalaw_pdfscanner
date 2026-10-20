@@ -4,9 +4,9 @@ import { mk } from './canvasx.js';
 // 10 MP page needs little memory. look = {filter: 'color' (original) | 'auto'}.
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-export const FILTERS = ['color', 'auto'];
+export const FILTERS = ['color', 'auto', 'enhance'];
 export const defaultLook = (filter = 'auto') => ({ filter });
-export const lookIsPlain = (l) => l.filter !== 'auto';
+export const lookIsPlain = (l) => l.filter === 'color';
 
 const FIX = 0.9;   // strength of the shadow / crease removal
 const SHARP = 0.4; // unsharp amount
@@ -61,9 +61,43 @@ function paperOf(src) {
   return sm;
 }
 
-/** look: {filter}. Returns src itself for the original. */
+/** Cards / passports: a gentle levels stretch from the real black and white of the picture + sharpening; colours are kept. */
+function enhanceSoft(src) {
+  const w = src.width, h = src.height, out = mk(w, h), ox = out.getContext('2d', { willReadFrequently: true });
+  const k = Math.min(1, 400 / Math.max(w, h)), sm = mk(Math.max(8, Math.round(w * k)), Math.max(8, Math.round(h * k))), sx = sm.getContext('2d', { willReadFrequently: true });
+  sx.drawImage(src, 0, 0, sm.width, sm.height);
+  const d0 = sx.getImageData(0, 0, sm.width, sm.height).data, hist = new Uint32Array(256), n0 = d0.length / 4;
+  for (let i = 0; i < d0.length; i += 4) hist[(d0[i] * 77 + d0[i + 1] * 150 + d0[i + 2] * 29) >> 8]++;
+  let acc = 0, lo = 0, hi = 255;
+  for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= n0 * 0.01) { lo = v; break; } }
+  acc = 0;
+  for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= n0 * 0.01) { hi = v; break; } }
+  lo = Math.min(lo, 50); hi = Math.max(hi, 205);
+  const lut = new Uint8ClampedArray(256);
+  for (let v = 0; v < 256; v++) lut[v] = ((v - lo) * 255) / (hi - lo);
+  const strip = Math.max(64, Math.floor(1500000 / w)), tc = mk(w, strip), tx = tc.getContext('2d', { willReadFrequently: true });
+  for (let y0 = 0; y0 < h; y0 += strip) {
+    const sh = Math.min(strip, h - y0);
+    tx.clearRect(0, 0, w, strip); tx.drawImage(src, 0, y0, w, sh, 0, 0, w, sh);
+    const id = tx.getImageData(0, 0, w, sh), d = id.data;
+    for (let i = 0, n = w * sh * 4; i < n; i += 4) { d[i] = lut[d[i]]; d[i + 1] = lut[d[i + 1]]; d[i + 2] = lut[d[i + 2]]; }
+    ox.putImageData(id, 0, y0);
+  }
+  const bl = mk(w, h), blx = bl.getContext('2d', { willReadFrequently: true });
+  blx.filter = `blur(${Math.max(0.8, Math.min(w, h) / 800).toFixed(2)}px)`;
+  blx.drawImage(out, 0, 0);
+  for (let y0 = 0; y0 < h; y0 += strip) {
+    const sh = Math.min(strip, h - y0), o = ox.getImageData(0, y0, w, sh), od = o.data, bd = blx.getImageData(0, y0, w, sh).data;
+    for (let i = 0, n = w * sh * 4; i < n; i += 4) for (let c = 0; c < 3; c++) od[i + c] = od[i + c] + 0.6 * (od[i + c] - bd[i + c]);
+    ox.putImageData(o, 0, y0);
+  }
+  return out;
+}
+
+/** look: {filter: 'color' | 'auto' | 'enhance'}. Returns src itself for the original. */
 export function applyLook(src, look) {
   if (lookIsPlain(look)) return src;
+  if (look.filter === 'enhance') return enhanceSoft(src);
   const w = src.width, h = src.height, out = mk(w, h), ox = out.getContext('2d', { willReadFrequently: true });
   const paper = paperOf(src), strip = Math.max(64, Math.floor(1500000 / w));
   const tc = mk(w, strip), tx = tc.getContext('2d', { willReadFrequently: true });
