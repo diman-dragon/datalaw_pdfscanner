@@ -1,6 +1,6 @@
 # Changelog
-## 0.2.4
-- After a shot, in every mode (Quick and Scan), a window with the file name already filled in (Quick: qscan_YYYYMMDD_HHMM, Scan: type_YYYYMMDD_HHMM): save as it is or change it; Cancel returns to the camera (Quick) / to the "Shoot more / Finish" question (Scan)
+## 0.2.5
+- After a shot, in every mode (Quick and Scan), a window with the file name already filled in (Quick: qscan_YYYYMMDD_HHMM, Scan: scan_YYYYMMDD_HHMM): save as it is or change it; Cancel returns to the camera (Quick) / to the "Shoot more / Finish" question (Scan)
 - Passport: the whole spread 250 x 176 mm (height x width) upright on the A4 sheet
 - Quick scan: ONE photo per press instead of 3 (faster, no burst; the "choose the sharpest of 3" step is gone)
 - Sharpness check right after the shot (on the page area inside the frame, the same measure and limit as the editor's "may be blurry" warning): a soft shot opens a question - "Retake" (back to the camera) or "Save as is" (saved at once as before); tap outside / System Back = retake. If the sharpness cannot be measured, the shot is saved without a question

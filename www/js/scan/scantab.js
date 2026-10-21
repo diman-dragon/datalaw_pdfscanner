@@ -1,6 +1,6 @@
 // SCAN TAB: choose what you scan (A4, A5, ID card, business card, passport, receipt), tap Shoot: the same bare camera as the Quick scan with
 // the frame of that type. After every shot: "Shoot more" or "Finish". An ID card asks for the back side (both sides go on ONE sheet with a gap).
-// Every item is saved on an A4 sheet at its REAL size. "Finish" asks for the file name (filled in: type_YYYYMMDD_HHMM, can be edited), saves the PDF into the chosen folder and opens the Library.
+// Every item is saved on an A4 sheet at its REAL size. "Finish" asks for the file name (filled in: scan_YYYYMMDD_HHMM, can be edited), saves the PDF into the chosen folder and opens the Library.
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { goTo } from '../tabs.js';
@@ -17,7 +17,6 @@ const types = $('sc-types'), desc = $('sc-desc'), target = $('sc-target');
 let items = [], cur = null; // items: finished pages {sides, mm, rotate, job}; cur: the item being shot (the front is taken, the back is awaited)
 const type = () => SCAN_TYPES[getScanType()];
 const name = (id) => t('st.' + id);
-const name_ = (id) => name(id).replace(/\s+/g, '_'); // the type in a file name
 const sizeText = (id) => { const [w, h] = SCAN_TYPES[id].mm; return `${w} × ${h} mm`; };
 
 function paintTypes() {
@@ -65,7 +64,7 @@ async function onShot({ blob, crop, vr, land }) {
   for (;;) {
     const a = await askChoice(`${t('sc.count')} ${items.length}`, [{ id: 'more', label: t('sc.more') }, { id: 'finish', label: t('sc.finish') }]);
     if (a === 'more') return undefined;
-    const fname = await askFileName(autoName(name_(id))); // the name by the parameters of the scan, ready to be saved or changed
+    const fname = await askFileName(autoName('scan')); // the name by the parameters of the scan, ready to be saved or changed
     if (fname === null) continue; // cancelled: the question again
     await finish(fname);
     return 'close';
