@@ -6,13 +6,14 @@ import { t } from '../i18n.js';
 import { getShotDelay } from '../shotdelay.js';
 import { skewOf, focusScore } from './quality.js';
 import { getSeries, getFrameMode, setFrameMode } from '../camsettings.js';
+import { getFlash, nextFlash, BOLT, isDark } from '../flash.js';
 import { FRAMES, FRAME_IDS } from '../docTypes.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
 const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch'), warnEl = $('cam-warn'), framesEl = $('cam-frames'), coachEl = $('cam-coach'), focusEl = $('cam-focus');
 let multi = false, onShot = null, shots = 0, stream = null, quad = null, target = null, manual = false, detTimer = 0, raf = 0, resolveFn = null;
-let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, calm = 0, torchOn = false, gyro = 0, warnTimer = 0, frameMode = 'auto';
+let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, calm = 0, torchOn = false, torchCap = false, gyro = 0, warnTimer = 0, frameMode = 'auto';
 let aligned = false, poi = null, poiAt = 0, scoreHist = [], focusOk = true, focusAt = 0, coachHold = 0, lastFocusScore = 0;
 
 // ---- steadiness (gyroscope) and tilt warnings
@@ -41,7 +42,7 @@ function stop() {
   warnEl.hidden = true; gyro = 0;
   cancelAnimationFrame(raf);
   stream?.getTracks().forEach((tr) => tr.stop());
-  stream = null; quad = null; target = null; shooting = false; torchOn = false; aligned = false; poi = null; scoreHist = [];
+  stream = null; quad = null; target = null; shooting = false; torchOn = false; torchCap = false; aligned = false; poi = null; scoreHist = [];
   shotBtn.classList.remove('busy'); torchBtn.hidden = true; torchBtn.classList.remove('on');
   video.srcObject = null; root.hidden = true; multi = false; onShot = null;
 }
@@ -187,8 +188,8 @@ ov.addEventListener('pointercancel', () => { drag = -1; });
 
 function tapFocus(x, y) {
   focusEl.style.left = x * scale + 'px'; focusEl.style.top = y * scale + 'px';
-  focusEl.classList.remove('go'); void focusEl.offsetWidth; focusEl.classList.add('go');
-  applyAf([x / vw, y / vh], 'single-shot');
+  focusEl.classList.remove('go', 'ok'); void focusEl.offsetWidth; focusEl.classList.add('go');
+  applyAf([x / vw, y / vh], 'single-shot').then(() => { if (focusOk) focusEl.classList.add('ok'); });
   setTimeout(() => { if (stream && poi) applyAf(poi, 'continuous'); }, 1800); // then back to following the text
 }
 
@@ -244,17 +245,21 @@ async function tuneTrack(st) {
   try {
     const tr = st.getVideoTracks()[0], caps = tr.getCapabilities?.() ?? {};
     if (caps.focusMode?.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-    if (st === stream && caps.torch) torchBtn.hidden = false;
+    if (st === stream && caps.torch) { torchCap = true; torchBtn.hidden = false; paintFlash(); if (getFlash() === 'on') torch(true); }
   } catch (e) { console.error(e); }
 }
-torchBtn.addEventListener('click', async () => {
-  if (!stream) return;
-  try {
-    torchOn = !torchOn;
-    await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: torchOn }] });
-    torchBtn.classList.toggle('on', torchOn);
-  } catch (e) { console.error(e); torchOn = false; torchBtn.classList.remove('on'); }
-});
+function paintFlash() {
+  const m = getFlash();
+  torchBtn.innerHTML = `${BOLT}<span>${t('fl.' + m)}</span>`;
+  torchBtn.classList.toggle('on', m === 'on'); torchBtn.classList.toggle('off', m === 'off');
+}
+async function torch(on) { // the light: always on / only when dark / off
+  const tr = stream?.getVideoTracks()[0];
+  if (!tr || !torchCap || torchOn === on) return;
+  try { await tr.applyConstraints({ advanced: [{ torch: on }] }); torchOn = on; } catch (e) { console.error(e); }
+}
+torchBtn.addEventListener('click', async () => { nextFlash(); paintFlash(); if (!shooting) await torch(getFlash() === 'on'); });
+
 
 // ---- shutter
 const snapshot = () => {
@@ -282,6 +287,7 @@ async function shoot() {
     await applyAf(poi ?? [0.5, 0.5], 'single-shot'); await sleep(500);
     if (!stream) { shooting = false; shotBtn.classList.remove('busy'); return; }
   }
+  if (torchCap) { const want = getFlash() === 'on' || (getFlash() === 'auto' && isDark(video)); if (want && !torchOn) { await torch(true); await sleep(250); } } // flash: the torch lights the shot
   // the frame and the first picture are taken at the moment of the press
   const q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh, n = getSeries(), cands = [];
   const take = () => { const cv = snapshot(); cands.push({ score: focusScore(cv), thumb: thumbData(cv), blob: toBlob(cv, 0.97) }); };
@@ -290,6 +296,7 @@ async function shoot() {
   try {
     take();
     for (let i = 1; i < n && stream; i++) { await sleep(120); if (!stream) break; take(); } // the series: the user chooses the best one later
+    if (getFlash() === 'auto') torch(false);
     const blobs = await Promise.all(cands.map((c) => c.blob));
     if (!stream) return; // closed meanwhile
     let pick = 0; // the sharpest, but a later picture must beat the one at the press by 15%

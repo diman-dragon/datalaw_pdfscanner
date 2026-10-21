@@ -37,8 +37,6 @@
 #cam-wrap.flash::after{content:'';position:absolute;inset:0;background:#fff;opacity:.6;pointer-events:none}
 #cam-tick{position:absolute;inset:0;display:grid;place-items:center;font-size:120px;font-weight:700;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);pointer-events:none}
 #cam-shot.busy{opacity:.55}
-#cam-torch{position:absolute;z-index:1;top:calc(env(safe-area-inset-top) + 4px);left:12px;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center}
-#cam-torch.on{background:#FFC247;color:#000}
 
 /* ---- page editor: photo with the frame, small result preview, Original / Auto */
 #result .ed-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -80,11 +78,20 @@
 
 /* ---- quick scan camera: just the picture and the shutter */
 #qcam{position:fixed;inset:0;z-index:20;background:#000;color:#fff}
-#qcam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#qcam-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+#qcam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+#qcam-overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 #qcam-close{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 10px);left:10px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center}
 #qcam-shot{position:absolute;z-index:2;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);width:78px;height:78px;margin-left:-39px;border:5px solid #fff;border-radius:50%;background:rgba(255,255,255,.25)}
 #qcam-shot:active{background:#fff}
 #qcam-shot.busy{opacity:.5}
 #qcam-status{position:absolute;z-index:2;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 120px);text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 4px #000}
-#qcam-focus{position:fixed;z-index:2;width:70px;height:70px;margin:-35px 0 0 -35px;border:2px solid #FFC247;border-radius:50%;pointer-events:none;opacity:0}
+#qcam-focus{position:absolute;z-index:2;width:70px;height:70px;margin:-35px 0 0 -35px;border:2px solid #FFC247;border-radius:50%;pointer-events:none;opacity:0}
 #qcam-focus.go{animation:camfocus .9s ease-out}
+#qcam-flash,#cam-torch{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 10px);right:10px;height:42px;padding:0 14px;border:0;border-radius:21px;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+#qcam-flash.on,#cam-torch.on{background:#FFC247;color:#000}
+#qcam-flash.off,#cam-torch.off{opacity:.65}
+#qcam-hint{position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 138px);max-width:90%;padding:6px 14px;border-radius:16px;background:rgba(0,0,0,.45);font-size:13px;text-align:center;line-height:1.35}
+#qcam-focus.ok{border-color:#3DDC84}
+#cam-focus.ok{border-color:#3DDC84}
+#cam-torch{top:calc(env(safe-area-inset-top) + 50px);right:12px;height:36px;padding:0 12px}

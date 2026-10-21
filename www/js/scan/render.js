@@ -13,7 +13,20 @@ import { mk, toBlob } from './canvasx.js';
 /** job: {blob, qn, vr, look, turns, side, budget, loadSide, search} -> {page, ocr?: {jpeg}} */
 export async function renderPage(job) {
   if (job.sheet) return renderSheet(job);
-  if (job.raw) return { page: await encodeToBudget(await loadImage(job.blob, job.side), job.budget), ocr: null }; // quick scan: the photo as it is, only pressed into the PDF quality
+  if (job.raw) { // quick scan: the photo as it is (cut to the A4 frame if the picture matches the preview), pressed into the PDF quality
+    let img = null;
+    if (job.crop) {
+      const [x0, y0, x1, y1] = job.crop, L = Math.min(5200, Math.round(job.side / Math.max(x1 - x0, y1 - y0)));
+      const full = await loadImage(job.blob, L);
+      if (Math.abs(full.width / full.height - job.vr) < 0.04 * job.vr) { // the same field of view as the preview: the frame maps exactly
+        const sx = Math.round(x0 * full.width), sy = Math.round(y0 * full.height), sw = Math.round((x1 - x0) * full.width), sh = Math.round((y1 - y0) * full.height);
+        img = mk(sw, sh);
+        img.getContext('2d').drawImage(full, sx, sy, sw, sh, 0, 0, sw, sh);
+      }
+    }
+    img ??= await loadImage(job.blob, job.side);
+    return { page: await encodeToBudget(img, job.budget), ocr: null };
+  }
   const { blob, look, turns, side, budget, loadSide, search, mm } = job;
   const img = await loadImage(blob, loadSide);
   const quad = quadFor(img, job);

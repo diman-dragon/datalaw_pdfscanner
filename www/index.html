@@ -128,9 +128,10 @@
   </div>
 </div>
 <div id="qcam" hidden>
-  <video id="qcam-video" playsinline muted autoplay></video>
+  <div id="qcam-wrap"><video id="qcam-video" playsinline muted autoplay></video><canvas id="qcam-overlay"></canvas><div id="qcam-focus"></div></div>
   <button id="qcam-close" aria-label="Close"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
-  <div id="qcam-focus"></div>
+  <button id="qcam-flash" class="flash-btn"></button>
+  <div id="qcam-hint"></div>
   <div id="qcam-status"></div>
   <button id="qcam-shot" aria-label="Shoot"></button>
 </div>

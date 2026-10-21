@@ -53,8 +53,8 @@ export async function finalSheet(pages, mm) {
 }
 
 /** Quick scan: the photo WITHOUT any processing, pressed into the PDF quality of the Settings (size of the page and its weight). */
-export async function finalRaw(blob) {
+export async function finalRaw(blob, crop = null, vr = 1) {
   const { side, budget } = pdfTarget();
-  const run = (k) => render({ raw: true, blob, side: Math.round(side * k), budget });
+  const run = (k) => render({ raw: true, blob, crop, vr, side: Math.round(side * k), budget });
   try { return (await run(1)).page; } catch (e) { console.error('raw', e); return (await run(0.6)).page; }
 }
