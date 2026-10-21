@@ -1,19 +1,18 @@
-// Camera screen: live preview, auto frame (smoothed), draggable corners, shutter, self-timer, torch.
+// Camera screen: live preview, auto frame (smoothed), draggable corners, shutter, torch.
 // WYSIWYG: the shot is the exact video frame at the moment of the press, at the highest stream resolution -
 // no delay, nothing is shot "later". The frame is stored with the shot (normalized).
 import { detectQuad, insetQuad } from './detect.js';
 import { t } from '../i18n.js';
-import { getShotDelay } from '../shotdelay.js';
 import { skewOf, focusScore } from './quality.js';
-import { getSeries, getFrameMode, setFrameMode } from '../camsettings.js';
+import { getFrameMode, setFrameMode } from '../camsettings.js';
 import { getFlash, nextFlash, BOLT, isDark } from '../flash.js';
 import { FRAMES, FRAME_IDS } from '../docTypes.js';
 const $ = (id) => document.getElementById(id);
 const root = $('camera'), stage = $('cam-stage'), wrap = $('cam-wrap'), video = $('cam-video'), ov = $('cam-overlay');
 const ctx = ov.getContext('2d');
-const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), timerBtn = $('cam-timer'), tickEl = $('cam-tick'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch'), warnEl = $('cam-warn'), framesEl = $('cam-frames'), coachEl = $('cam-coach'), focusEl = $('cam-focus');
+const countEl = $('cam-count'), cancelBtn = $('cam-cancel'), shotBtn = $('cam-shot'), torchBtn = $('cam-torch'), warnEl = $('cam-warn'), framesEl = $('cam-frames'), coachEl = $('cam-coach'), focusEl = $('cam-focus');
 let multi = false, onShot = null, shots = 0, stream = null, quad = null, target = null, manual = false, detTimer = 0, raf = 0, resolveFn = null;
-let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, cd = 0, shooting = false, calm = 0, torchOn = false, torchCap = false, gyro = 0, warnTimer = 0, frameMode = 'auto';
+let vw = 0, vh = 0, scale = 1, drag = -1, busy = false, lastTap = 0, shooting = false, calm = 0, torchOn = false, torchCap = false, gyro = 0, warnTimer = 0, frameMode = 'auto';
 let aligned = false, poi = null, poiAt = 0, scoreHist = [], focusOk = true, focusAt = 0, coachHold = 0, lastFocusScore = 0;
 
 // ---- steadiness (gyroscope) and tilt warnings
@@ -269,13 +268,6 @@ const snapshot = () => {
   return c;
 };
 
-const thumbData = (cv) => {
-  const k = 120 / Math.max(cv.width, cv.height), s = document.createElement('canvas');
-  s.width = Math.round(cv.width * k); s.height = Math.round(cv.height * k);
-  s.getContext('2d').drawImage(cv, 0, 0, s.width, s.height);
-  return s.toDataURL('image/jpeg', 0.6);
-};
-
 async function shoot() {
   if (shooting || !stream || !vw) return;
   shooting = true;
@@ -289,50 +281,26 @@ async function shoot() {
   }
   if (torchCap) { const want = getFlash() === 'on' || (getFlash() === 'auto' && isDark(video)); if (want && !torchOn) { await torch(true); await sleep(250); } } // flash: the torch lights the shot
   // the frame and the first picture are taken at the moment of the press
-  const q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh, n = getSeries(), cands = [];
-  const take = () => { const cv = snapshot(); cands.push({ score: focusScore(cv), thumb: thumbData(cv), blob: toBlob(cv, 0.97) }); };
+  const q = quad.map(([x, y]) => [x / vw, y / vh]), vr = vw / vh;
   navigator.vibrate?.(20);
   wrap.classList.add('flash'); setTimeout(() => wrap.classList.remove('flash'), 120);
   try {
-    take();
-    for (let i = 1; i < n && stream; i++) { await sleep(120); if (!stream) break; take(); } // the series: the user chooses the best one later
+    const blob = await toBlob(snapshot(), 0.97);
     if (getFlash() === 'auto') torch(false);
-    const blobs = await Promise.all(cands.map((c) => c.blob));
     if (!stream) return; // closed meanwhile
-    let pick = 0; // the sharpest, but a later picture must beat the one at the press by 15%
-    cands.forEach((c, i) => { if (i && c.score > cands[pick].score * (pick === 0 ? 1.15 : 1)) pick = i; });
-    const alts = cands.map((c, i) => ({ blob: blobs[i], thumb: c.thumb, score: c.score }));
-    const shot = { blob: blobs[pick], quadN: q, vr, alts: n > 1 ? alts : undefined, pick, best: pick };
+    const shot = { blob, quadN: q, vr };
     if (!multi) return finish(shot);
     shots += 1; paintCount();
     onShot?.(shot); // camera stays open for the next page
   } catch (e) { console.error(e); } finally { shooting = false; shotBtn.classList.remove('busy'); }
 }
 
-// ---- self-timer: in multi mode a series, every N seconds until stopped
-const paintTimer = () => { timerBtn.textContent = cd ? t('cam.stop') : `${t('cam.timer')} ${getShotDelay()} ${t('cam.sec')}`; };
-function stopCountdown() { clearInterval(cd); cd = 0; tickEl.hidden = true; paintTimer(); }
-function startCountdown() {
-  if (!stream) return;
-  let n = getShotDelay();
-  tickEl.textContent = n; tickEl.hidden = false;
-  cd = setInterval(() => {
-    n -= 1;
-    if (n > 0) { tickEl.textContent = n; return; }
-    shoot();
-    if (multi) { n = getShotDelay(); tickEl.textContent = n; } else stopCountdown();
-  }, 1000);
-  paintTimer();
-}
-timerBtn.addEventListener('click', () => (cd ? stopCountdown() : startCountdown()));
 shotBtn.addEventListener('click', shoot);
 cancelBtn.addEventListener('click', closeCamera);
-document.addEventListener('delaychange', paintTimer);
-document.addEventListener('langchange', paintTimer);
 
 /**
  * opts: {multi, onShot, start, frame (a frame preset id), title}.
- * Single mode: resolves {blob, quadN, vr, alts?, pick, best} after the shutter, or null if cancelled (alts = the pictures of the series).
+ * Single mode: resolves {blob, quadN, vr} after the shutter, or null if cancelled.
  * Multi mode (opts.multi): every shot calls opts.onShot(shot) and the camera stays open; resolves null on close.
  * quadN = frame (TL,TR,BR,BL) normalized to 0..1 of the picture; vr = its aspect. Rejects if the camera is unavailable.
  */
@@ -341,7 +309,7 @@ export async function openCamera(opts = {}) {
   cancelBtn.dataset.i18n = multi ? 'cam.done' : 'ed.cancel';
   cancelBtn.textContent = t(cancelBtn.dataset.i18n);
   $('cam-title').textContent = opts.title ?? t('cam.title');
-  paintCount(); paintTimer();
+  paintCount();
   await openStream();
   quad = insetQuad(vw, vh); target = quad.map((p) => p.slice()); manual = false; calm = 0;
   await new Promise((r) => requestAnimationFrame(r));

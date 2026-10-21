@@ -24,7 +24,7 @@ const prepare = (p) => { p.job = startRender(p); };
 const refreshThumb = async (p) => { try { p.thumb = await thumbPage(p); } catch (e) { console.error(e); } render(); };
 
 async function addPage(shot) {
-  const p = { blob: shot.blob, alts: shot.alts, pick: shot.pick, best: shot.best, qn: shot.quadN ?? null, vr: shot.vr, look: defaultLook('auto'), turns: 0, thumb: '', job: null };
+  const p = { blob: shot.blob, qn: shot.quadN ?? null, vr: shot.vr, look: defaultLook('auto'), turns: 0, thumb: '', job: null };
   pages.push(p); // the order is fixed at once, the thumbnail arrives later
   render();
   await refreshThumb(p);

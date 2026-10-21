@@ -1,4 +1,4 @@
-// System Back: closes the top overlay (sheet / page editor / text recognition / document editor / viewer / camera);
+// System Back: closes the top overlay (blur question / sheet / page editor / text recognition / document editor / viewer / camera);
 // else from any tab -> Library; on Library stays.
 import { goTo, getTab } from './tabs.js';
 import { isSheetOpen, closeSheet } from './sheet.js';
@@ -8,7 +8,9 @@ import { isDocEditOpen, closeDocEdit } from './docedit.js';
 import { isViewerOpen, closeViewer } from './viewer.js';
 import { isCameraOpen, closeCamera } from './scan/camera.js';
 import { isQcamOpen, closeQcam } from './scan/qscan.js';
+import { isBlurOpen, closeBlur } from './scan/blurask.js';
 window.Capacitor?.Plugins?.App?.addListener('backButton', () => {
+  if (isBlurOpen()) return closeBlur();
   if (isQcamOpen()) return closeQcam();
   if (isSheetOpen()) return closeSheet();
   if (isResultOpen()) return closeResult();

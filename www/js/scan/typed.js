@@ -46,13 +46,13 @@ async function save(page, name) {
 
 const fail = (e) => { toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000); console.error(e); };
 
-/** One page of the chosen type: result screen (with Retake) -> name -> save. shot: {blob, quadN?, vr?, alts?}. */
+/** One page of the chosen type: result screen (with Retake) -> name -> save. shot: {blob, quadN?, vr?}. */
 async function runSingle(shot, fromCamera, ty) {
   let cur = shot, state = { look: defaultLook(ty.looks[ty.looks.length - 1]), turns: 0 };
   for (;;) {
     const img = await loadImage(cur.blob, MAXSIDE); // the original: the frame is set on it, the PDF is made from it
     const p = { qn: cur.quadN ?? null, vr: cur.vr };
-    const out = await openResult(img, quadFor(img, p), { ...state, looks: ty.looks, retake: fromCamera, alts: cur.alts, pick: cur.pick ?? 0, best: cur.best ?? cur.pick ?? 0 });
+    const out = await openResult(img, quadFor(img, p), { ...state, looks: ty.looks, retake: fromCamera });
     if (out === 'retake') {
       cur = await openCamera({ frame: ty.frame });
       if (!cur) return;
@@ -60,7 +60,6 @@ async function runSingle(shot, fromCamera, ty) {
       continue;
     }
     if (!out) return;
-    if (cur.alts && out.pick != null) cur = { ...cur, blob: cur.alts[out.pick].blob, pick: out.pick }; // the chosen picture of the series
     const job = finalOf({ blob: cur.blob, qn: normQuad(out.quad, img), vr: img.width / img.height, look: out.look, turns: out.turns, mm: ty.mm }); // made while the name is typed
     job.catch(() => {});
     const name = askName();
@@ -77,7 +76,7 @@ async function runSingle(shot, fromCamera, ty) {
 
 /** A card (one or two sides) on an A4 sheet at real size: the sides are edited one after another, then one sheet is made. */
 async function runSheet(shots, ty) {
-  const pages = shots.map((sh) => ({ blob: sh.blob, alts: sh.alts, pick: sh.pick, best: sh.best, qn: sh.quadN ?? null, vr: sh.vr, look: defaultLook(ty.looks[ty.looks.length - 1]), turns: 0 }));
+  const pages = shots.map((sh) => ({ blob: sh.blob, qn: sh.quadN ?? null, vr: sh.vr, look: defaultLook(ty.looks[ty.looks.length - 1]), turns: 0 }));
   if (await editPages(pages, { lastKey: 'sc.save', looks: ty.looks, word: 'dt.side' }) !== 'done') return;
   const job = finalSheet(pages, ty.mm);
   job.catch(() => {});

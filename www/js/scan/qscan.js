@@ -1,7 +1,7 @@
-// QUICK SCAN: nothing to choose. One tap: the camera opens with a fixed A4 frame; a tap on the shutter takes 3 photos at the full
-// resolution of the sensor (autofocus, tap = focus on that spot, flash auto / on / off), the sharpest one is cut to the frame,
-// pressed into the PDF quality of the Settings WITHOUT any other processing and saved at once into the chosen folder
-// as qscan_YYYYMMDD_HHMM.pdf. Then the Library opens.
+// QUICK SCAN: nothing to choose. One tap: the camera opens with a fixed A4 frame; a tap on the shutter takes ONE photo at the full
+// resolution of the sensor (autofocus, tap = focus on that spot, flash auto / on / off). The sharpness of the page area is checked:
+// if the shot is soft, the app offers to retake it or to save it as it is. The photo is cut to the frame, pressed into the PDF quality
+// of the Settings WITHOUT any other processing and saved at once into the chosen folder as qscan_YYYYMMDD_HHMM.pdf. Then the Library opens.
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { goTo } from '../tabs.js';
@@ -9,13 +9,14 @@ import { getFolder, folderInfo } from '../folder.js';
 import { getFlash, nextFlash, BOLT, isDark } from '../flash.js';
 import { pdfStream } from './pdf.js';
 import { finalRaw } from './shot.js';
-import { focusScore } from './quality.js';
+import { blobSharpness, isBlurry } from './blobsharp.js';
+import { askBlur } from './blurask.js';
 import { ensureFolder, savePdf } from './save.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('qcam'), wrap = $('qcam-wrap'), video = $('qcam-video'), ov = $('qcam-overlay'), shotBtn = $('qcam-shot'), statusEl = $('qcam-status'), hintEl = $('qcam-hint');
 const ring = $('qcam-focus'), flashBtn = $('qcam-flash'), target = $('quick-target'), fallback = $('quick-cam');
-const SHOTS = 3, A4 = 210 / 297;
+const A4 = 210 / 297;
 let stream = null, capture = null, photoOpts, fills = [], busy = false, torchCap = false, torchOn = false, focusOk = true, vw = 0, vh = 0, frame = null, cropOk = false, hintHold = 0;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -96,22 +97,6 @@ async function takeOne() {
   c.getContext('2d').drawImage(video, 0, 0);
   return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('jpeg'))), 'image/jpeg', 0.97));
 }
-async function sharpest(blobs) { // the same scene shot three times: the one with the crispest edges
-  let best = blobs[0], bestS = -1;
-  for (const b of blobs) {
-    try {
-      const bmp = await createImageBitmap(b, { imageOrientation: 'from-image' });
-      const k = Math.min(1, 800 / Math.max(bmp.width, bmp.height)), c = document.createElement('canvas');
-      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-      bmp.close?.();
-      const s = focusScore(c);
-      if (s > bestS) { bestS = s; best = b; }
-    } catch (e) { console.error(e); }
-  }
-  return best;
-}
-
 /** blob (the photo) -> PDF (quality of the Settings, cut to the frame) -> the chosen folder -> Library. */
 async function saveBlob(blob, crop) {
   status(t('scan.saving'));
@@ -126,14 +111,15 @@ async function shoot() {
   busy = true; shotBtn.classList.add('busy');
   try {
     const mode = getFlash(), want = mode === 'on' || (mode === 'auto' && isDark(video));
-    if (torchCap) { await torch(want); if (want) await sleep(250); } // the torch lights the whole burst
+    if (torchCap) { await torch(want); if (want) await sleep(250); } // the torch lights the shot
     else if (photoOpts) photoOpts.fillLightMode = fills.includes(mode === 'auto' ? 'auto' : mode === 'on' ? 'flash' : 'off') ? (mode === 'auto' ? 'auto' : mode === 'on' ? 'flash' : 'off') : undefined; // the camera's own flash
-    const blobs = [];
-    for (let i = 0; i < SHOTS; i++) { status(`${t('qs.shot')} ${i + 1}/${SHOTS}`); blobs.push(await takeOne()); }
+    status(t('qs.shot'));
+    const blob = await takeOne();
     if (mode !== 'on') await torch(false);
-    status(t('qs.pick'));
-    const best = await sharpest(blobs);
-    await saveBlob(best, cropOk ? frame : null);
+    status(t('qs.check'));
+    const crop = cropOk ? frame : null;
+    if (isBlurry(await blobSharpness(blob, crop)) && (await askBlur()) === 'retake') return; // stay in the camera: shoot again
+    await saveBlob(blob, crop);
     busy = false; closeQcam();
   } catch (e) {
     toast(`${t('scan.fail')}: ${e?.message ?? e}`, 6000);

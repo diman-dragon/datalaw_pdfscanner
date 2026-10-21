@@ -1,13 +1,11 @@
 import { getTheme, setTheme } from './theme.js';
 import { getLang, setLang, t } from './i18n.js';
 import { Folder, getFolder, setFolder, folderInfo } from './folder.js';
-import { getShotDelay, setShotDelay } from './shotdelay.js';
-import { getSeriesStr, setSeries } from './camsettings.js';
 import { goTo } from './tabs.js';
 import { getPdfDpi, setPdfDpi, getPdfSearch, setPdfSearch } from './pdfquality.js';
 import { VERSION } from './version.js';
-const get = { theme: getTheme, lang: getLang, delay: () => String(getShotDelay()), pdfdpi: getPdfDpi, pdfsearch: getPdfSearch, series: getSeriesStr };
-const set = { theme: setTheme, lang: setLang, delay: setShotDelay, pdfdpi: setPdfDpi, pdfsearch: setPdfSearch, series: setSeries };
+const get = { theme: getTheme, lang: getLang, pdfdpi: getPdfDpi, pdfsearch: getPdfSearch };
+const set = { theme: setTheme, lang: setLang, pdfdpi: setPdfDpi, pdfsearch: setPdfSearch };
 const segs = [...document.querySelectorAll('.seg[data-setting]')];
 const paint = () => segs.forEach((s) => [...s.children].forEach((b) => b.classList.toggle('on', b.dataset.value === get[s.dataset.setting]())));
 segs.forEach((s) => s.addEventListener('click', (e) => {
@@ -32,7 +30,7 @@ document.getElementById('ver').textContent = VERSION;
 paint();
 paintFolder();
 
-// three screens - Shooting / PDF and files / App (+ About) - switched by swipe or by the tabs on top
+// two screens - PDF and files / App (+ About) - switched by swipe or by the tabs on top
 const pager = document.getElementById('set-pager'), track = document.getElementById('set-track'), tabsEl = document.getElementById('set-tabs');
 let idx = 0, dxs = 0, sg = null;
 function applySet(anim = true) {
@@ -47,7 +45,7 @@ pager.addEventListener('pointermove', (e) => {
   const dx = e.clientX - sg.x, dy = e.clientY - sg.y;
   if (!sg.drag && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) { sg.drag = true; pager.setPointerCapture(sg.id); } // a taps on the buttons stay taps
   if (!sg.drag) return;
-  const edge = (dx > 0 && idx === 0) || (dx < 0 && idx === 2);
+  const edge = (dx > 0 && idx === 0) || (dx < 0 && idx === 1);
   dxs = edge ? dx * 0.25 : dx;
   applySet(false);
 });
@@ -56,7 +54,7 @@ const endSet = (e) => {
   const s = sg; sg = null;
   if (!s.drag) return;
   const dx = e.clientX - s.x, W = pager.clientWidth, fast = Math.abs(dx / Math.max(1, Date.now() - s.t)) > 0.45;
-  if ((Math.abs(dx) > W * 0.2 || fast) && dx < 0 && idx < 2) idx++;
+  if ((Math.abs(dx) > W * 0.2 || fast) && dx < 0 && idx < 1) idx++;
   else if ((Math.abs(dx) > W * 0.2 || fast) && dx > 0) { if (idx > 0) idx--; else goTo('scan'); } // past the first screen: the previous tab
   dxs = 0; applySet();
 };
