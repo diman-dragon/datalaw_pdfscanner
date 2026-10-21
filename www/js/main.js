@@ -4,7 +4,7 @@ import { goTo } from './tabs.js';
 import './settings.js';
 import './library.js';
 import './scan/qscan.js';
-import './scan/session.js';
+import './scan/scantab.js';
 import './back.js';
 applyTheme();
 applyLang();

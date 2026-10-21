@@ -4,39 +4,14 @@
 .scan-home .btn{min-width:200px;padding:13px 18px;font-size:16px}
 .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
 #quick-target{font-size:13px;word-break:break-all}
-#editor,#camera,#result{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:var(--bg);padding-top:env(safe-area-inset-top)}
+#editor,#result{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:var(--bg);padding-top:env(safe-area-inset-top)}
 .ed-head{height:40px;display:flex;align-items:center;padding:0 16px;font-size:15px;font-weight:600;border-bottom:1px solid var(--line);background:var(--surface)}
-#rs-bar,#cam-bar{display:flex;gap:8px;justify-content:space-between;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
+#rs-bar{display:flex;gap:8px;justify-content:space-between;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,12px);max-width:86%;padding:10px 16px;border-radius:12px;background:var(--text);color:var(--bg);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:30;text-align:center}
 .toast.show{opacity:.95;transform:translate(-50%,0)}
 #editor{z-index:22}
-#camera{background:#000;color:#fff;z-index:20}
-#camera .ed-head{background:#000;border-color:#222;color:#fff}
-#cam-stage{flex:1;min-height:0;display:grid;place-items:center}
-#cam-wrap{position:relative}
-#cam-video{width:100%;height:100%;display:block;object-fit:cover;background:#000}
-#cam-overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
-.cam-hint{text-align:center;font-size:13px;color:#bbb;padding:6px 12px}
-#cam-bar{background:#000;border-color:#222;align-items:center}
-#cam-bar .btn.ghost{color:#fff;border-color:#444;min-width:84px}
-#cam-shot{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:#fff;box-shadow:inset 0 0 0 4px #000}
 #result{z-index:21}
-#sc-session{height:100%;display:flex;flex-direction:column;gap:10px}
-#sc-bar{display:flex;justify-content:space-between;align-items:center}
-#sc-count{font-weight:600}
-#sc-bar .btn{padding:6px 12px;font-size:13px}
-#sc-grid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;align-content:start}
-.pg{position:relative;aspect-ratio:3/4;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer}
-.pg img{width:100%;height:100%;object-fit:contain;display:block}
-.pg .num{position:absolute;left:6px;top:6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;display:grid;place-items:center}
-.pg .more{position:absolute;right:4px;bottom:4px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:18px}
-#sc-actions{display:flex;gap:8px}
-#sc-actions .btn{flex:1;padding:12px 6px;font-size:13px}
 #sc-target{font-size:13px;word-break:break-all}
-#cam-count{position:absolute;z-index:1;top:calc(env(safe-area-inset-top) + 6px);right:12px;padding:4px 10px;border-radius:12px;background:rgba(56,217,245,.9);color:#000;font-size:13px;font-weight:600}
-#cam-wrap.flash::after{content:'';position:absolute;inset:0;background:#fff;opacity:.6;pointer-events:none}
-#cam-spacer{min-width:84px}
-#cam-shot.busy{opacity:.55}
 
 /* ---- page editor: photo with the frame, small result preview, Original / Auto */
 #result .ed-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -53,23 +28,12 @@
 #rs-bar{justify-content:flex-start}
 #rs-bar #rs-back,#rs-bar #rs-retake{margin-left:auto}
 #rs-bar #rs-back+#rs-retake{margin-left:0}
-#cam-warn{position:absolute;z-index:1;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 92px);max-width:88%;padding:6px 12px;border-radius:14px;background:rgba(255,194,71,.95);color:#2a1d00;font-size:13px;font-weight:600;text-align:center}
 #rs-hint.warn{color:#b86e00;font-weight:600}
-#cam-frame{position:absolute;z-index:1;top:calc(env(safe-area-inset-top) + 50px);left:12px;height:36px;padding:0 12px;border:0;border-radius:18px;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:13px;font-weight:600}
 
 .types{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:100%;margin:2px 0 6px}
 .types button{border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text);padding:8px 14px;font:inherit;font-size:14px;font-weight:600}
 .types button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 
-#cam-frames{display:flex;gap:6px;overflow-x:auto;padding:6px 10px;scrollbar-width:none}
-#cam-frames::-webkit-scrollbar{display:none}
-#cam-frames button{flex:none;border:1px solid rgba(255,255,255,.35);border-radius:16px;background:transparent;color:#fff;padding:6px 14px;font:inherit;font-size:13px;font-weight:600}
-#cam-frames button.on{background:#fff;color:#000;border-color:#fff}
-#cam-coach{padding:2px 12px 6px;text-align:center;font-size:13px;color:#ddd;min-height:22px}
-#cam-coach.ok{color:#3DDC84;font-weight:700}
-#cam-focus{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border:2px solid #FFC247;border-radius:50%;pointer-events:none;opacity:0}
-#cam-focus.go{animation:camfocus .9s ease-out}
-@keyframes camfocus{0%{opacity:1;transform:scale(1.5)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
 
 /* ---- quick scan camera: just the picture and the shutter */
 #qcam{position:fixed;inset:0;z-index:20;background:#000;color:#fff}
@@ -83,11 +47,12 @@
 #qcam-status{position:absolute;z-index:2;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 120px);text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 4px #000}
 #qcam-focus{position:absolute;z-index:2;width:70px;height:70px;margin:-35px 0 0 -35px;border:2px solid #FFC247;border-radius:50%;pointer-events:none;opacity:0}
 #qcam-focus.go{animation:camfocus .9s ease-out}
-#qcam-flash,#cam-torch{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 10px);right:10px;height:42px;padding:0 14px;border:0;border-radius:21px;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
-#qcam-flash.on,#cam-torch.on{background:#FFC247;color:#000}
-#qcam-flash.off,#cam-torch.off{opacity:.65}
+#qcam-flash{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 10px);right:10px;height:42px;padding:0 14px;border:0;border-radius:21px;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+#qcam-flash.on{background:#FFC247;color:#000}
+#qcam-flash.off{opacity:.65}
 #qcam-hint{position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 138px);max-width:90%;padding:6px 14px;border-radius:16px;background:rgba(0,0,0,.45);font-size:13px;text-align:center;line-height:1.35}
 #qcam-focus.ok{border-color:#3DDC84}
-#cam-focus.ok{border-color:#3DDC84}
-#cam-torch{top:calc(env(safe-area-inset-top) + 50px);right:12px;height:36px;padding:0 12px}
 .sheet-msg{white-space:normal;text-align:center;line-height:1.4;padding:8px 8px 12px}
+#qcam-count{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 16px);left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:12px;background:rgba(56,217,245,.9);color:#000;font-size:13px;font-weight:600}
+@keyframes camfocus{0%{opacity:1;transform:scale(1.5)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+.sheet-input{display:block;width:100%;margin:0 0 10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);font:inherit;font-size:16px}

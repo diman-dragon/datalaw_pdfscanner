@@ -33,22 +33,3 @@ export function sharpness(canvas, maxPx = 1280) {
   ratios.sort((a, b) => a - b);
   return ratios[Math.floor(ratios.length * 0.6)]; // upper-middle: the sharpest edges of the page represent it
 }
-
-/** For comparing frames of the SAME scene (the burst): the 97th percentile of the gradient on a ~640 px grey copy. Higher = sharper. */
-export function focusScore(canvas) {
-  const k = Math.min(1, 640 / Math.max(canvas.width, canvas.height));
-  const w = Math.max(8, Math.round(canvas.width * k)), h = Math.max(8, Math.round(canvas.height * k));
-  const c = mk(w, h);
-  const x = c.getContext('2d', { willReadFrequently: true });
-  x.drawImage(canvas, 0, 0, w, h);
-  const d = x.getImageData(0, 0, w, h).data, g = new Float32Array(w * h), hist = new Uint32Array(256);
-  for (let i = 0; i < w * h; i++) g[i] = d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114;
-  let n = 0;
-  for (let yy = 1; yy < h - 1; yy++) for (let xx = 1; xx < w - 1; xx++) {
-    const i = yy * w + xx;
-    hist[Math.min(255, Math.max(Math.abs(g[i + 1] - g[i - 1]), Math.abs(g[i + w] - g[i - w])) / 2) | 0]++; n++;
-  }
-  let acc = 0;
-  for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= n * 0.03) return v; }
-  return 0;
-}

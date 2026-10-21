@@ -3,6 +3,7 @@ import { Folder, getFolder, setFolder } from '../folder.js';
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { bytesToBase64 } from './pdf.js';
+import { askText } from './choice.js';
 
 /** true if a folder is selected; otherwise explains, opens the folder picker (it has a "New folder" button) and waits for the choice. */
 export async function ensureFolder() {
@@ -24,7 +25,10 @@ export const stamp = () => {
   return `${t('scan.prefix')}_${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
 };
 
-const clean = (s) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\.pdf$/i, '').trim();
+/** A file name made by the app: prefix_YYYYMMDD_HHMM. */
+export const autoName = (prefix) => { const d = new Date(), p = (n) => String(n).padStart(2, '0'); return `${prefix}_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; };
+
+export const clean = (s) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\.pdf$/i, '').trim();
 
 /** Asks for the file name (suggests `def`, the time stamp by default). null = user cancelled. */
 export function askName(def = stamp()) {
@@ -72,4 +76,10 @@ export async function savePdf(parts, name = stamp()) {
     await Folder.saveAbort({ id }).catch(() => {});
     throw e;
   }
+}
+
+/** After a shot: a window with the file name already filled in (def), editable. -> the clean name, or null if cancelled. An empty field = the default. */
+export async function askFileName(def) {
+  const n = await askText(t('scan.nameq'), def, { ok: t('sc.save'), cancel: t('ed.cancel') });
+  return n === null ? null : clean(n) || def;
 }

@@ -1,9 +1,16 @@
 # Changelog
-## 0.2.3
+## 0.2.4
+- After a shot, in every mode (Quick and Scan), a window with the file name already filled in (Quick: qscan_YYYYMMDD_HHMM, Scan: type_YYYYMMDD_HHMM): save as it is or change it; Cancel returns to the camera (Quick) / to the "Shoot more / Finish" question (Scan)
+- Passport: the whole spread 250 x 176 mm (height x width) upright on the A4 sheet
 - Quick scan: ONE photo per press instead of 3 (faster, no burst; the "choose the sharpest of 3" step is gone)
 - Sharpness check right after the shot (on the page area inside the frame, the same measure and limit as the editor's "may be blurry" warning): a soft shot opens a question - "Retake" (back to the camera) or "Save as is" (saved at once as before); tap outside / System Back = retake. If the sharpness cannot be measured, the shot is saved without a question
 - Removed everywhere: the setting "Frames per shot" (1 / 3 / 5) and the series of frames in the camera (a shot is always ONE frame; the series thumbnails with the star on the editor screen are gone), and the self-timer / auto-shooting (the Timer button, the countdown, the setting "Shot timer")
 - Settings: the "Shooting" screen is gone (nothing left on it); two screens remain - PDF and files / App
+- Scan tab rebuilt from scratch on the model of the Quick scan: everything old is gone (the multi-page gallery, the old camera with its frame strip, the type editor). Now: choose what you scan (A4, A5, ID card, business card, passport, receipt), tap Shoot, a bare camera with the fixed frame of that type opens
+- After every shot a question: "Shoot more" or "Finish"; "Finish" saves the PDF at once (scan_YYYYMMDD_HHMM.pdf) and opens the Library. The sharpness check works here too
+- An ID card asks for the back side (or "Without the back"); both sides are placed on ONE sheet with a gap between them
+- Everything is saved on A4 sheets at the REAL size of the item (an A4 held landscape is turned onto the sheet)
+- The camera of both tabs is one module (qcamera.js); the question dialog is generic (choice.js)
 ## 0.2.1
 - Quick scan: a FIXED A4 FRAME on the camera (dimmed outside, corner brackets; it follows the phone's orientation). The shot is cut to the frame when the photo has the same field of view as the preview (the preview is requested 4:3 like most sensors; if it does not match, the whole photo is kept and the frame is only a guide); nothing else is processed
 - Flash on both cameras: a button with three modes - Auto (the light comes on only when the scene is dark), On, Off; remembered. Where the torch is available it lights the whole burst, otherwise the camera's own flash setting is used
