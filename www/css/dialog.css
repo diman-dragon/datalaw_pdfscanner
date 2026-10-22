@@ -1,0 +1,12 @@
+.dlg{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.55)}
+.dlg-box{width:100%;max-width:340px;display:grid;gap:14px;padding:22px 18px 16px;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.dlg-msg{text-align:center;font-size:16px;font-weight:600;line-height:1.4;white-space:pre-line;word-break:break-word}
+.dlg-detail{margin-top:-8px;text-align:center;font-size:13px;line-height:1.35;color:var(--muted);word-break:break-word}
+.dlg-btns{display:grid;gap:8px}
+.dlg-btns.dlg-row{grid-template-columns:1fr 1fr}
+.dlg-btn{height:48px;padding:0 10px;border:1px solid var(--line);border-radius:14px;background:transparent;color:var(--text);font:inherit;font-size:15px;font-weight:600}
+.dlg-btn.pri{border-color:var(--accent);background:var(--accent);color:var(--on-accent)}
+.dlg-btn.danger{border-color:#d64545;background:#d64545;color:#fff}
+.dlg-btn:active{filter:brightness(.9)}
+.dlg-input{display:block;width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);font:inherit;font-size:16px}
+.dlg-input:focus{outline:2px solid var(--accent);outline-offset:-1px}

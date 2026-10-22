@@ -8,6 +8,7 @@ import { detectQuad } from './detect.js';
 import { t } from '../i18n.js';
 import { MAXSIDE } from './shot.js';
 import { sharpness, skewOf } from './quality.js';
+import { askConfirm } from '../dialog.js';
 const $ = (id) => document.getElementById(id);
 const root = $('result'), stage = $('rs-stage'), cv = $('rs-canvas'), mini = $('rs-mini'), lookBar = $('rs-look');
 let src, blurry = false, disp, kd = 1, shown, quad, turns = 0, look = defaultLook('auto'), view = 'frame', ks = 1;
@@ -130,7 +131,7 @@ $('rs-left').addEventListener('click', () => rotate(-1));
 $('rs-right').addEventListener('click', () => rotate(1));
 $('rs-retake').addEventListener('click', () => finish('retake'));
 $('rs-back').addEventListener('click', goBack);
-$('rs-del').addEventListener('click', () => { if (confirm(t('sc.deleteq'))) finish('delete'); });
+$('rs-del').addEventListener('click', async () => { if (await askConfirm(t('sc.deleteq'), { ok: t('lib.delete'), danger: true })) finish('delete'); });
 $('rs-save').addEventListener('click', () => finish(params())); // the page itself is made in the background workers from the original
 window.addEventListener('resize', () => { if (!root.hidden && shown) schedule(); });
 

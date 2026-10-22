@@ -1,4 +1,11 @@
 # Changelog
+## 0.2.7
+- Dialogs: all the system windows (confirm / prompt / alert) are replaced by the app's own dialogs (dialog.js, css/dialog.css) - a centred card with a message, wide buttons (the main one filled, the dangerous one - Delete / Close - red); the same look for the file name, rename, delete, discard changes, replace the original, choose a folder, the questions over the camera. Tap outside / System Back = the safe answer. scan/choice.js is gone (merged into dialog.js)
+- Library: "Rename" is back in the three-dots menu (Edit, Open in another app, Rename, Delete)
+- Passport: the whole spread 176 mm wide x 125 mm high, landscape frame, real size on the A4 sheet
+- "ID card" is now "Card" (licence, residence permit, ID, bank card - the description under the chips says so); the front and the back on one sheet as before
+- Receipt can be longer than the frame: after a shot the question has a third answer "Receipt continues" - the next part is shot with the camera still open; the parts of one receipt stand side by side on the sheet at real size (2 per A4 sheet, the next sheet after that). New: scan/layout.js (sheet constants, rowCap), placed.js lays out a row
+- Closing the camera with shot pages asks through the new dialog (the camera close check is asynchronous now)
 ## 0.2.6
 - Library: every thumbnail shows the number of sheets of the document (a small badge with a sheets pictogram on the first-page preview, in both list and cards); the count comes from the same native call that renders the preview (Folder.preview now also returns `pages`)
 - Library: the three dots open a small popup menu next to the button with three actions - Edit, Open in another app, Delete (the bottom sheet and the separate Rename / Open items are gone from the library; tapping the item still opens it); the menu has pictograms, closes by a tap outside or System Back

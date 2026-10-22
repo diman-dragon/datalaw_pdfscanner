@@ -3,13 +3,13 @@
 // its sharpness (a soft shot: "Retake" / "Save as is") and hands it to cfg.onShot.
 //   cfg = { ratio(land) -> frame width/height, label() -> text on the frame, hint() -> hint text, fallback: <input type=file capture>,
 //           onShot({blob, crop, vr, land}) -> 'close' | anything else (the camera stays for the next shot),
-//           canClose() -> bool (asked before X / System Back), onClose() }
+//           canClose() -> bool | Promise<bool> (asked before X / System Back), onClose() }
 // crop = the frame normalised to the photo ([x0, y0, x1, y1]) when the photo has the same field of view as the preview, else null.
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { getFlash, nextFlash, BOLT, isDark } from '../flash.js';
 import { blobSharpness, isBlurry } from './blobsharp.js';
-import { askChoice } from './choice.js';
+import { askChoice } from '../dialog.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('qcam'), wrap = $('qcam-wrap'), video = $('qcam-video'), ov = $('qcam-overlay'), shotBtn = $('qcam-shot'), statusEl = $('qcam-status'), hintEl = $('qcam-hint');
@@ -30,9 +30,10 @@ export function qcamBadge(s) { badge.textContent = s; badge.hidden = !s; }
 /** Another hint under the frame (function) / the usual one (null); another text on the frame (string) / the usual one (null). */
 export function qcamTexts(hint, label) { hintFn = hint; labelText = label; setHint(hint ? hint() : cfg?.hint?.() ?? ''); drawFrame(false); }
 
-export function closeQcam(force = false) {
+export async function closeQcam(force = false) {
   if (busy) return;
-  if (!force && cfg?.canClose && !cfg.canClose()) return;
+  if (!force && cfg?.canClose && !(await cfg.canClose())) return;
+  if (!cfg) return; // closed while the question was open
   stream?.getTracks().forEach((tr) => tr.stop());
   stream = null; capture = null; photoOpts = undefined; torchOn = false;
   video.srcObject = null; root.hidden = true; qcamStatus(''); qcamBadge('');

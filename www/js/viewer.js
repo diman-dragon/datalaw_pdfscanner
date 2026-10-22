@@ -9,6 +9,7 @@ import { toast } from './toast.js';
 import { openSheet } from './sheet.js';
 import { openOcr } from './ocr.js';
 import { openDocEdit } from './docedit.js';
+import { askAlert } from './dialog.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('viewer'), titleEl = $('vw-title'), posEl = $('vw-pos'), scroll = $('vw-scroll'), list = $('vw-pages'), zoomEl = $('vw-zoom');
@@ -19,7 +20,7 @@ let pi = 0, pdx = 0, pan = { x: 0, y: 0 }; // paged mode: page index, drag offse
 export const isViewerOpen = () => !root.hidden;
 
 export function openExternal(f) {
-  Folder.open({ uri: f.uri }).catch((e) => alert(String(e?.message ?? e) === 'no_viewer' ? t('lib.noviewer') : t('lib.fail')));
+  Folder.open({ uri: f.uri }).catch((e) => askAlert(String(e?.message ?? e) === 'no_viewer' ? t('lib.noviewer') : t('lib.fail')));
 }
 
 // ---- lazy rendering: pages near the viewport are rendered, far ones drop their bitmap

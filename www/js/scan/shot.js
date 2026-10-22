@@ -42,10 +42,10 @@ export async function thumbPage(p) {
   return c.toDataURL('image/jpeg', 0.7);
 }
 
-/** Scan tab: one A4 sheet with the item (one or two sides) at its real size -> PDF page record. item = {sides: [{blob, crop, vr}], mm, rotate} */
+/** Scan tab: one A4 sheet with the item (one or two sides) at its real size -> PDF page record. item = {sides: [{blob, crop, vr}], mm, rotate, row?} */
 export async function finalPlaced(item) {
   const { side, budget } = pdfTarget();
-  const run = (k) => render({ placed: { sides: item.sides, mm: item.mm, rotate: item.rotate }, side: Math.round(side * k), budget });
+  const run = (k) => render({ placed: { sides: item.sides, mm: item.mm, rotate: item.rotate, row: !!item.row }, side: Math.round(side * k), budget });
   try { return (await run(1)).page; } catch (e) { console.error('placed', e); return (await run(0.6)).page; } // low memory: smaller
 }
 

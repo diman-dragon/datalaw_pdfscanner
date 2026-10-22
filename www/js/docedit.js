@@ -10,6 +10,7 @@ import { FULL_QUAD, finalOf, thumbPage } from './scan/shot.js';
 import { defaultLook } from './scan/enhance.js';
 import { savePdf, askName } from './scan/save.js';
 import { pdfTarget } from './pdfquality.js';
+import { askConfirm, askAlert } from './dialog.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('docedit'), grid = $('de-grid'), head = $('de-title');
@@ -23,9 +24,9 @@ function reset() {
   doc = null; pages = []; file = null; opts = {}; dirty = false;
   root.hidden = true; grid.replaceChildren();
 }
-export function closeDocEdit() {
+export async function closeDocEdit() {
   if (busy) return;
-  if (dirty && !confirm(t('de.discardq'))) return;
+  if (dirty && !(await askConfirm(t('de.discardq'), { ok: t('de.discard'), cancel: t('dlg.stay'), danger: true }))) return;
   reset();
 }
 
@@ -106,10 +107,10 @@ export async function openDocEdit(f, o = {}) {
 async function save() {
   if (busy || !pages.length) return;
   const base = file.name.replace(/\.pdf$/i, '');
-  const name = askName(base);
+  const name = await askName(base);
   if (name === null) { if (opts.single) reset(); return; }
   const same = name.toLowerCase() === base.toLowerCase();
-  if (same && !confirm(t('de.replaceq'))) { if (opts.single) reset(); return; }
+  if (same && !(await askConfirm(t('de.replaceq'), { ok: t('de.replace') }))) { if (opts.single) reset(); return; }
   busy = true;
   try {
     const list = pages.slice(), orig = file, onSaved = opts.onSaved;
@@ -129,7 +130,7 @@ async function save() {
         try { // the original is gone (deleted elsewhere): the new file simply takes its name
           const rn = await Folder.rename({ uri: r.uri, name: `${base}.pdf` });
           saved = { uri: rn?.uri ?? r.uri, name: `${base}.pdf` };
-        } catch (e2) { console.error(e2); alert(`${t('de.keptnew')} ${saved.name}`); }
+        } catch (e2) { console.error(e2); askAlert(`${t('de.keptnew')} ${saved.name}`); }
       }
     }
     toast(`${t('scan.saved')} ${saved.name}`);

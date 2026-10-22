@@ -4,6 +4,7 @@ import { Folder, getFolder, setFolder, folderInfo } from './folder.js';
 import { goTo } from './tabs.js';
 import { getPdfDpi, setPdfDpi, getPdfSearch, setPdfSearch } from './pdfquality.js';
 import { VERSION } from './version.js';
+import { askAlert } from './dialog.js';
 const get = { theme: getTheme, lang: getLang, pdfdpi: getPdfDpi, pdfsearch: getPdfSearch };
 const set = { theme: setTheme, lang: setLang, pdfdpi: setPdfDpi, pdfsearch: setPdfSearch };
 const segs = [...document.querySelectorAll('.seg[data-setting]')];
@@ -22,7 +23,7 @@ const paintFolder = () => {
   folderPath.textContent = info ? info.path : '';
 };
 document.getElementById('folder-pick').addEventListener('click', () => {
-  Folder.pickFolder().then(setFolder).catch((e) => { if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail')); });
+  Folder.pickFolder().then(setFolder).catch((e) => { if (String(e?.message ?? e) !== 'cancelled') askAlert(t('lib.fail')); });
 });
 document.addEventListener('folderchange', paintFolder);
 document.addEventListener('langchange', paintFolder);

@@ -7,6 +7,8 @@ import { ICON } from './libicons.js';
 import { loadPreview } from './previews.js';
 import { openViewer, openExternal } from './viewer.js';
 import { openDocEdit } from './docedit.js';
+import { askConfirm, askText, askAlert } from './dialog.js';
+import { clean } from './scan/save.js';
 
 const $ = (id) => document.getElementById(id);
 const bar = $('lib-bar'), items = $('lib-items');
@@ -83,10 +85,17 @@ export async function refresh() {
   render();
 }
 
-const fail = (e) => { if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail')); };
+const fail = (e) => { if (String(e?.message ?? e) !== 'cancelled') askAlert(t('lib.fail')); };
 
+async function rename(f) {
+  const base = f.name.replace(/\.pdf$/i, '');
+  const n = clean((await askText(t('lib.renameq'), base, { ok: t('lib.rename') })) ?? '');
+  if (!n || n === base) return;
+  try { await Folder.rename({ uri: f.uri, name: n + '.pdf' }); } catch (e) { fail(e); }
+  refresh();
+}
 async function remove(f) {
-  if (!confirm(`${t('lib.delq')}\n${f.name}`)) return;
+  if (!(await askConfirm(t('lib.delq'), { detail: f.name, ok: t('lib.delete'), danger: true }))) return;
   try { await Folder.remove({ uri: f.uri }); } catch (e) { fail(e); }
   refresh();
 }
@@ -94,6 +103,7 @@ function menu(anchor, f) {
   openMenu(anchor, [
     { label: t('lib.edit'), icon: ICON.edit, run: () => openDocEdit(f) },
     { label: t('lib.openext'), icon: ICON.external, run: () => openExternal(f) },
+    { label: t('lib.rename'), icon: ICON.rename, run: () => rename(f) },
     { label: t('lib.delete'), icon: ICON.trash, danger: true, run: () => remove(f) },
   ]);
 }

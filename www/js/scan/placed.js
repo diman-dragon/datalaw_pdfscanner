@@ -1,11 +1,11 @@
 // A4 sheet with one item (a page, a card with one or two sides...) at its REAL size. Safe for a Web Worker.
-// job.placed = {sides: [{blob, crop, vr}], mm: [w, h] (real size of one side), rotate: bool (a landscape item wider than the sheet is turned)}
+// job.placed = {sides: [{blob, crop, vr}], mm: [w, h] (real size of one side), rotate: bool (a landscape item wider than the sheet is turned),
+//   row: bool (the sides stand side by side - parts of a long receipt - instead of one under another)}
 import { loadImage } from './load.js';
 import { rotate90 } from './filters.js';
 import { encodeToBudget } from './pdf.js';
 import { mk } from './canvasx.js';
-
-const SW = 210, SH = 297, GAP = 12; // the sheet and the gap between the sides, mm
+import { SW, SH, GAP } from './layout.js';
 
 /** The part of the photo that is the item: the camera frame if the photo matches the preview, else the centre with the item's proportion. */
 function region(img, { crop, vr }, aspect) {
@@ -18,13 +18,14 @@ function region(img, { crop, vr }, aspect) {
 }
 
 export async function renderPlaced(job) {
-  const { sides, mm, rotate } = job.placed, { side, budget } = job;
+  const { sides, mm, rotate, row } = job.placed, { side, budget } = job;
   const ppm = Math.max(side, 2339) / SH, W = Math.round(SW * ppm), H = Math.round(SH * ppm); // at least 200 dpi: the small print of a card
   const [iw, ih] = rotate ? [mm[1], mm[0]] : mm; // size on the sheet
   const full = iw >= SW - 0.5 && ih >= SH - 0.5;
   const sheet = mk(W, H), x = sheet.getContext('2d');
   x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
-  const total = sides.length * ih + (sides.length - 1) * GAP, y0 = full ? 0 : Math.max(15, (SH - total) / 3);
+  const total = row ? ih : sides.length * ih + (sides.length - 1) * GAP, y0 = full ? 0 : Math.max(15, (SH - total) / 3);
+  const x0 = row ? (SW - (sides.length * iw + (sides.length - 1) * GAP)) / 2 : (SW - iw) / 2;
   for (let i = 0; i < sides.length; i++) {
     const s = sides[i], dw = Math.round(mm[0] * ppm), dh = Math.round(mm[1] * ppm);
     const c0 = s.crop ? Math.max(s.crop[2] - s.crop[0], s.crop[3] - s.crop[1]) : 1;
@@ -33,7 +34,7 @@ export async function renderPlaced(job) {
     let item = mk(dw, dh);
     item.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
     if (rotate) item = rotate90(item, 1);
-    const px = (SW - iw) / 2 * ppm, py = (y0 + i * (ih + GAP)) * ppm;
+    const px = (row ? x0 + i * (iw + GAP) : x0) * ppm, py = (row ? y0 : y0 + i * (ih + GAP)) * ppm;
     x.drawImage(item, px, py, iw * ppm, ih * ppm);
     if (!full) { x.strokeStyle = '#9a9a9a'; x.lineWidth = Math.max(1, ppm * 0.25); x.strokeRect(px, py, iw * ppm, ih * ppm); } // the outline helps to cut it out
   }

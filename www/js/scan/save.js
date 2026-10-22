@@ -3,19 +3,19 @@ import { Folder, getFolder, setFolder } from '../folder.js';
 import { t } from '../i18n.js';
 import { toast } from '../toast.js';
 import { bytesToBase64 } from './pdf.js';
-import { askText } from './choice.js';
+import { askText, askConfirm, askAlert } from '../dialog.js';
 
 /** true if a folder is selected; otherwise explains, opens the folder picker (it has a "New folder" button) and waits for the choice. */
 export async function ensureFolder() {
   if (getFolder()) return true;
-  if (!confirm(t('scan.nofolder'))) return false;
+  if (!(await askConfirm(t('scan.nofolder'), { ok: t('dlg.pick') }))) return false;
   try {
     const f = await Folder.pickFolder();
     setFolder(f);
     toast(t('scan.folderset'));
     return true;
   } catch (e) {
-    if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail'));
+    if (String(e?.message ?? e) !== 'cancelled') askAlert(t('lib.fail'));
     return false;
   }
 }
@@ -31,8 +31,8 @@ export const autoName = (prefix) => { const d = new Date(), p = (n) => String(n)
 export const clean = (s) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\.pdf$/i, '').trim();
 
 /** Asks for the file name (suggests `def`, the time stamp by default). null = user cancelled. */
-export function askName(def = stamp()) {
-  const n = prompt(t('scan.nameq'), def);
+export async function askName(def = stamp()) {
+  const n = await askText(t('scan.nameq'), def, { ok: t('sc.save'), cancel: t('ed.cancel') });
   return n === null ? null : clean(n) || stamp();
 }
 
@@ -43,7 +43,7 @@ async function openOut(name) {
   try {
     return await Folder.saveOpen({ tree: getFolder().uri, name });
   } catch (e) {
-    if (!/folder_missing|Missing file/i.test(String(e?.message ?? e)) || !confirm(t('save.folderlost'))) throw e;
+    if (!/folder_missing|Missing file/i.test(String(e?.message ?? e)) || !(await askConfirm(t('save.folderlost'), { ok: t('dlg.pick') }))) throw e;
     const f = await Folder.pickFolder();
     setFolder(f);
     return Folder.saveOpen({ tree: f.uri, name });
