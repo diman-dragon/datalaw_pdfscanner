@@ -17,6 +17,7 @@ export const ru = {
   'lib.rename': 'Переименовать',
   'lib.delete': 'Удалить',
   'lib.cancel': 'Отмена',
+  'lib.pagesaria': 'Листов в документе',
   'lib.menu': 'Действия',
   'lib.renameq': 'Новое имя',
   'lib.delq': 'Удалить файл?',

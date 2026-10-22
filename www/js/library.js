@@ -2,7 +2,8 @@ import { Folder, getFolder } from './folder.js';
 import { t, resolve } from './i18n.js';
 import { store } from './storage.js';
 import { goTo } from './tabs.js';
-import { openSheet } from './sheet.js';
+import { openMenu } from './menu.js';
+import { ICON } from './libicons.js';
 import { loadPreview } from './previews.js';
 import { openViewer, openExternal } from './viewer.js';
 import { openDocEdit } from './docedit.js';
@@ -20,9 +21,13 @@ const observer = new IntersectionObserver((entries) => {
   for (const e of entries) {
     if (!e.isIntersecting) continue;
     observer.unobserve(e.target);
-    const pv = e.target.querySelector('.pv');
-    pv.onload = () => pv.classList.add('ready');
-    loadPreview(e.target._file, pv);
+    const el = e.target, pv = el.querySelector('.pv'), pg = el.querySelector('.pgs');
+    loadPreview(el._file, el, (info) => {
+      if (!info) return;
+      pv.onload = () => pv.classList.add('ready');
+      pv.src = info.data;
+      if (info.pages > 0) { pg.querySelector('b').textContent = info.pages; pg.hidden = false; }
+    });
   }
 }, { rootMargin: '200px' });
 
@@ -33,14 +38,16 @@ function card(f) {
   const el = document.createElement('div');
   el._file = f;
   el.className = 'item';
-  el.innerHTML = '<div class="thumb"><img class="ph" alt="" src="img/emoji/1f4c4.svg"><img class="pv" alt=""></div>'
+  el.innerHTML = '<div class="thumb"><img class="ph" alt="" src="img/emoji/1f4c4.svg"><img class="pv" alt="">'
+    + `<span class="pgs" hidden>${ICON.sheets}<b></b></span></div>`
     + '<div class="meta"><div class="fname"></div><div class="fsub"></div></div>'
-    + '<button class="more">⋮</button>';
+    + `<button class="more">${ICON.more}</button>`;
   el.querySelector('.fname').textContent = f.name;
   el.querySelector('.fsub').textContent = `${fmtSize(f.size)} · ${fmtDate(f.modified)}`;
+  el.querySelector('.pgs').setAttribute('aria-label', t('lib.pagesaria'));
   const more = el.querySelector('.more');
   more.setAttribute('aria-label', t('lib.menu'));
-  more.addEventListener('click', (e) => { e.stopPropagation(); menu(f); });
+  more.addEventListener('click', (e) => { e.stopPropagation(); menu(more, f); });
   el.addEventListener('click', () => openViewer(f));
   observer.observe(el);
   return el;
@@ -78,25 +85,16 @@ export async function refresh() {
 
 const fail = (e) => { if (String(e?.message ?? e) !== 'cancelled') alert(t('lib.fail')); };
 
-async function rename(f) {
-  const base = f.name.replace(/\.pdf$/i, '');
-  const n = prompt(t('lib.renameq'), base)?.trim();
-  if (!n || n === base) return;
-  try { await Folder.rename({ uri: f.uri, name: n + '.pdf' }); } catch (e) { fail(e); }
-  refresh();
-}
 async function remove(f) {
   if (!confirm(`${t('lib.delq')}\n${f.name}`)) return;
   try { await Folder.remove({ uri: f.uri }); } catch (e) { fail(e); }
   refresh();
 }
-function menu(f) {
-  openSheet(f.name, [
-    { label: t('lib.open'), run: () => openViewer(f) },
-    { label: t('lib.edit'), run: () => openDocEdit(f) },
-    { label: t('lib.openext'), run: () => openExternal(f) },
-    { label: t('lib.rename'), run: () => rename(f) },
-    { label: t('lib.delete'), danger: true, run: () => remove(f) },
+function menu(anchor, f) {
+  openMenu(anchor, [
+    { label: t('lib.edit'), icon: ICON.edit, run: () => openDocEdit(f) },
+    { label: t('lib.openext'), icon: ICON.external, run: () => openExternal(f) },
+    { label: t('lib.delete'), icon: ICON.trash, danger: true, run: () => remove(f) },
   ]);
 }
 

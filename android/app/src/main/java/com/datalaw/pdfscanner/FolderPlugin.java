@@ -244,8 +244,10 @@ public class FolderPlugin extends Plugin {
       return;
     }
     try {
+      PdfPreview.First f = PdfPreview.firstPage(cr(), Uri.parse(u), call.getInt("width", 360));
       JSObject o = new JSObject();
-      o.put("data", PdfPreview.firstPage(cr(), Uri.parse(u), call.getInt("width", 360)));
+      o.put("data", f.data);
+      o.put("pages", f.pages);
       call.resolve(o);
     } catch (Exception e) {
       call.reject("preview failed: " + e.getMessage());

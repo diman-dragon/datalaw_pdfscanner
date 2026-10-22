@@ -10,7 +10,12 @@ let mockFiles = [
 const mock = {
   async pickFolder() { return { uri: 'mock://folder', name: 'Demo' }; },
   async list() { return { files: mockFiles.slice() }; },
-  async preview() { throw new Error('no preview in browser'); },
+  async preview({ width }) {
+    const c = document.createElement('canvas'); c.width = width; c.height = Math.round(width * 1.414);
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#bbb'; for (let i = 0; i < 14; i++) x.fillRect(width * .1, width * (.18 + i * .09), width * (i % 4 === 3 ? .5 : .8), width * .03);
+    return { data: c.toDataURL('image/jpeg', 0.8), pages: 1 + (c.width % 7) + Math.floor(Math.random() * 6) };
+  },
   async add() {
     mockFiles.push({ uri: 'mock://' + Date.now(), name: 'Новый файл.pdf', size: 100000, modified: Date.now() });
     return { added: 1 };

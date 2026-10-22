@@ -17,6 +17,7 @@ export const en = {
   'lib.rename': 'Rename',
   'lib.delete': 'Delete',
   'lib.cancel': 'Cancel',
+  'lib.pagesaria': 'Pages in the document',
   'lib.menu': 'Actions',
   'lib.renameq': 'New name',
   'lib.delq': 'Delete file?',

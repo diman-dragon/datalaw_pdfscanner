@@ -1,4 +1,9 @@
 # Changelog
+## 0.2.6
+- Library: every thumbnail shows the number of sheets of the document (a small badge with a sheets pictogram on the first-page preview, in both list and cards); the count comes from the same native call that renders the preview (Folder.preview now also returns `pages`)
+- Library: the three dots open a small popup menu next to the button with three actions - Edit, Open in another app, Delete (the bottom sheet and the separate Rename / Open items are gone from the library; tapping the item still opens it); the menu has pictograms, closes by a tap outside or System Back
+- Library: list rows and cards reworked - bigger list thumbnail with a frame, cards a little wider, the three dots in a round button over the card's preview
+- New modules: menu.js (popup menu), libicons.js (pictograms), css/menu.css; previews.js returns { data, pages } through a callback; browser dev mock draws a preview with a random page count
 ## 0.2.5
 - After a shot, in every mode (Quick and Scan), a window with the file name already filled in (Quick: qscan_YYYYMMDD_HHMM, Scan: scan_YYYYMMDD_HHMM): save as it is or change it; Cancel returns to the camera (Quick) / to the "Shoot more / Finish" question (Scan)
 - Passport: the whole spread 250 x 176 mm (height x width) upright on the A4 sheet

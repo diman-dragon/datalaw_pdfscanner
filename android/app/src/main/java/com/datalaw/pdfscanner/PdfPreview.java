@@ -9,7 +9,7 @@ import android.os.ParcelFileDescriptor;
 import android.util.Base64;
 import java.io.ByteArrayOutputStream;
 
-/** Renders the first page of a PDF to a JPEG data URL (library thumbnails). */
+/** Renders PDF pages to bitmaps / JPEG data URLs (library thumbnails, viewer). */
 final class PdfPreview {
   private PdfPreview() {}
 
@@ -21,8 +21,29 @@ final class PdfPreview {
     return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
   }
 
-  static String firstPage(ContentResolver cr, Uri uri, int width) throws Exception {
-    return toDataUrl(renderPage(cr, uri, 0, width), 80);
+  /** First page as a JPEG data URL plus the page count of the document. */
+  static final class First {
+    final String data;
+    final int pages;
+
+    First(String data, int pages) {
+      this.data = data;
+      this.pages = pages;
+    }
+  }
+
+  static First firstPage(ContentResolver cr, Uri uri, int width) throws Exception {
+    ParcelFileDescriptor pfd = cr.openFileDescriptor(uri, "r");
+    if (pfd == null) throw new Exception("cannot open");
+    PdfRenderer renderer = null;
+    try {
+      renderer = new PdfRenderer(pfd);
+      int pages = renderer.getPageCount();
+      return new First(toDataUrl(render(renderer, 0, width), 80), pages);
+    } finally {
+      if (renderer != null) renderer.close();
+      pfd.close();
+    }
   }
 
   /** Renders one page to a white-backed bitmap (caller recycles). Height is capped at 4200 px. */
@@ -30,10 +51,18 @@ final class PdfPreview {
     ParcelFileDescriptor pfd = cr.openFileDescriptor(uri, "r");
     if (pfd == null) throw new Exception("cannot open");
     PdfRenderer renderer = null;
-    PdfRenderer.Page page = null;
     try {
       renderer = new PdfRenderer(pfd);
-      page = renderer.openPage(index);
+      return render(renderer, index, width);
+    } finally {
+      if (renderer != null) renderer.close();
+      pfd.close();
+    }
+  }
+
+  private static Bitmap render(PdfRenderer renderer, int index, int width) {
+    PdfRenderer.Page page = renderer.openPage(index);
+    try {
       int w = width;
       int h = Math.max(1, Math.round(w * (float) page.getHeight() / page.getWidth()));
       if (h > 4200) {
@@ -45,9 +74,7 @@ final class PdfPreview {
       page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
       return bmp;
     } finally {
-      if (page != null) page.close();
-      if (renderer != null) renderer.close();
-      pfd.close();
+      page.close();
     }
   }
 }
