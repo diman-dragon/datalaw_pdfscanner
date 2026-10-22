@@ -1,5 +1,5 @@
 // The camera of the Quick and Scan tabs: a bare picture with a FIXED frame (dimmed outside, corner brackets), the shutter, the flash
-// (auto / on / off) and a tap = focus on that spot. A tap on the shutter takes ONE photo at the full resolution of the sensor, checks
+// (auto / on / off) and the focus (smart: found from the picture and locked, see autofocus.js; or the phone's own); a tap = focus on that spot. A tap on the shutter takes ONE photo at the full resolution of the sensor, checks
 // its sharpness (a soft shot: "Retake" / "Save as is") and hands it to cfg.onShot.
 //   cfg = { ratio(land) -> frame width/height, label() -> text on the frame, hint() -> hint text, fallback: <input type=file capture>,
 //           onShot({blob, crop, vr, land}) -> 'close' | anything else (the camera stays for the next shot),
@@ -10,12 +10,14 @@ import { toast } from '../toast.js';
 import { getFlash, nextFlash, BOLT, isDark } from '../flash.js';
 import { blobSharpness, isBlurry } from './blobsharp.js';
 import { askChoice } from '../dialog.js';
+import { startFocus, stopFocus, tapFocus, beforeShot } from './autofocus.js';
+import { getFocusMode } from '../focussetting.js';
 
 const $ = (id) => document.getElementById(id);
 const root = $('qcam'), wrap = $('qcam-wrap'), video = $('qcam-video'), ov = $('qcam-overlay'), shotBtn = $('qcam-shot'), statusEl = $('qcam-status'), hintEl = $('qcam-hint');
 const ring = $('qcam-focus'), flashBtn = $('qcam-flash'), badge = $('qcam-count');
 let cfg = null, stream = null, capture = null, photoOpts, fills = [], busy = false, torchCap = false, torchOn = false, focusOk = true;
-let vw = 0, vh = 0, frame = null, cropOk = false, hintHold = 0, hintFn = null, labelText = null;
+let vw = 0, vh = 0, frame = null, cropOk = false, hintHold = 0, hintFn = null, labelText = null, focusGood = false, smart = false;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
@@ -28,12 +30,13 @@ export function qcamStatus(s) { statusEl.textContent = s; if (root.hidden && s) 
 /** Pages counter at the top of the camera ('' hides it). */
 export function qcamBadge(s) { badge.textContent = s; badge.hidden = !s; }
 /** Another hint under the frame (function) / the usual one (null); another text on the frame (string) / the usual one (null). */
-export function qcamTexts(hint, label) { hintFn = hint; labelText = label; setHint(hint ? hint() : cfg?.hint?.() ?? ''); drawFrame(false); }
+export function qcamTexts(hint, label) { hintFn = hint; labelText = label; setHint(hint ? hint() : cfg?.hint?.() ?? ''); drawFrame(); }
 
 export async function closeQcam(force = false) {
   if (busy) return;
   if (!force && cfg?.canClose && !(await cfg.canClose())) return;
   if (!cfg) return; // closed while the question was open
+  stopFocus(); focusGood = false; smart = false;
   stream?.getTracks().forEach((tr) => tr.stop());
   stream = null; capture = null; photoOpts = undefined; torchOn = false;
   video.srcObject = null; root.hidden = true; qcamStatus(''); qcamBadge('');
@@ -50,9 +53,9 @@ function layout() {
   let fw = 0.92, fh = (fw * vw) / (vh * r);
   if (fh > 0.92) { fh = 0.92; fw = (fh * vh * r) / vw; }
   frame = [(1 - fw) / 2, (1 - fh) / 2, (1 + fw) / 2, (1 + fh) / 2];
-  drawFrame(false);
+  drawFrame();
 }
-function drawFrame(ok) {
+function drawFrame(ok = focusGood) { // the frame is green while the focus is locked
   const dpr = window.devicePixelRatio || 1, w = ov.width / dpr, h = ov.height / dpr, x = ov.getContext('2d');
   x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
   if (!frame || !cfg) return;
@@ -86,13 +89,28 @@ async function focusAt(p, mode) {
 }
 ov.addEventListener('pointerdown', async (e) => {
   if (!stream || busy) return;
-  const r = ov.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const r = ov.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, p = [x / r.width, y / r.height];
   ring.style.left = x + 'px'; ring.style.top = y + 'px'; ring.classList.remove('go', 'ok'); void ring.offsetWidth; ring.classList.add('go');
-  const ok = await focusAt([x / r.width, y / r.height], 'single-shot');
+  if (smart) { // smart focus: a search measured on that spot, then the focus is locked
+    const st = await tapFocus(p);
+    if (st === 'locked') ring.classList.add('ok');
+    return;
+  }
+  const ok = await focusAt(p, 'single-shot');
   if (ok) ring.classList.add('ok');
   setHint(t(ok ? 'qs.focused' : 'qs.nofocus'), 1800);
-  setTimeout(() => focusAt([x / r.width, y / r.height], 'continuous'), 1800); // then the camera follows the spot by itself
+  setTimeout(() => focusAt(p, 'continuous'), 1800); // then the camera follows the spot by itself
 });
+
+// smart focus: what the screen shows
+function focusState(s) {
+  focusGood = s === 'locked';
+  if (s === 'seek') setHint(t('qs.focusing'), 20000);
+  else if (s === 'locked') setHint(t('qs.focuslock'), 1800);
+  else if (s === 'nodetail') setHint(t('qs.nodetail'), 3500);
+  else hintHold = 0;
+  drawFrame();
+}
 
 // ---- shooting
 async function takeOne() {
@@ -120,6 +138,7 @@ async function shoot() {
     const mode = getFlash(), want = mode === 'on' || (mode === 'auto' && isDark(video));
     if (torchCap) { await torch(want); if (want) await sleep(250); } // the torch lights the shot
     else if (photoOpts) photoOpts.fillLightMode = fills.includes(mode === 'auto' ? 'auto' : mode === 'on' ? 'flash' : 'off') ? (mode === 'auto' ? 'auto' : mode === 'on' ? 'flash' : 'off') : undefined; // the camera's own flash
+    if (smart) { qcamStatus(t('qs.focusing')); await beforeShot(); } // the focus is checked first (a quick search if it is not sure)
     qcamStatus(t('qs.shot'));
     const blob = await takeOne();
     if (mode !== 'on') await torch(false);
@@ -171,6 +190,8 @@ export async function openQcam(c) {
   torchCap = !!caps.torch;
   try { if (caps.focusMode?.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch { /* the camera decides */ }
   if (getFlash() === 'on') torch(true);
+  smart = getFocusMode() === 'smart';
+  if (smart) startFocus({ video, track: () => stream?.getVideoTracks()[0], region: () => frame ?? [0, 0, 1, 1], paused: () => busy, hw: focusAt, onState: focusState });
   if (typeof ImageCapture !== 'undefined') { // the full sensor: the largest photo size
     try {
       const cap = new ImageCapture(tr), pc = await withTimeout(cap.getPhotoCapabilities(), 3000);
@@ -184,5 +205,5 @@ export async function openQcam(c) {
   } else cropOk = true; // the video frame itself is shot: it is the preview
 }
 
-document.addEventListener('langchange', () => { if (!root.hidden) { paintFlash(); setHint(hintFn ? hintFn() : cfg?.hint?.() ?? ''); drawFrame(false); } });
+document.addEventListener('langchange', () => { if (!root.hidden) { paintFlash(); setHint(hintFn ? hintFn() : cfg?.hint?.() ?? ''); drawFrame(); } });
 window.addEventListener('resize', () => { if (!root.hidden && vw) layout(); });

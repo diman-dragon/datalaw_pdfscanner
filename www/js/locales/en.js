@@ -143,4 +143,10 @@ export const en = {
   'sc.partlabel': 'part',
   'sc.hint.part': 'Continue the receipt where the previous part ended',
   'st.id.eg': 'licence, residence permit, ID, bank',
+  'qs.focusing': 'Focusing… hold the phone steady',
+  'qs.focuslock': 'Focus locked — shoot',
+  'qs.nodetail': 'Too little detail to focus. Tap the text or the edge of the sheet',
+  'set.focus': 'Camera focus',
+  'set.focus.smart': 'Smart',
+  'set.focus.system': 'System',
 };

@@ -1,4 +1,11 @@
 # Changelog
+## 0.2.8
+- Camera, SMART FOCUS (Settings > App > Camera focus: Smart / System; Smart by default). The cause of the "hunting" on a page with little text: the phone's continuous autofocus finds no contrast on empty paper and runs back and forth (and the old tap-to-focus handed the lens back to it after 1.8 s). Now the focus is searched from the picture itself and then LOCKED: the lens is swept through the useful range (8-90 cm) in manual focus-distance mode, the sharpness is measured at every step (only the sharpest 1% of the edges counts, so a few lines of text are enough; the brightness is divided out), the peak is refined and set as manual focus. A phone without manual focus distance gets ONE hardware single-shot at the most detailed spot, which then stays (no return to continuous)
+- The frame turns GREEN while the focus is locked; the hint says "Focusing..." / "Focus locked"; a sheet with no detail at all says so (tap the text or the edge of the sheet)
+- Tap = a full search measured on that spot, then locked
+- The watcher refocuses by itself when the phone is steady and the sharpness drops (another page, another distance); the shutter checks the focus first and runs a quick search if it is not sure (about 1-2 s only when needed)
+- "System" mode = the old behaviour (the phone's own autofocus)
+- New modules: scan/focusmeter.js (sharpness / detail spot / motion measures), scan/autofocus.js (search, lock, watcher), focussetting.js
 ## 0.2.7
 - Dialogs: all the system windows (confirm / prompt / alert) are replaced by the app's own dialogs (dialog.js, css/dialog.css) - a centred card with a message, wide buttons (the main one filled, the dangerous one - Delete / Close - red); the same look for the file name, rename, delete, discard changes, replace the original, choose a folder, the questions over the camera. Tap outside / System Back = the safe answer. scan/choice.js is gone (merged into dialog.js)
 - Library: "Rename" is back in the three-dots menu (Edit, Open in another app, Rename, Delete)

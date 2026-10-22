@@ -5,8 +5,9 @@ import { goTo } from './tabs.js';
 import { getPdfDpi, setPdfDpi, getPdfSearch, setPdfSearch } from './pdfquality.js';
 import { VERSION } from './version.js';
 import { askAlert } from './dialog.js';
-const get = { theme: getTheme, lang: getLang, pdfdpi: getPdfDpi, pdfsearch: getPdfSearch };
-const set = { theme: setTheme, lang: setLang, pdfdpi: setPdfDpi, pdfsearch: setPdfSearch };
+import { getFocusMode, setFocusMode } from './focussetting.js';
+const get = { theme: getTheme, lang: getLang, pdfdpi: getPdfDpi, pdfsearch: getPdfSearch, focusmode: getFocusMode };
+const set = { theme: setTheme, lang: setLang, pdfdpi: setPdfDpi, pdfsearch: setPdfSearch, focusmode: setFocusMode };
 const segs = [...document.querySelectorAll('.seg[data-setting]')];
 const paint = () => segs.forEach((s) => [...s.children].forEach((b) => b.classList.toggle('on', b.dataset.value === get[s.dataset.setting]())));
 segs.forEach((s) => s.addEventListener('click', (e) => {
