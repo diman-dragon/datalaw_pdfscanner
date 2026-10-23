@@ -21,18 +21,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.R
-import com.datalaw.pdfscanner.data.FolderPath
 import com.datalaw.pdfscanner.settings.Settings
 import com.datalaw.pdfscanner.ui.AppViewModel
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
+import com.datalaw.pdfscanner.ui.TRAIL_SEP
+import com.datalaw.pdfscanner.ui.folderTrail
 import kotlinx.coroutines.launch
 
 @Composable
 private fun targetText(s: Settings): String {
-    val p = s.folderUri?.let { FolderPath.of(it) } ?: return stringResource(R.string.scan_nofolder_label)
-    val vol = if (p.primary) stringResource(R.string.set_internal) else stringResource(R.string.set_volume_sd)
-    return stringResource(R.string.scan_to_n, listOf(vol, p.path).filter { it.isNotEmpty() }.joinToString("/"))
+    val trail = folderTrail(s.folderUri) ?: return stringResource(R.string.scan_nofolder_label)
+    return stringResource(R.string.scan_to_n, trail.joinToString(TRAIL_SEP))
 }
 
 /** QUICK SCAN: nothing to choose, one big button. */

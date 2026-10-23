@@ -23,11 +23,11 @@ android {
         targetSdk = 36
         versionCode = vMajor * 10000 + vMinor * 100 + vPatch
         versionName = appVersion
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        ndk { abiFilters += "arm64-v8a" }  // OpenCV + Tesseract are native and heavy: one ABI = half the size
     }
 
-    // Debug: a fixed key (debug.keystore, committed) so every CI build installs as an UPDATE.
-    // Release: from env (CI secrets); without KEYSTORE_PATH the release stays unsigned.
+    // Debug key (debug.keystore, committed) is fixed, so every CI build installs as an UPDATE.
+    // Release: the key from env (CI secrets); without KEYSTORE_PATH it is signed with the debug key, so it still installs.
     val releaseKeystore: String? = System.getenv("KEYSTORE_PATH")
     signingConfigs {
         getByName("debug") {
@@ -51,8 +51,16 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (!releaseKeystore.isNullOrEmpty()) signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(if (!releaseKeystore.isNullOrEmpty()) "release" else "debug")
         }
+    }
+
+    androidResources { localeFilters += listOf("en", "ru") }  // drop library strings of other languages
+
+    packaging {
+        // Native libraries are packed compressed: the APK is about half the size (installed size is the same).
+        jniLibs { useLegacyPackaging = true }
+        resources.excludes += listOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/*.version", "/kotlin-tooling-metadata.json", "/DebugProbesKt.bin")
     }
 
     buildFeatures {

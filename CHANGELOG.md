@@ -1,4 +1,10 @@
 # Changelog
+## 0.0.2
+- Settings: the save folder is a card (folder name, the way to it as Device storage › Documents › Scans, Change button); the same readable way on the Quick and Scan screens
+- Settings: "PDF quality" is now "Image quality (dpi)" with a hint; the "never enlarged" line is removed
+- Settings: short hints under every option on both pages (theme, language, camera focus, searchable text)
+- Size: arm64-v8a only (was arm64 + armv7), compressed native libraries, library languages limited to en / ru, the APK is always a minified release (without secrets it is signed with the debug key)
+- Removed 25 unused strings
 ## 0.0.1
 - A new native app (Kotlin, Jetpack Compose, CameraX, OpenCV, Tesseract) built from scratch; the look and the behaviour follow the old Capacitor version 0.2.8
 - Library: folder through the Storage Access Framework, list / cards, first-page preview with the number of sheets, menu (Edit, Open in another app, Rename, Delete), Add copies PDFs into the folder
