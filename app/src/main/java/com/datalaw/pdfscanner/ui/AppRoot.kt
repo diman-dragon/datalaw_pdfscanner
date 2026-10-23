@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -98,19 +99,22 @@ private fun Content(vm: AppViewModel) {
                     Triple(Tab.Library, "📚", R.string.nav_library), Triple(Tab.Quick, "⚡", R.string.nav_quick),
                     Triple(Tab.Scan, "📷", R.string.nav_scan), Triple(Tab.Settings, "⚙️", R.string.nav_settings),
                 ).forEach { (t, icon, label) ->
-                    NavigationBarItem(selected = tab == t, onClick = { vm.goTo(t) }, icon = { Text(icon, fontSize = 22.sp) }, label = { Text(stringResource(label), fontSize = 11.sp, maxLines = 1) })
+                    NavigationBarItem(selected = tab == t, onClick = { vm.goTo(t) }, icon = { Text(icon, fontSize = 22.sp) }, label = { Text(stringResource(label), fontSize = 12.sp, maxLines = 1) })
                 }
             }
         }
 
         overlays.forEach { o ->
             key(o) {
-                Box(Modifier.fillMaxSize().background(if (o is Overlay.Camera) Color.Black else MaterialTheme.colorScheme.background)) {
-                    when (o) {
-                        is Overlay.Viewer -> ViewerScreen(vm, o.file)
-                        is Overlay.DocEdit -> DocEditScreen(vm, o.file, o.page)
-                        is Overlay.Camera -> CameraScreen(o.session) { vm.pop() }
-                        is Overlay.Ocr -> OcrScreen(vm, o.file, o.page, o.pages)
+                // The camera is always black, so its text is always white, in any theme.
+                CompositionLocalProvider(LocalContentColor provides if (o is Overlay.Camera) Color.White else MaterialTheme.colorScheme.onBackground) {
+                    Box(Modifier.fillMaxSize().background(if (o is Overlay.Camera) Color.Black else MaterialTheme.colorScheme.background)) {
+                        when (o) {
+                            is Overlay.Viewer -> ViewerScreen(vm, o.file)
+                            is Overlay.DocEdit -> DocEditScreen(vm, o.file, o.page)
+                            is Overlay.Camera -> CameraScreen(o.session) { vm.pop() }
+                            is Overlay.Ocr -> OcrScreen(vm, o.file, o.page, o.pages)
+                        }
                     }
                 }
             }

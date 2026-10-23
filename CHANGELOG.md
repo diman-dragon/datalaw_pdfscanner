@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.3
+- Contrast: the app has a root surface now, so every text gets the theme colour (it was black on the black dark background); stronger secondary grey in both themes, visible borders and dividers in dark, a visible menu in dark; the camera text is always white
+- Fonts: nothing under 12 sp, secondary text 13 sp
+- Library: smaller previews (rows 42x56 dp, cards in 3 columns with the menu on the preview corner); rows / cards switch is two pictograms
 ## 0.0.2
 - Settings: the save folder is a card (folder name, the way to it as Device storage › Documents › Scans, Change button); the same readable way on the Quick and Scan screens
 - Settings: "PDF quality" is now "Image quality (dpi)" with a hint; the "never enlarged" line is removed

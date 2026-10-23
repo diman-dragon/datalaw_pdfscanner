@@ -124,7 +124,7 @@ private fun PageCard(ctl: DocEditController, p: EditPage, i: Int, onEdit: () -> 
             .background(MaterialTheme.colorScheme.surfaceVariant).clickable(onClick = onEdit),
     ) {
         p.thumb?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
-        Text("${i + 1}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.align(Alignment.BottomStart).padding(6.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 1.dp))
+        Text("${i + 1}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.align(Alignment.BottomStart).padding(6.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 1.dp))
         Box(Modifier.align(Alignment.TopEnd)) {
             Text("⋮", fontSize = 22.sp, modifier = Modifier.clickable { menu = true }.padding(8.dp))
             DropdownMenu(menu, { menu = false }) {

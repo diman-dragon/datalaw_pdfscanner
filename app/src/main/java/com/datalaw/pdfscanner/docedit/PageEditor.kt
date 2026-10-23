@@ -156,7 +156,7 @@ fun PageEditor(
         Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (Sharpness.isBlurry(sharp)) Text(stringResource(R.string.rs_warn_blur), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
             tilt(quad, b)?.let { Text(stringResource(R.string.rs_warn_tilt_n, it), color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
-            Text(stringResource(R.string.rs_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.rs_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("⟲", fontSize = 26.sp, modifier = Modifier.clickable { p.turns = (p.turns + 3) % 4; ctl.markDirty() }.padding(8.dp))
                 Text("⟳", fontSize = 26.sp, modifier = Modifier.clickable { p.turns = (p.turns + 1) % 4; ctl.markDirty() }.padding(8.dp))

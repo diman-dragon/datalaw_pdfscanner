@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun <T> Seg(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(12.dp)
-    Row(modifier.clip(shape).border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), shape)) {
+    Row(modifier.clip(shape).border(BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)), shape)) {
         options.forEach { (v, label) ->
             val on = v == selected
             Box(

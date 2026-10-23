@@ -43,7 +43,7 @@ fun QuickTab(vm: AppViewModel) {
         Text("⚡", fontSize = 56.sp)
         Text(stringResource(R.string.quick_hint), Modifier.padding(vertical = 12.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         Button({ vm.startQuick() }) { Text(stringResource(R.string.scan_shoot), fontSize = 18.sp, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) }
-        Text(targetText(s), Modifier.padding(top = 16.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Text(targetText(s), Modifier.padding(top = 16.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
 
@@ -69,6 +69,6 @@ fun ScanTab(vm: AppViewModel) {
             Text("📷", fontSize = 56.sp)
             Button({ vm.startScan() }, Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.scan_shoot), fontSize = 18.sp, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) }
         }
-        Text(targetText(s), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Text(targetText(s), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }

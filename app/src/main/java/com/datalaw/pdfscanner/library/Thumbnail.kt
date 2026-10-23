@@ -42,7 +42,7 @@ fun PdfThumbnail(file: PdfFile, modifier: Modifier = Modifier, widthPx: Int = 36
         thumb?.let { (bmp, pages) ->
             Image(bmp.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)
             Text(
-                "$pages", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary,
+                "$pages", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
             )
         }

@@ -4,7 +4,10 @@ import android.content.ActivityNotFoundException
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +55,6 @@ import com.datalaw.pdfscanner.settings.LibView
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
 import com.datalaw.pdfscanner.ui.Overlay
-import com.datalaw.pdfscanner.ui.Seg
 import com.datalaw.pdfscanner.ui.Tab
 import com.datalaw.pdfscanner.ui.AppViewModel
 import kotlinx.coroutines.launch
@@ -75,7 +77,7 @@ fun LibraryScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize()) {
         if (state is LibState.Ok) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Seg(listOf(LibView.List to stringResource(R.string.lib_list), LibView.Cards to stringResource(R.string.lib_cards)), settings.libView, { v -> scope.launch { graph.settingsStore.setLibView(v) } })
+                ViewToggle(settings.libView) { v -> scope.launch { graph.settingsStore.setLibView(v) } }
                 Button({ picker.launch(arrayOf("application/pdf")) }) { Text(stringResource(R.string.lib_add)) }
             }
         }
@@ -98,7 +100,7 @@ fun LibraryScreen(vm: AppViewModel) {
                             items(s.files, key = { it.uri }) { f -> FileRow(f, onOpen, menu); HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
                         }
                     } else {
-                        LazyVerticalGrid(GridCells.Fixed(2), Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LazyVerticalGrid(GridCells.Fixed(3), Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(s.files, key = { it.uri }) { f -> FileCard(f, onOpen, menu) }
                         }
                     }
@@ -128,11 +130,11 @@ private fun meta(f: PdfFile): String {
 
 @Composable
 private fun FileRow(f: PdfFile, onOpen: (PdfFile) -> Unit, menu: @Composable (PdfFile) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onOpen(f) }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        PdfThumbnail(f, Modifier.width(56.dp).height(76.dp))
+    Row(Modifier.fillMaxWidth().clickable { onOpen(f) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        PdfThumbnail(f, Modifier.width(42.dp).height(56.dp))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(f.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 15.sp)
-            Text(meta(f), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(meta(f), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         menu(f)
     }
@@ -141,14 +143,12 @@ private fun FileRow(f: PdfFile, onOpen: (PdfFile) -> Unit, menu: @Composable (Pd
 @Composable
 private fun FileCard(f: PdfFile, onOpen: (PdfFile) -> Unit, menu: @Composable (PdfFile) -> Unit) {
     Column(Modifier.fillMaxWidth().clickable { onOpen(f) }) {
-        PdfThumbnail(f, Modifier.fillMaxWidth().aspectRatio(0.72f), 480)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).padding(top = 6.dp)) {
-                Text(f.name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
-                Text(meta(f), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            menu(f)
+        Box {
+            PdfThumbnail(f, Modifier.fillMaxWidth().aspectRatio(0.72f))
+            Box(Modifier.align(Alignment.TopEnd).padding(3.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))) { menu(f) }
         }
+        Text(f.name, Modifier.padding(top = 6.dp), maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 13.sp, lineHeight = 16.sp)
+        Text(meta(f), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

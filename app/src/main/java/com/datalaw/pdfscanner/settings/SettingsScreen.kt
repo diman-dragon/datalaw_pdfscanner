@@ -69,7 +69,7 @@ private fun RowItem(title: String, hint: String? = null, content: @Composable ()
         Text(title, Modifier.weight(1f).padding(end = 12.dp))
         content()
     }
-    if (hint != null) Text(hint, Modifier.padding(bottom = 12.dp), fontSize = 12.sp, lineHeight = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (hint != null) Text(hint, Modifier.padding(bottom = 12.dp), fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
@@ -83,9 +83,9 @@ private fun FolderCard(vm: AppViewModel) {
             Text("📁", fontSize = 28.sp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.set_folder), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.set_folder), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(trail?.last() ?: stringResource(R.string.set_nofolder), fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                if (trail != null && trail.size > 1) Text(trail.dropLast(1).joinToString(TRAIL_SEP), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (trail != null && trail.size > 1) Text(trail.dropLast(1).joinToString(TRAIL_SEP), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.width(12.dp))
             Button({ vm.chooseFolder() }) { Text(stringResource(if (trail == null) R.string.set_folderpick else R.string.set_folderchange)) }
@@ -125,10 +125,10 @@ private fun AppPage() {
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
     ) {
         Column(Modifier.padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(stringResource(R.string.about_title).uppercase(), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.about_title).uppercase(), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(stringResource(R.string.about_name), Modifier.padding(top = 8.dp, bottom = 4.dp), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
             Text("${stringResource(R.string.app_name)} · ${stringResource(R.string.set_version)} ${BuildConfig.VERSION_NAME}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(stringResource(R.string.about_rights), Modifier.padding(top = 14.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.about_rights), Modifier.padding(top = 14.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
