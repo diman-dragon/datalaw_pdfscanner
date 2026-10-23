@@ -67,7 +67,7 @@ import com.datalaw.pdfscanner.imaging.BitmapLoader
 import com.datalaw.pdfscanner.imaging.SheetFit
 import com.datalaw.pdfscanner.imaging.Sharpness
 import com.datalaw.pdfscanner.settings.FocusMode
-import com.datalaw.pdfscanner.settings.QuickMode
+import com.datalaw.pdfscanner.settings.CamMode
 import com.datalaw.pdfscanner.settings.FlashMode
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
@@ -128,8 +128,8 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
     var ring by remember { mutableStateOf<Triple<Float, Float, Boolean?>?>(null) }
     var failed by remember { mutableStateOf(false) }
     val smart = session.smart
-    val mode = if (smart) settings.quickMode else QuickMode.Frame
-    val auto = mode == QuickMode.Auto
+    val mode = if (smart) settings.camMode else CamMode.Frame
+    val auto = mode == CamMode.Auto
     val modeNow by rememberUpdatedState(mode)
     var live by remember { mutableStateOf<List<Offset>?>(null) }
     var watching by remember { mutableStateOf(false) }
@@ -138,7 +138,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         gyro.start()
         val fut = ProcessCameraProvider.getInstance(appCtx)
         fut.addListener({
-            try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher { live = it } else null); ready = true } catch (e: Exception) { failed = true }
+            try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
         }, ContextCompat.getMainExecutor(appCtx))
         onDispose {
             gyro.stop()
@@ -162,7 +162,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
     }
     fun centerFocusPoint(): Offset {
         val q = live
-        val auto = modeNow == QuickMode.Auto
+        val auto = modeNow == CamMode.Auto
         val cx = if (auto && q != null) q.map { it.x }.average().toFloat() else (frame[0] + frame[2]) / 2
         val cy = if (auto && q != null) q.map { it.y }.average().toFloat() else (frame[1] + frame[3]) / 2
         return Offset(cx * rig.previewView.width, cy * rig.previewView.height)
@@ -226,7 +226,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                     focus == FocusState.NoDetail -> Color(0xFFFFB020)
                     else -> Color.White
                 }
-                val labelText = if (smart && auto) stringResource(R.string.qs_label_auto) else camUi.label.get()
+                val labelText = if (smart && auto) (camUi.autoLabel ?: camUi.label).get() else camUi.label.get()
                 Canvas(
                     Modifier.fillMaxSize().pointerInput(ready, settings.focus) {
                         detectTapGestures { p ->
@@ -278,7 +278,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         // top: close, counter, flash
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Text("✕", color = Color.White, fontSize = 24.sp, modifier = Modifier.clickable(onClick = askClose).padding(8.dp))
-            if (smart) ModeToggle(mode) { m -> scope.launch { graph.settingsStore.setQuickMode(m) } } else camUi.badge?.let { Text(it.get(), color = Color.White, fontSize = 15.sp) }
+            if (smart) ModeToggle(mode) { m -> scope.launch { graph.settingsStore.setCamMode(m) } } else camUi.badge?.let { Text(it.get(), color = Color.White, fontSize = 15.sp) }
             val flashLabel = when (settings.flash) { FlashMode.Auto -> R.string.fl_auto; FlashMode.On -> R.string.fl_on; FlashMode.Off -> R.string.fl_off }
             Text("⚡ " + stringResource(R.string.cam_flash) + ": " + stringResource(flashLabel), color = Color.White, fontSize = 15.sp, modifier = Modifier.clickable { scope.launch { graph.settingsStore.setFlash(settings.flash.next()) } }.padding(8.dp))
         }
@@ -289,13 +289,13 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
             val hint = when {
                 failed -> stringResource(R.string.cam_unavailable)
                 camUi.status != null -> camUi.status!!.get()
-                fit == Fit.Outside -> stringResource(R.string.qs_outside)
-                fit == Fit.Cut -> stringResource(R.string.qs_cut)
-                fit == Fit.NoSheet -> stringResource(R.string.qs_nosheet)
+                fit == Fit.Outside -> stringResource(if (session.sheetLike) R.string.qs_outside else R.string.sc_outside)
+                fit == Fit.Cut -> stringResource(if (session.sheetLike) R.string.qs_cut else R.string.sc_cut)
+                fit == Fit.NoSheet -> stringResource(if (session.sheetLike) R.string.qs_nosheet else R.string.sc_nosheet)
                 focus == FocusState.Seeking -> stringResource(R.string.qs_focusing)
                 focus == FocusState.Locked -> stringResource(R.string.qs_focuslock)
                 focus == FocusState.NoDetail -> stringResource(R.string.qs_nodetail)
-                smart && auto -> stringResource(R.string.qs_hint_auto)
+                smart && auto -> (camUi.autoHint ?: camUi.hint).get()
                 else -> camUi.hint.get()
             }
             Text(

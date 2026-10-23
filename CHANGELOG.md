@@ -1,4 +1,9 @@
 # Changelog
+## 0.0.6
+- Scan: the same camera as Quick scan: Frame and Auto modes (one switch for both tabs, also on the screens), live outline of the item, red frame and a warning when the item goes past the frame or the view
+- Scan, Auto: the item is found in the photo (it has to have the shape of the chosen type), straightened and put on the A4 sheet at its real size; a card is turned to lie, an A4 / A5 follows its own shape
+- Scan screen: the types are a 3 x 2 grid of cells (a picture of the real shape, the name, the size), no scrolling; the mode switch with one line of what it does
+- The mode setting is shared (CamMode); EdgeDetector.find takes the smallest share of the picture; PageWarp.warpTo straightens to an exact size
 ## 0.0.5
 - Quick scan: two modes on the camera, Frame and Auto (the switch is remembered). Frame = the fixed A4 frame. Auto = no frame, the camera finds the sheet itself (live outline) and the photo is straightened to a flat page of true proportions
 - The camera watches the sheet live: in Frame mode the frame and the outline turn red and the hint says the sheet goes past the frame; in Auto mode it warns when the sheet is cut by the camera view or cannot be seen

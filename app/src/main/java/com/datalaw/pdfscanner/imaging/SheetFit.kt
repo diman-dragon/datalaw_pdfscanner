@@ -19,7 +19,7 @@ object SheetFit {
         q.any { it.x < EDGE_TOL || it.x > 1 - EDGE_TOL || it.y < EDGE_TOL || it.y > 1 - EDGE_TOL }
 
     /** A believable sheet: every corner near a right angle (perspective allowed) and not a sliver. [aspect] = picture width / height. */
-    fun plausible(q: List<Offset>, aspect: Float): Boolean {
+    fun plausible(q: List<Offset>, aspect: Float, checkRatio: Boolean = true): Boolean {
         if (q.size != 4) return false
         val p = q.map { Offset(it.x * aspect, it.y) }
         for (i in 0..3) {
@@ -34,6 +34,6 @@ object SheetFit {
         }
         val w = ((p[1] - p[0]).getDistance() + (p[2] - p[3]).getDistance()) / 2
         val h = ((p[3] - p[0]).getDistance() + (p[2] - p[1]).getDistance()) / 2
-        return min(w, h) / max(w, h) >= 0.4f
+        return !checkRatio || min(w, h) / max(w, h) >= 0.4f
     }
 }

@@ -13,8 +13,8 @@ import org.opencv.imgproc.Imgproc
 
 /** Finds the sheet in a photo: the four corners (TL, TR, BR, BL) in pixels of the bitmap. */
 object EdgeDetector {
-    /** The corners of the sheet, or null when no sheet-like shape is seen. */
-    fun find(src: Bitmap): List<PointF>? {
+    /** The corners of the sheet, or null when no sheet-like shape is seen ([minAreaFrac] = the smallest share of the picture it may fill). */
+    fun find(src: Bitmap, minAreaFrac: Double = 0.2): List<PointF>? {
         Cv.ensure()
         val k = minOf(1.0, 600.0 / maxOf(src.width, src.height))
         val sw = Math.round(src.width * k).toInt().coerceAtLeast(8)
@@ -37,7 +37,7 @@ object EdgeDetector {
         Imgproc.Canny(closed, edges, 30.0, 100.0)
         Imgproc.dilate(edges, edges, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(3.0, 3.0)))
 
-        val minArea = sw.toDouble() * sh * 0.2
+        val minArea = sw.toDouble() * sh * minAreaFrac
         var quad = largest(edges, minArea, false)
         if (quad == null) { // a bright sheet on a dark table: threshold
             val bw = Mat()

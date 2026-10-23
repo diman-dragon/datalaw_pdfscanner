@@ -15,14 +15,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.R
-import com.datalaw.pdfscanner.settings.QuickMode
+import com.datalaw.pdfscanner.settings.CamMode
 
 /** Frame / Auto on the camera: the chosen one is white. */
 @Composable
-fun ModeToggle(mode: QuickMode, onSelect: (QuickMode) -> Unit) {
+fun ModeToggle(mode: CamMode, onSelect: (CamMode) -> Unit) {
     val pill = RoundedCornerShape(20.dp)
     Row(Modifier.clip(pill).background(Color(0x99000000))) {
-        listOf(QuickMode.Frame to stringResource(R.string.mode_frame), QuickMode.Auto to stringResource(R.string.mode_auto)).forEach { (m, label) ->
+        listOf(CamMode.Frame to stringResource(R.string.mode_frame), CamMode.Auto to stringResource(R.string.mode_auto)).forEach { (m, label) ->
             val on = m == mode
             Text(
                 label, color = if (on) Color.Black else Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,

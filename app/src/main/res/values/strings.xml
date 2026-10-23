@@ -11,7 +11,6 @@
     <string name="de_discard">Discard</string>
     <string name="de_discardq">Discard changes?</string>
     <string name="de_fail">Could not open the document for editing</string>
-    <string name="de_keptnew">Could not replace the original. The new version is saved as:</string>
     <string name="de_loading">Loading pages</string>
     <string name="de_replace">Replace</string>
     <string name="de_replaceq">Replace the original file?</string>
@@ -43,7 +42,6 @@
     <string name="lib_nofolder">No folder selected</string>
     <string name="lib_nofolder_hint">Choose a PDF folder in Settings</string>
     <string name="lib_noviewer">No app to view PDF files</string>
-    <string name="lib_open">Open</string>
     <string name="lib_openext">Open in another app</string>
     <string name="lib_rename">Rename</string>
     <string name="lib_renameq">New name</string>
@@ -61,7 +59,6 @@
     <string name="ocr_menu">Recognize text</string>
     <string name="ocr_nolang">Select at least one language</string>
     <string name="ocr_page">This page</string>
-    <string name="ocr_run">Recognizing</string>
     <string name="ocr_run_n">Recognizing %1$d/%2$d</string>
     <string name="ocr_title">Text recognition</string>
     <string name="qs_blur">The shot looks blurry. Retake it, or save it as it is?</string>
@@ -77,12 +74,10 @@
     <string name="rs_pageof">Page %1$d of %2$d</string>
     <string name="rs_title">Result</string>
     <string name="rs_warn_blur">The shot may be blurry - better retake</string>
-    <string name="rs_warn_tilt">Strong tilt</string>
     <string name="rs_warn_tilt_n">Strong tilt %1$d%%</string>
     <string name="save_folderlost">The save folder is not available (deleted, moved or the card was removed). Choose another folder?</string>
     <string name="sc_askback">Front side is shot. Shoot the back side too?</string>
     <string name="sc_back">Shoot the back</string>
-    <string name="sc_count">Pages:</string>
     <string name="sc_count_n">Pages: %1$d</string>
     <string name="sc_delete">Delete page</string>
     <string name="sc_deleteq">Delete this page?</string>
@@ -90,7 +85,7 @@
     <string name="sc_discardq">Close the camera? The pages shot so far will be lost.</string>
     <string name="sc_edit">Edit</string>
     <string name="sc_finish">Finish</string>
-    <string name="sc_hint">Pick what you scan and tap Shoot. After each shot: shoot more or finish (a receipt also has \"Receipt continues\" for a long strip). Everything is saved on an A4 sheet at real size.</string>
+    <string name="sc_hint">After each shot: shoot more or finish. Everything is saved on an A4 sheet at real size (a receipt can continue on the next part).</string>
     <string name="sc_hint_back">Turn the card over and fit it into the frame</string>
     <string name="sc_hint_item">Fill the frame with the item. Out of focus? Tap a spot</string>
     <string name="sc_hint_page">Put the page into the frame. Out of focus? Tap a spot</string>
@@ -104,17 +99,14 @@
     <string name="sc_right">Move right</string>
     <string name="sc_save">Save PDF</string>
     <string name="sc_twosides">2 sides</string>
-    <string name="scan_fail">Could not save the scan</string>
     <string name="scan_fail_n">Could not save the scan: %1$s</string>
     <string name="scan_nameq">File name</string>
     <string name="scan_nofolder">No folder for scans yet. Choose one now? The picker has a \"New folder\" button.</string>
     <string name="scan_nofolder_label">Scan folder not selected</string>
-    <string name="scan_saved">Saved:</string>
     <string name="scan_saved_n">Saved: %1$s</string>
     <string name="scan_saving">Saving…</string>
     <string name="scan_saving_n">Saving… %1$d/%2$d</string>
     <string name="scan_shoot">Shoot</string>
-    <string name="scan_to">Saving to:</string>
     <string name="scan_to_n">Saving to: %1$s</string>
     <string name="set_auto">Auto</string>
     <string name="set_dark">Dark</string>
@@ -177,4 +169,18 @@
     <string name="qs_outside_ask">The sheet does not fit the frame, its edges will be cut. Retake it, or save it as it is?</string>
     <string name="qs_cut_ask">The sheet goes past the view, its edges are cut. Retake it, or save it as it is?</string>
     <string name="qs_nosheet_ask">The edges of the sheet were not found. Retake it, or save the whole shot?</string>
+    <string name="mode_title">Shooting mode</string>
+    <string name="quick_mode_frame_hint">Fit the sheet into the A4 frame.</string>
+    <string name="quick_mode_auto_hint">The camera finds the edges of the sheet itself.</string>
+    <string name="sc_mode_frame_hint">Fit the item into the frame of the chosen size.</string>
+    <string name="sc_mode_auto_hint">The camera finds the edges of the item itself and straightens it. Hold a card horizontally, a receipt vertically.</string>
+    <string name="sc_hint_auto">Point at the item: its edges are found by themselves. Out of focus? Tap a spot</string>
+    <string name="sc_hint_back_auto">Turn the card over and point the camera at it</string>
+    <string name="sc_label_auto">Auto · %1$s</string>
+    <string name="sc_outside">The item goes past the frame — move the phone away</string>
+    <string name="sc_cut">The item goes past the view — move the phone away</string>
+    <string name="sc_nosheet">Cannot see the edges of the item. Put it on a contrasting background</string>
+    <string name="sc_outside_ask">The item does not fit the frame, its edges will be cut. Retake it, or save it as it is?</string>
+    <string name="sc_cut_ask">The item goes past the view, its edges are cut. Retake it, or save it as it is?</string>
+    <string name="sc_nosheet_ask">The edges of the item were not found. Retake it, or save the middle of the shot?</string>
 </resources>

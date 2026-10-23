@@ -64,8 +64,13 @@ object PageWarp {
     }
 
     fun warp(src: Bitmap, q: List<PointF>, maxSide: Int): Bitmap {
-        Cv.ensure()
         val (w, h) = pageSize(q, src.width, src.height, maxSide)
+        return warpTo(src, q, w, h)
+    }
+
+    /** The quad q (TL, TR, BR, BL) of [src] straightened to exactly w x h pixels. */
+    fun warpTo(src: Bitmap, q: List<PointF>, w: Int, h: Int): Bitmap {
+        Cv.ensure()
         val srcMat = Cv.rgb(src)
         val from = MatOfPoint2f(*q.map { Point(it.x.toDouble(), it.y.toDouble()) }.toTypedArray())
         val to = MatOfPoint2f(Point(0.0, 0.0), Point(w - 1.0, 0.0), Point(w - 1.0, h - 1.0), Point(0.0, h - 1.0))

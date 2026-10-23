@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
 import com.datalaw.pdfscanner.camera.ShotFile
@@ -44,11 +45,17 @@ object SheetComposer {
         val dw = Math.round(item.mm.first * ppm).toInt()
         val dh = Math.round(item.mm.second * ppm).toInt()
         item.sides.forEachIndexed { i, s ->
-            val c0 = s.crop?.let { maxOf(it[2] - it[0], it[3] - it[1]) } ?: 1f
+            val q = s.quad
+            val c0 = when {
+                q != null -> maxOf(q.maxOf { it.x } - q.minOf { it.x }, q.maxOf { it.y } - q.minOf { it.y }).coerceAtLeast(0.2f)
+                else -> s.crop?.let { maxOf(it[2] - it[0], it[3] - it[1]) } ?: 1f
+            }
             val img = BitmapLoader.load(s.file, minOf(5200, Math.round(maxOf(dw, dh) / c0)))
-            val src = region(img, s, item.mm.first / item.mm.second)
-            var piece = Bitmap.createBitmap(dw, dh, Bitmap.Config.ARGB_8888)
-            Canvas(piece).drawBitmap(img, src, Rect(0, 0, dw, dh), paint)
+            var piece = if (q != null) {
+                PageWarp.warpTo(img, q.map { PointF(it.x * img.width, it.y * img.height) }, dw, dh)
+            } else {
+                Bitmap.createBitmap(dw, dh, Bitmap.Config.ARGB_8888).also { Canvas(it).drawBitmap(img, region(img, s, item.mm.first / item.mm.second), Rect(0, 0, dw, dh), paint) }
+            }
             img.recycle()
             if (item.rotate) {
                 val r = BitmapLoader.rotate(piece, 90)

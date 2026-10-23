@@ -11,7 +11,6 @@
     <string name="de_discard">Отбросить</string>
     <string name="de_discardq">Отменить изменения?</string>
     <string name="de_fail">Не удалось открыть документ для редактирования</string>
-    <string name="de_keptnew">Не удалось заменить оригинал. Новая версия сохранена как:</string>
     <string name="de_loading">Загружаю страницы</string>
     <string name="de_replace">Заменить</string>
     <string name="de_replaceq">Заменить исходный файл?</string>
@@ -43,7 +42,6 @@
     <string name="lib_nofolder">Папка не выбрана</string>
     <string name="lib_nofolder_hint">Выберите папку с PDF в настройках</string>
     <string name="lib_noviewer">Нет приложения для просмотра PDF</string>
-    <string name="lib_open">Открыть</string>
     <string name="lib_openext">Открыть в другом приложении</string>
     <string name="lib_rename">Переименовать</string>
     <string name="lib_renameq">Новое имя</string>
@@ -61,7 +59,6 @@
     <string name="ocr_menu">Распознать текст</string>
     <string name="ocr_nolang">Выберите хотя бы один язык</string>
     <string name="ocr_page">Эта страница</string>
-    <string name="ocr_run">Распознаю</string>
     <string name="ocr_run_n">Распознаю %1$d/%2$d</string>
     <string name="ocr_title">Распознавание текста</string>
     <string name="qs_blur">Снимок получился нерезким. Переснять или сохранить как есть?</string>
@@ -77,12 +74,10 @@
     <string name="rs_pageof">Страница %1$d из %2$d</string>
     <string name="rs_title">Результат</string>
     <string name="rs_warn_blur">Снимок может быть нерезким - лучше переснять</string>
-    <string name="rs_warn_tilt">Сильный перекос</string>
     <string name="rs_warn_tilt_n">Сильный перекос %1$d%%</string>
     <string name="save_folderlost">Папка для сохранения недоступна (удалена, перемещена или карта извлечена). Выбрать другую папку?</string>
     <string name="sc_askback">Лицевая сторона снята. Снять и обратную?</string>
     <string name="sc_back">Снять обратную</string>
-    <string name="sc_count">Страниц:</string>
     <string name="sc_count_n">Страниц: %1$d</string>
     <string name="sc_delete">Удалить страницу</string>
     <string name="sc_deleteq">Удалить эту страницу?</string>
@@ -90,7 +85,7 @@
     <string name="sc_discardq">Закрыть камеру? Снятые страницы будут потеряны.</string>
     <string name="sc_edit">Редактировать</string>
     <string name="sc_finish">Завершить</string>
-    <string name="sc_hint">Выберите, что сканируете, и нажмите «Снять». После каждого снимка: снять ещё или завершить (у чека ещё есть «Продолжение чека» для длинной ленты). Всё сохраняется на листе A4 в реальном размере.</string>
+    <string name="sc_hint">После каждого снимка: снять ещё или завершить. Всё сохраняется на листе A4 в реальном размере (чек можно продолжить следующей частью).</string>
     <string name="sc_hint_back">Переверните карточку и впишите её в рамку</string>
     <string name="sc_hint_item">Заполните рамку предметом. Не в фокусе? Коснитесь места</string>
     <string name="sc_hint_page">Впишите страницу в рамку. Не в фокусе? Коснитесь места</string>
@@ -104,17 +99,14 @@
     <string name="sc_right">Сдвинуть вправо</string>
     <string name="sc_save">Сохранить PDF</string>
     <string name="sc_twosides">2 стороны</string>
-    <string name="scan_fail">Не удалось сохранить скан</string>
     <string name="scan_fail_n">Не удалось сохранить скан: %1$s</string>
     <string name="scan_nameq">Имя файла</string>
     <string name="scan_nofolder">Папка для сканов не выбрана. Выбрать сейчас? В окне выбора можно создать новую папку (кнопка «Новая папка»).</string>
     <string name="scan_nofolder_label">Папка для сканов не выбрана</string>
-    <string name="scan_saved">Сохранено:</string>
     <string name="scan_saved_n">Сохранено: %1$s</string>
     <string name="scan_saving">Сохраняю…</string>
     <string name="scan_saving_n">Сохраняю… %1$d/%2$d</string>
     <string name="scan_shoot">Снять</string>
-    <string name="scan_to">Сохранение в:</string>
     <string name="scan_to_n">Сохранение в: %1$s</string>
     <string name="set_auto">Авто</string>
     <string name="set_dark">Тёмная</string>
@@ -177,4 +169,18 @@
     <string name="qs_outside_ask">Лист не помещается в рамку, края обрежутся. Переснять или сохранить как есть?</string>
     <string name="qs_cut_ask">Лист выходит за кадр, края обрезаны. Переснять или сохранить как есть?</string>
     <string name="qs_nosheet_ask">Границы листа не найдены. Переснять или сохранить кадр целиком?</string>
+    <string name="mode_title">Режим съёмки</string>
+    <string name="quick_mode_frame_hint">Впишите лист в рамку A4.</string>
+    <string name="quick_mode_auto_hint">Камера сама найдёт границы листа.</string>
+    <string name="sc_mode_frame_hint">Впишите предмет в рамку выбранного размера.</string>
+    <string name="sc_mode_auto_hint">Камера сама найдёт границы предмета и выровняет его. Карточку держите горизонтально, чек — вертикально.</string>
+    <string name="sc_hint_auto">Наведите на предмет: границы найдутся сами. Не в фокусе? Коснитесь места</string>
+    <string name="sc_hint_back_auto">Переверните карточку и наведите на неё камеру</string>
+    <string name="sc_label_auto">Авто · %1$s</string>
+    <string name="sc_outside">Предмет выходит за рамку — отодвиньте телефон</string>
+    <string name="sc_cut">Предмет выходит за кадр — отодвиньте телефон</string>
+    <string name="sc_nosheet">Границ предмета не видно. Положите его на контрастный фон</string>
+    <string name="sc_outside_ask">Предмет не помещается в рамку, края обрежутся. Переснять или сохранить как есть?</string>
+    <string name="sc_cut_ask">Предмет выходит за кадр, края обрезаны. Переснять или сохранить как есть?</string>
+    <string name="sc_nosheet_ask">Границы предмета не найдены. Переснять или сохранить середину кадра?</string>
 </resources>

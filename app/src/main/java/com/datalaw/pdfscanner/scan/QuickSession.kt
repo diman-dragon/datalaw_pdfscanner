@@ -9,7 +9,7 @@ import com.datalaw.pdfscanner.data.Names
 import com.datalaw.pdfscanner.imaging.BitmapLoader
 import com.datalaw.pdfscanner.imaging.EdgeDetector
 import com.datalaw.pdfscanner.imaging.SheetFit
-import com.datalaw.pdfscanner.settings.QuickMode
+import com.datalaw.pdfscanner.settings.CamMode
 import com.datalaw.pdfscanner.ui.Deps
 import com.datalaw.pdfscanner.ui.Tab
 import com.datalaw.pdfscanner.ui.tx
@@ -25,7 +25,7 @@ import kotlinx.coroutines.withContext
  * Before saving, a sheet that goes past the frame (Frame) or past the camera view (Auto), or is not found (Auto), asks "Retake / Save as is".
  */
 class QuickSession(private val d: Deps) : CameraSession {
-    private val _ui = MutableStateFlow(CamUi(tx(R.string.qs_label), tx(R.string.qs_hint)))
+    private val _ui = MutableStateFlow(CamUi(tx(R.string.qs_label), tx(R.string.qs_hint), autoLabel = tx(R.string.qs_label_auto), autoHint = tx(R.string.qs_hint_auto)))
     override val ui: StateFlow<CamUi> = _ui.asStateFlow()
     override val smart: Boolean = true
     private val access = FolderAccess(d)
@@ -49,7 +49,7 @@ class QuickSession(private val d: Deps) : CameraSession {
     }
 
     override suspend fun onShot(shot: ShotFile): Boolean {
-        val auto = d.settings().quickMode == QuickMode.Auto
+        val auto = d.settings().camMode == CamMode.Auto
         val quad = findSheet(shot)
         val problem = when {
             auto && quad == null -> R.string.qs_nosheet_ask
