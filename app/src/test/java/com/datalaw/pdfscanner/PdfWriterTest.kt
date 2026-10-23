@@ -47,6 +47,6 @@ class PdfWriterTest {
         val s = build(true)
         assertTrue(s.contains("/ToUnicode"))
         assertTrue(s.contains("3 Tr"))
-        assertTrue(s.contains("043f")) // Cyrillic small pe
+        assertTrue(s.contains("<01> <041f>")) // code 1 -> U+041F, Cyrillic capital Pe (first letter of "Привет")
     }
 }
