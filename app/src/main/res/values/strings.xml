@@ -69,9 +69,8 @@
     <string name="qs_blur_save">Save as is</string>
     <string name="qs_focusing">Focusing… hold the phone steady</string>
     <string name="qs_focuslock">Focus locked — shoot</string>
-    <string name="qs_hint">Bring the sheet into the frame. Out of focus? Tap the spot on the screen.</string>
+    <string name="qs_hint">Fit the sheet into the A4 frame and tap the button. Out of focus? Tap the spot on the screen.</string>
     <string name="qs_nodetail">Too little detail to focus. Tap the text or the edge of the sheet</string>
-    <string name="quick_hint">Quick scan: tap Shoot and you are done. A full-quality photo, no processing, straight into a PDF in the chosen folder (named qscan_date_time).</string>
     <string name="rs_back">Back</string>
     <string name="rs_hint">Drag the frame corners. Double-tap = automatic frame. Swipe = next page.</string>
     <string name="rs_next">Next</string>
@@ -161,4 +160,21 @@
     <string name="set_theme_hint">Auto follows the phone\'s system theme.</string>
     <string name="set_lang_hint">Auto follows the phone\'s language.</string>
     <string name="set_focus_hint">Smart locks the focus on the frame once the phone is steady. System is the camera\'s ordinary autofocus.</string>
+    <string name="quick_title">One tap, a ready PDF</string>
+    <string name="quick_f_frame">Frame mode: fit the sheet into the A4 frame</string>
+    <string name="qs_label">A4 · max quality</string>
+    <string name="cam_flash">Flash</string>
+    <string name="quick_f_auto">Auto mode: the camera finds the edges of the sheet itself and straightens it</string>
+    <string name="quick_f_fit">If the sheet does not fit, the frame turns red and the app warns you</string>
+    <string name="quick_f_quality">The photo is taken at the camera\'s maximum quality; in the PDF the image quality is %1$d dpi (Settings)</string>
+    <string name="mode_frame">Frame</string>
+    <string name="mode_auto">Auto</string>
+    <string name="qs_label_auto">Auto · max quality</string>
+    <string name="qs_hint_auto">Point at the sheet: its edges are found by themselves. Out of focus? Tap the spot on the screen.</string>
+    <string name="qs_outside">The sheet goes past the frame — move the phone away</string>
+    <string name="qs_cut">The sheet goes past the view — move the phone away</string>
+    <string name="qs_nosheet">Cannot see the edges of the sheet. Put it on a contrasting background</string>
+    <string name="qs_outside_ask">The sheet does not fit the frame, its edges will be cut. Retake it, or save it as it is?</string>
+    <string name="qs_cut_ask">The sheet goes past the view, its edges are cut. Retake it, or save it as it is?</string>
+    <string name="qs_nosheet_ask">The edges of the sheet were not found. Retake it, or save the whole shot?</string>
 </resources>

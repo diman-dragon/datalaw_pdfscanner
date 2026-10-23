@@ -4,6 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,9 +41,15 @@ private fun targetText(s: Settings): String {
 @Composable
 fun QuickTab(vm: AppViewModel) {
     val s = LocalSettings.current
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Text("⚡", fontSize = 56.sp)
-        Text(stringResource(R.string.quick_hint), Modifier.padding(vertical = 12.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        Text(stringResource(R.string.quick_title), Modifier.padding(top = 8.dp, bottom = 14.dp), textAlign = TextAlign.Center, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Column(Modifier.fillMaxWidth().padding(bottom = 22.dp)) {
+            QuickFact("📐", stringResource(R.string.quick_f_frame))
+            QuickFact("🎯", stringResource(R.string.quick_f_auto))
+            QuickFact("⚠️", stringResource(R.string.quick_f_fit))
+            QuickFact("📷", stringResource(R.string.quick_f_quality, s.pdfDpi))
+        }
         Button({ vm.startQuick() }) { Text(stringResource(R.string.scan_shoot), fontSize = 18.sp, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) }
         Text(targetText(s), Modifier.padding(top = 16.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }

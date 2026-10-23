@@ -13,7 +13,8 @@ import org.opencv.imgproc.Imgproc
 
 /** Finds the sheet in a photo: the four corners (TL, TR, BR, BL) in pixels of the bitmap. */
 object EdgeDetector {
-    fun detect(src: Bitmap): List<PointF> {
+    /** The corners of the sheet, or null when no sheet-like shape is seen. */
+    fun find(src: Bitmap): List<PointF>? {
         Cv.ensure()
         val k = minOf(1.0, 600.0 / maxOf(src.width, src.height))
         val sw = Math.round(src.width * k).toInt().coerceAtLeast(8)
@@ -46,13 +47,14 @@ object EdgeDetector {
         }
         gray.release(); closed.release(); edges.release()
 
-        val pts: List<PointF> = quad?.map { PointF((it.x / k).toFloat(), (it.y / k).toFloat()) }
-            ?: run { // nothing found: the whole photo with a small margin
-                val mx = src.width * 0.04f
-                val my = src.height * 0.04f
-                listOf(PointF(mx, my), PointF(src.width - mx, my), PointF(src.width - mx, src.height - my), PointF(mx, src.height - my))
-            }
-        return order(pts)
+        return quad?.map { PointF((it.x / k).toFloat(), (it.y / k).toFloat()) }?.let { order(it) }
+    }
+
+    /** Like [find], but never null: nothing found = the whole photo with a small margin. */
+    fun detect(src: Bitmap): List<PointF> = find(src) ?: run {
+        val mx = src.width * 0.04f
+        val my = src.height * 0.04f
+        listOf(PointF(mx, my), PointF(src.width - mx, my), PointF(src.width - mx, src.height - my), PointF(mx, src.height - my))
     }
 
     /** The largest convex 4-gon among the contours, or the min-area rectangle of the largest one when [allowRect]. */

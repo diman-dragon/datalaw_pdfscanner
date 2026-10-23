@@ -24,6 +24,7 @@ class SettingsStore(private val context: Context) {
         val focus = stringPreferencesKey("focus")
         val flash = stringPreferencesKey("flash")
         val libView = stringPreferencesKey("lib_view")
+        val quickMode = stringPreferencesKey("quick_mode")
         val scanType = stringPreferencesKey("scan_type")
         val ocrLangs = stringSetPreferencesKey("ocr_langs")
     }
@@ -44,6 +45,7 @@ class SettingsStore(private val context: Context) {
             focus = p.pick(K.focus, FocusMode.Smart),
             flash = p.pick(K.flash, FlashMode.Auto),
             libView = p.pick(K.libView, LibView.List),
+            quickMode = p.pick(K.quickMode, QuickMode.Frame),
             scanType = p[K.scanType] ?: "a4",
             ocrLangs = p[K.ocrLangs] ?: setOf("ru", "en"),
         )
@@ -60,6 +62,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setFocus(v: FocusMode) = put(K.focus, v.name)
     suspend fun setFlash(v: FlashMode) = put(K.flash, v.name)
     suspend fun setLibView(v: LibView) = put(K.libView, v.name)
+    suspend fun setQuickMode(v: QuickMode) = put(K.quickMode, v.name)
     suspend fun setScanType(v: String) = put(K.scanType, v)
     suspend fun setOcrLangs(v: Set<String>) = put(K.ocrLangs, v)
     suspend fun setFolder(uri: String, name: String) {

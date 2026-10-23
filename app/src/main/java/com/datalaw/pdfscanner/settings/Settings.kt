@@ -3,6 +3,7 @@ package com.datalaw.pdfscanner.settings
 enum class ThemeMode { Auto, Light, Dark }
 enum class FlashMode { Auto, On, Off; fun next(): FlashMode = entries[(ordinal + 1) % entries.size] }
 enum class FocusMode { Smart, System }
+enum class QuickMode { Frame, Auto }
 enum class LibView { List, Cards }
 enum class AppLang(val tag: String) { Auto(""), En("en"), Ru("ru") }
 
@@ -16,6 +17,7 @@ data class Settings(
     val focus: FocusMode = FocusMode.Smart,
     val flash: FlashMode = FlashMode.Auto,
     val libView: LibView = LibView.List,
+    val quickMode: QuickMode = QuickMode.Frame,
     val scanType: String = "a4",
     val ocrLangs: Set<String> = setOf("ru", "en"),
 )

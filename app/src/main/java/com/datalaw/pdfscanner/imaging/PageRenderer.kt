@@ -62,6 +62,16 @@ class PageRenderer(
         finish(out, null, side)
     })
 
+    /** Quick scan, Auto mode: the sheet found in the photo ([quad]: TL, TR, BR, BL as 0..1 of the upright photo) straightened to a flat page of true proportions, nothing else. */
+    suspend fun straightened(shot: ShotFile, quad: List<Offset>): PdfPage = withText(guarded { k ->
+        val side = (target.side * k).toInt()
+        val ext = maxOf(quad.maxOf { it.x } - quad.minOf { it.x }, quad.maxOf { it.y } - quad.minOf { it.y }).coerceAtLeast(0.2f)
+        val img = BitmapLoader.load(shot.file, Math.round(minOf(5200f, side / ext)))
+        val out = PageWarp.warp(img, quad.map { PointF(it.x * img.width, it.y * img.height) }, side)
+        img.recycle()
+        finish(out, null, side)
+    })
+
     /** Scan tab: an A4 sheet with the item at its real size. */
     suspend fun placed(item: PlacedItem): PdfPage = withText(guarded { k ->
         val p = SheetComposer.compose(item, (target.side * k).toInt(), target.budget)

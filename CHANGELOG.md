@@ -1,4 +1,13 @@
 # Changelog
+## 0.0.5
+- Quick scan: two modes on the camera, Frame and Auto (the switch is remembered). Frame = the fixed A4 frame. Auto = no frame, the camera finds the sheet itself (live outline) and the photo is straightened to a flat page of true proportions
+- The camera watches the sheet live: in Frame mode the frame and the outline turn red and the hint says the sheet goes past the frame; in Auto mode it warns when the sheet is cut by the camera view or cannot be seen
+- On the shot the same check is made on the photo: a sheet that does not fit (or is not found in Auto) asks "Retake / Save as is"
+- If the phone cannot run the live analysis together with the full-quality photo, the camera works as before and the check is made on the shot only
+- EdgeDetector.find returns null when no sheet is found (detect keeps the old fallback for the editor)
+## 0.0.4
+- Quick scan screen: the long paragraph is four short lines with pictograms (A4 frame, maximum camera quality, the PDF image quality from the settings, edge detection and Auto in the editor)
+- Quick camera: the frame label says "A4 · max quality"; the hint sits on a dark plate (readable on any background); the flash reads "Flash: Auto"; the shutter has a label for screen readers
 ## 0.0.3
 - Contrast: the app has a root surface now, so every text gets the theme colour (it was black on the black dark background); stronger secondary grey in both themes, visible borders and dividers in dark, a visible menu in dark; the camera text is always white
 - Fonts: nothing under 12 sp, secondary text 13 sp
