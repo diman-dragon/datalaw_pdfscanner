@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "fwcd.kotlin",
+    "vscjava.vscode-gradle",
+    "redhat.java",
+    "mathiasfrohlich.Kotlin",
+    "redhat.vscode-xml",
+    "github.vscode-github-actions"
+  ]
+}

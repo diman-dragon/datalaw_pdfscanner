@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "options": { "cwd": "${workspaceFolder}" },
+  "tasks": [
+    {
+      "label": "gradle: assembleDebug",
+      "type": "shell",
+      "command": "./gradlew assembleDebug",
+      "windows": { "command": "gradlew.bat assembleDebug" },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gradle"]
+    },
+    {
+      "label": "gradle: installDebug (device / emulator)",
+      "type": "shell",
+      "command": "./gradlew installDebug",
+      "windows": { "command": "gradlew.bat installDebug" },
+      "problemMatcher": ["$gradle"]
+    },
+    {
+      "label": "gradle: test",
+      "type": "shell",
+      "command": "./gradlew testDebugUnitTest",
+      "windows": { "command": "gradlew.bat testDebugUnitTest" },
+      "group": "test",
+      "problemMatcher": ["$gradle"]
+    },
+    {
+      "label": "gradle: assembleRelease",
+      "type": "shell",
+      "command": "./gradlew assembleRelease",
+      "windows": { "command": "gradlew.bat assembleRelease" },
+      "problemMatcher": ["$gradle"]
+    },
+    {
+      "label": "gradle: clean",
+      "type": "shell",
+      "command": "./gradlew clean",
+      "windows": { "command": "gradlew.bat clean" }
+    },
+    {
+      "label": "adb: logcat (app)",
+      "type": "shell",
+      "command": "adb logcat --pid=$(adb shell pidof -s com.datalaw.pdfscanner)",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "adb: start app",
+      "type": "shell",
+      "command": "adb shell am start -n com.datalaw.pdfscanner/.MainActivity",
+      "problemMatcher": []
+    }
+  ]
+}

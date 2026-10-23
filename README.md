@@ -1,30 +1,34 @@
-# Kotlin migration patch
+# DataLaw PDF Scanner (native)
 
-## Что переведено
-Только нативный Android-слой (Capacitor plugins + helpers):
+Android PDF scanner: Kotlin, Jetpack Compose, CameraX, OpenCV, Tesseract. Rules of the project: [CONTRACT.md](CONTRACT.md).
 
-| Было (Java) | Стало (Kotlin) |
-|-------------|----------------|
-| `MainActivity.java` | `MainActivity.kt` |
-| `FolderPlugin.java` | `FolderPlugin.kt` |
-| `OcrPlugin.java` | `OcrPlugin.kt` |
-| `PdfPreview.java` | `PdfPreview.kt` |
-| `PdfViewer.java` | `PdfViewer.kt` |
+## Build
 
-Плюс правки Gradle, чтобы включить Kotlin.
+GitHub Actions builds on every push to `main` (`.github/workflows/build.yml`). The APK / AAB are in the run artifacts.
+Without the signing secrets a debug APK is built (signed with the committed `debug.keystore`, so builds update each other).
+Secrets for a release build: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
 
-## Как применить
-1. Скопировать содержимое `android/` поверх вашего `android/`.
-2. **Удалить** старые `.java` в  
-   `android/app/src/main/java/com/datalaw/pdfscanner/`  
-   (иначе будет конфликт дубликатов классов).
-3. Sync Gradle / `./gradlew assembleDebug`.
+## VS Code (no Android Studio needed)
 
-Web/JS (`www/`) не трогали — это не нативный код.
+1. JDK 17 or 21 (`java -version`).
+2. Android command-line tools; set `ANDROID_HOME` and install:
+   `sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"` (and accept licenses: `sdkmanager --licenses`).
+3. Open the folder in VS Code, install the recommended extensions.
+4. `Ctrl+Shift+B` = `assembleDebug`; the task list also has `installDebug`, `test`, `assembleRelease`, `adb logcat`.
+5. A phone with USB debugging (or an emulator) for `installDebug`.
 
-## Зачем и что даёт
-- **Null-safety** — меньше NPE на URI/stream/cursor.
-- Меньше boilerplate (try-with-resources → `.use {}`, data class, object).
-- Единый язык с экосистемой Android (Google рекомендует Kotlin).
-- Проще дальше: coroutines вместо `Thread {}`, sealed class для ошибок, и т.д.
-- Поведение и API плагинов (имена методов, JSON) **не изменились** — JS-сторона работает как раньше.
+## Layout
+
+`app/src/main/java/com/datalaw/pdfscanner/`
+
+| package | what |
+|---|---|
+| `settings` | DataStore settings |
+| `data` | Storage Access Framework folder, names |
+| `pdf` | PDF reader (PdfRenderer) and the streaming PDF writer |
+| `imaging` | OpenCV engine: detect, warp, enhance, sharpness, JPEG budget, A4 sheet composer, page renderer |
+| `ocr` | Tesseract |
+| `camera` | CameraX rig, frame overlay, gyroscope |
+| `scan` | Quick / Scan sessions, scan types, saving |
+| `library`, `viewer`, `docedit`, `settings` | screens |
+| `ui` | theme, dialogs, navigation state |

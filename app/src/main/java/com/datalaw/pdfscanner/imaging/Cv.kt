@@ -1,0 +1,35 @@
+package com.datalaw.pdfscanner.imaging
+
+import android.graphics.Bitmap
+import org.opencv.android.OpenCVLoader
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
+
+/** OpenCV start-up and the Bitmap <-> Mat bridge (the engine works on 3-channel RGB Mats). */
+object Cv {
+    private val ok: Boolean by lazy { OpenCVLoader.initLocal() }
+
+    fun ensure() {
+        check(ok) { "OpenCV failed to initialise" }
+    }
+
+    fun rgb(b: Bitmap): Mat {
+        ensure()
+        val rgba = Mat()
+        Utils.bitmapToMat(b, rgba)
+        val rgb = Mat()
+        Imgproc.cvtColor(rgba, rgb, Imgproc.COLOR_RGBA2RGB)
+        rgba.release()
+        return rgb
+    }
+
+    fun bitmap(rgb: Mat): Bitmap {
+        val rgba = Mat()
+        Imgproc.cvtColor(rgb, rgba, Imgproc.COLOR_RGB2RGBA)
+        val b = Bitmap.createBitmap(rgb.cols(), rgb.rows(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(rgba, b)
+        rgba.release()
+        return b
+    }
+}

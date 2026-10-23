@@ -1,7 +1,0 @@
-.pop{position:fixed;inset:0;z-index:45}
-.pop-box{position:fixed;min-width:220px;max-width:calc(100vw - 16px);display:grid;padding:6px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 8px 28px rgba(0,0,0,.35)}
-.pop-box button{display:flex;align-items:center;gap:12px;height:46px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--text);font:inherit;font-size:15px;text-align:left}
-.pop-box button:active{background:var(--accent-soft)}
-.pop-box .danger{color:#d64545}
-.pop-ic{flex:none;width:22px;height:22px;display:grid;place-items:center}
-.pop-ic svg{display:block;width:22px;height:22px}

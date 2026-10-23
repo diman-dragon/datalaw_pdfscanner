@@ -1,0 +1,65 @@
+package com.datalaw.pdfscanner.ui
+
+import androidx.annotation.StringRes
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.datalaw.pdfscanner.AppGraph
+import com.datalaw.pdfscanner.library.LibraryController
+import com.datalaw.pdfscanner.scan.FolderAccess
+import com.datalaw.pdfscanner.scan.QuickSession
+import com.datalaw.pdfscanner.scan.ScanSession
+import com.datalaw.pdfscanner.scan.ScanTypes
+import com.datalaw.pdfscanner.settings.Settings
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+/** Navigation state (tab + overlay stack) and the controllers behind the screens. */
+class AppViewModel(val graph: AppGraph) : ViewModel(), Nav {
+    val ui: UiHost = graph.ui
+
+    /** null until the settings are read from disk (the first frame shows nothing instead of a wrong state). */
+    val settings: StateFlow<Settings?> = graph.settingsStore.flow.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val _tab = MutableStateFlow(Tab.Library)
+    val tab: StateFlow<Tab> = _tab.asStateFlow()
+    private val _overlays = MutableStateFlow<List<Overlay>>(emptyList())
+    val overlays: StateFlow<List<Overlay>> = _overlays.asStateFlow()
+    private val _libVersion = MutableStateFlow(0)
+    val libVersion: StateFlow<Int> = _libVersion.asStateFlow()
+
+    val deps = Deps(graph, viewModelScope, { settings.value ?: Settings() }, this)
+    val library = LibraryController(deps)
+    private val folder = FolderAccess(deps)
+
+    override fun goTo(tab: Tab) { _tab.value = tab }
+    override fun push(o: Overlay) { _overlays.value = _overlays.value + o }
+    override fun pop() { _overlays.value = _overlays.value.dropLast(1) }
+    override fun libraryChanged() { _libVersion.value++; library.refresh() }
+
+    fun toast(@StringRes id: Int) = ui.toast(tx(id))
+
+    fun chooseFolder() { viewModelScope.launch { folder.choose() } }
+
+    fun startQuick() {
+        viewModelScope.launch {
+            if (folder.ensure()) push(Overlay.Camera(QuickSession(deps)))
+        }
+    }
+
+    fun startScan() {
+        viewModelScope.launch {
+            if (folder.ensure()) push(Overlay.Camera(ScanSession(deps, ScanTypes.byId((settings.value ?: Settings()).scanType))))
+        }
+    }
+
+    companion object {
+        fun factory(g: AppGraph): ViewModelProvider.Factory = viewModelFactory { initializer { AppViewModel(g) } }
+    }
+}

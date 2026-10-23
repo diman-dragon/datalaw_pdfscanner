@@ -1,0 +1,42 @@
+package com.datalaw.pdfscanner.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import com.datalaw.pdfscanner.settings.ThemeMode
+
+// The palette of the old app (theme.css): warm paper in light mode, black with amber in dark mode.
+private val Light = lightColorScheme(
+    primary = Color(0xFF8A5A2B), onPrimary = Color(0xFFF7EEDA),
+    secondaryContainer = Color(0x338A5A2B), onSecondaryContainer = Color(0xFF3B2F1E),
+    background = Color(0xFFE9DCBF), onBackground = Color(0xFF3B2F1E),
+    surface = Color(0xFFF1E7CE), onSurface = Color(0xFF3B2F1E),
+    surfaceVariant = Color(0xFFE3D5B4), onSurfaceVariant = Color(0xFF7A6A50),
+    surfaceContainer = Color(0xFFF1E7CE), surfaceContainerHigh = Color(0xFFEADFC3), surfaceContainerHighest = Color(0xFFE3D5B4),
+    outline = Color(0xFFCDBB93), outlineVariant = Color(0xFFCDBB93),
+    error = Color(0xFFB3261E), onError = Color.White,
+)
+
+private val Dark = darkColorScheme(
+    primary = Color(0xFFD8A25E), onPrimary = Color.Black,
+    secondaryContainer = Color(0x38D8A25E), onSecondaryContainer = Color(0xFFEDE6D6),
+    background = Color.Black, onBackground = Color(0xFFEDE6D6),
+    surface = Color.Black, onSurface = Color(0xFFEDE6D6),
+    surfaceVariant = Color(0xFF151515), onSurfaceVariant = Color(0xFF8F8878),
+    surfaceContainer = Color.Black, surfaceContainerHigh = Color(0xFF111111), surfaceContainerHighest = Color(0xFF1A1A1A),
+    outline = Color(0xFF2A2A2A), outlineVariant = Color(0xFF2A2A2A),
+    error = Color(0xFFFF6B5E), onError = Color.Black,
+)
+
+@Composable
+fun AppTheme(mode: ThemeMode, content: @Composable () -> Unit) {
+    val dark = when (mode) {
+        ThemeMode.Auto -> isSystemInDarkTheme()
+        ThemeMode.Light -> false
+        ThemeMode.Dark -> true
+    }
+    MaterialTheme(colorScheme = if (dark) Dark else Light, content = content)
+}
