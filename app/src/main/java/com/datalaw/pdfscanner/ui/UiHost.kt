@@ -11,9 +11,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/** What the Save dialog returns: the file name and whether the text is recognised. */
+class SaveAnswer(val name: String, val recognize: Boolean)
+
 sealed interface Dlg {
     data class Choice(val title: UiText, val options: List<Pair<String, UiText>>, val result: CompletableDeferred<String?>) : Dlg
     data class Input(val title: UiText, val initial: String, val ok: UiText, val cancel: UiText, val result: CompletableDeferred<String?>) : Dlg
+    data class Save(val title: UiText, val initial: String, val recognize: UiText, val plain: UiText, val cancel: UiText, val result: CompletableDeferred<SaveAnswer?>) : Dlg
     data class Confirm(val message: UiText, val ok: UiText, val cancel: UiText, val danger: Boolean, val result: CompletableDeferred<Boolean>) : Dlg
     data class Alert(val message: UiText, val result: CompletableDeferred<Unit>) : Dlg
 }
@@ -46,6 +50,10 @@ class UiHost {
     /** The entered text, null if cancelled. */
     suspend fun askText(title: UiText, initial: String, ok: UiText, cancel: UiText): String? =
         show { Dlg.Input(title, initial, ok, cancel, it) }
+
+    /** The name and "recognize and save" / "save as is"; null if cancelled. */
+    suspend fun askSave(title: UiText, initial: String, recognize: UiText, plain: UiText, cancel: UiText): SaveAnswer? =
+        show { Dlg.Save(title, initial, recognize, plain, cancel, it) }
 
     suspend fun askConfirm(message: UiText, ok: UiText, cancel: UiText, danger: Boolean = false): Boolean =
         show { Dlg.Confirm(message, ok, cancel, danger, it) }

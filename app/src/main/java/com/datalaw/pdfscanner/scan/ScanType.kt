@@ -14,6 +14,8 @@ class ScanType(
     val sides: Int = 1,
     val parts: Boolean = false,
     @StringRes val examplesRes: Int? = null,
+    /** Full auto: no size to choose; whatever the camera finds is fitted to the A4 sheet and shot by itself. */
+    val free: Boolean = false,
 )
 
 object ScanTypes {
@@ -24,6 +26,7 @@ object ScanTypes {
         ScanType("card", 90.0 to 50.0, Orient.Land, R.string.st_card),
         ScanType("passport", 176.0 to 125.0, Orient.Land, R.string.st_passport),
         ScanType("receipt", 80.0 to 200.0, Orient.Port, R.string.st_receipt, parts = true),
+        ScanType("auto", 210.0 to 297.0, Orient.Video, R.string.st_auto, free = true),
     )
 
     fun byId(id: String): ScanType = all.firstOrNull { it.id == id } ?: all.first()

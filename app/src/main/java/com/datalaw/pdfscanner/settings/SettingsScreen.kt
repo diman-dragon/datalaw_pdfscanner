@@ -1,7 +1,6 @@
 package com.datalaw.pdfscanner.settings
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,8 +9,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -39,26 +36,27 @@ import com.datalaw.pdfscanner.ui.TRAIL_SEP
 import com.datalaw.pdfscanner.ui.folderTrail
 import kotlinx.coroutines.launch
 
-/** Two swipeable screens: "PDF and files" and "App" (theme, language, camera focus, About). */
+/** One screen: the save folder, the image quality, theme, language, About. */
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
-    val pager = rememberPagerState { 2 }
+    val s = LocalSettings.current
+    val store = LocalGraph.current.settingsStore
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            listOf(R.string.set_s_pdf, R.string.set_s_app).forEachIndexed { i, res ->
-                val on = pager.currentPage == i
-                Column(Modifier.weight(1f).clickable { scope.launch { pager.animateScrollToPage(i) } }, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(res), Modifier.padding(vertical = 10.dp), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
-                    HorizontalDivider(thickness = 3.dp, color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
-                }
-            }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        FolderCard(vm)
+        Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+            Text(stringResource(R.string.set_pdfdpi))
+            Seg(listOf(0 to stringResource(R.string.set_auto), 150 to "150", 300 to "300", 600 to "600"), s.pdfDpi, { v -> scope.launch { store.setPdfDpi(v) } }, Modifier.padding(top = 8.dp))
+            Text(stringResource(R.string.set_pdfdpi_hint), Modifier.padding(top = 6.dp, bottom = 12.dp), fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         }
-        HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth()) { i ->
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-                if (i == 0) PdfPage(vm) else AppPage()
-            }
+        RowItem(stringResource(R.string.set_theme)) {
+            Seg(listOf(ThemeMode.Auto to stringResource(R.string.set_auto), ThemeMode.Light to stringResource(R.string.set_light), ThemeMode.Dark to stringResource(R.string.set_dark)), s.theme, { v -> scope.launch { store.setTheme(v) } })
         }
+        RowItem(stringResource(R.string.set_lang)) {
+            Seg(listOf(AppLang.Auto to stringResource(R.string.set_auto), AppLang.En to "EN", AppLang.Ru to "RU"), s.lang, { v -> scope.launch { store.setLang(v) } })
+        }
+        AboutCard()
     }
 }
 
@@ -94,31 +92,7 @@ private fun FolderCard(vm: AppViewModel) {
 }
 
 @Composable
-private fun PdfPage(vm: AppViewModel) {
-    val s = LocalSettings.current
-    val store = LocalGraph.current.settingsStore
-    val scope = rememberCoroutineScope()
-    FolderCard(vm)
-    RowItem(stringResource(R.string.set_pdfdpi), stringResource(R.string.set_pdfdpi_hint)) { Seg(listOf(150, 300, 600).map { it to "$it" }, s.pdfDpi, { v -> scope.launch { store.setPdfDpi(v) } }) }
-    RowItem(stringResource(R.string.set_pdfsearch), stringResource(R.string.set_pdfsearch_hint)) {
-        Seg(listOf(false to stringResource(R.string.set_off), true to stringResource(R.string.set_on)), s.pdfSearch, { v -> scope.launch { store.setPdfSearch(v) } })
-    }
-}
-
-@Composable
-private fun AppPage() {
-    val s = LocalSettings.current
-    val store = LocalGraph.current.settingsStore
-    val scope = rememberCoroutineScope()
-    RowItem(stringResource(R.string.set_theme), stringResource(R.string.set_theme_hint)) {
-        Seg(listOf(ThemeMode.Auto to stringResource(R.string.set_auto), ThemeMode.Light to stringResource(R.string.set_light), ThemeMode.Dark to stringResource(R.string.set_dark)), s.theme, { v -> scope.launch { store.setTheme(v) } })
-    }
-    RowItem(stringResource(R.string.set_lang), stringResource(R.string.set_lang_hint)) {
-        Seg(listOf(AppLang.Auto to stringResource(R.string.set_auto), AppLang.En to "EN", AppLang.Ru to "RU"), s.lang, { v -> scope.launch { store.setLang(v) } })
-    }
-    RowItem(stringResource(R.string.set_focus), stringResource(R.string.set_focus_hint)) {
-        Seg(listOf(FocusMode.Smart to stringResource(R.string.set_focus_smart), FocusMode.System to stringResource(R.string.set_focus_system)), s.focus, { v -> scope.launch { store.setFocus(v) } })
-    }
+private fun AboutCard() {
     Surface(
         Modifier.fillMaxWidth().padding(top = 22.dp),
         shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface,

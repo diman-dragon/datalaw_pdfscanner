@@ -70,15 +70,10 @@ fun LibraryScreen(vm: AppViewModel) {
     val state by vm.library.state.collectAsState()
     LaunchedEffect(settings.folderUri) { vm.library.refresh() }
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
-        if (uris.isNotEmpty()) vm.library.add(uris)
-    }
-
     Column(Modifier.fillMaxSize()) {
         if (state is LibState.Ok) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 ViewToggle(settings.libView) { v -> scope.launch { graph.settingsStore.setLibView(v) } }
-                Button({ picker.launch(arrayOf("application/pdf")) }) { Text(stringResource(R.string.lib_add)) }
             }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {

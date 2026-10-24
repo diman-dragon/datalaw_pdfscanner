@@ -76,25 +76,6 @@ class FolderRepository(private val context: Context) {
         PdfFile(dst.toString(), displayName(dst) ?: "$safe.pdf", 0, System.currentTimeMillis())
     }
 
-    /** Copies the chosen PDFs into the tree; returns how many were added. */
-    suspend fun copyIn(tree: Uri, sources: List<Uri>): Int = withContext(Dispatchers.IO) {
-        val parent = treeRoot(tree)
-        var added = 0
-        for (src in sources) {
-            var dst: Uri? = null
-            try {
-                var name = queryString(src, OpenableColumns.DISPLAY_NAME) ?: "document"
-                name = Names.withoutPdf(name)
-                dst = DocumentsContract.createDocument(cr, parent, "application/pdf", safeName(name)) ?: continue
-                cr.openInputStream(src)!!.use { i -> cr.openOutputStream(dst)!!.use { o -> i.copyTo(o, 64 * 1024) } }
-                added++
-            } catch (e: Exception) {
-                dst?.let { runCatching { DocumentsContract.deleteDocument(cr, it) } }
-            }
-        }
-        added
-    }
-
     suspend fun remove(uri: Uri): Boolean = withContext(Dispatchers.IO) { DocumentsContract.deleteDocument(cr, uri) }
 
     suspend fun rename(uri: Uri, name: String): Uri? = withContext(Dispatchers.IO) { DocumentsContract.renameDocument(cr, uri, name) }

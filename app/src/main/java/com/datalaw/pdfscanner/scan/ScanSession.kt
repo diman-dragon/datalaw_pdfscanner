@@ -1,5 +1,6 @@
 package com.datalaw.pdfscanner.scan
 
+import com.datalaw.pdfscanner.ui.askSave
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.camera.CamUi
 import com.datalaw.pdfscanner.camera.CameraSession
@@ -40,12 +41,15 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
     private var cur: Draft? = null
 
     private val defaultHint: UiText = tx(if (type.orient == Orient.Video) R.string.sc_hint_page else R.string.sc_hint_item)
-    private val autoHint: UiText = tx(R.string.sc_hint_auto)
-    private val _ui = MutableStateFlow(CamUi(tx(type.nameRes), defaultHint, autoLabel = tx(R.string.sc_label_auto, tx(type.nameRes)), autoHint = autoHint))
+    private val autoHint: UiText = tx(if (type.free) R.string.sc_hint_full else R.string.sc_hint_auto)
+    private fun autoLabelOf(label: UiText): UiText = if (type.free) label else tx(R.string.sc_label_auto, label)
+    private val _ui = MutableStateFlow(CamUi(tx(type.nameRes), defaultHint, autoLabel = autoLabelOf(tx(type.nameRes)), autoHint = autoHint))
     override val ui: StateFlow<CamUi> = _ui.asStateFlow()
     override val smart: Boolean = true
-    override val expectRatio: Double? = type.mm.first / type.mm.second
-    override val minAreaFrac: Double = 0.1
+    override val expectRatio: Double? = if (type.free) null else type.mm.first / type.mm.second
+    override val minAreaFrac: Double = if (type.free) 0.12 else 0.1
+    override val forcedAuto: Boolean = type.free
+    override val autoShoot: Boolean = type.free
     override val sheetLike: Boolean = type.orient == Orient.Video
     private val whole = floatArrayOf(0f, 0f, 1f, 1f)
 
@@ -55,7 +59,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
     }
 
     private fun texts(hint: UiText, label: UiText, forAuto: UiText = hint) {
-        _ui.value = _ui.value.copy(hint = hint, label = label, autoHint = forAuto, autoLabel = tx(R.string.sc_label_auto, label))
+        _ui.value = _ui.value.copy(hint = hint, label = label, autoHint = forAuto, autoLabel = autoLabelOf(label))
     }
     private fun resetTexts() = texts(defaultHint, tx(type.nameRes), autoHint)
     private fun badge() { _ui.value = _ui.value.copy(badge = tx(R.string.sc_count_n, sheets.size)) }
@@ -85,8 +89,8 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
             try {
                 val found = EdgeDetector.find(img, 0.08)?.map { Offset(it.x / img.width, it.y / img.height) }
                 val expected = type.mm.first / type.mm.second
-                if (found == null || !SheetFit.plausible(found, img.width.toFloat() / img.height, checkRatio = false) ||
-                    !ShapeMatch.matches(found, img.width, img.height, expected)) null
+                if (found == null || !SheetFit.plausible(found, img.width.toFloat() / img.height, checkRatio = type.free) ||
+                    (!type.free && !ShapeMatch.matches(found, img.width, img.height, expected))) null
                 else Found(found, ShapeMatch.aspectOf(found, img.width, img.height))
             } finally {
                 img.recycle()
@@ -94,6 +98,15 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         } catch (e: Throwable) {
             null
         }
+    }
+
+    /** Full auto: the size the found item is put at. A page (A4, A5, letter...) fills the sheet; anything else is fitted into the sheet, its shape kept. */
+    private fun fitMm(aspect: Double): Pair<Double, Double> {
+        val portrait = aspect < 1
+        val r = if (portrait) aspect else 1 / aspect // short side / long side
+        val long = if (Math.abs(r - 210.0 / 297.0) < 0.07) 297.0 else minOf(277.0, 190.0 / r)
+        val short = if (long == 297.0) 210.0 else long * r
+        return if (portrait) short to long else long to short
     }
 
     /** The corners turned to the shape of the item (a card shown upright is turned to lie), and whether an A4 / A5 is wide. */
@@ -107,7 +120,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
 
     /** Checks the item in the photo and, in Auto mode, finds its corners. null = the user chose to retake. */
     private suspend fun prepare(raw: ShotFile): ShotFile? {
-        val auto = d.settings().camMode == CamMode.Auto
+        val auto = type.free || d.settings().camMode == CamMode.Auto
         val found = findItem(raw)
         val sheet = type.orient == Orient.Video
         val problem = when {
@@ -123,7 +136,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         if (!auto) return raw
         if (found == null) return ShotFile(raw.file, null, raw.vr, raw.land)
         val (quad, wide) = oriented(found)
-        return ShotFile(raw.file, raw.crop, raw.vr, if (type.orient == Orient.Video) wide else raw.land, quad)
+        return ShotFile(raw.file, raw.crop, raw.vr, if (type.orient == Orient.Video) wide else raw.land, quad, if (type.free) fitMm(found.aspect) else null)
     }
 
     override suspend fun onShot(shot: ShotFile): Boolean {
@@ -133,7 +146,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
 
     private suspend fun place(shot: ShotFile): Boolean {
         shots.add(shot)
-        val mm = ScanTypes.itemMm(type, shot.land)
+        val mm = shot.mm ?: ScanTypes.itemMm(type, shot.land)
         val c = cur ?: Draft(ArrayList(), mm, mm.first > 210.5, type.parts).also { cur = it } // an A4 held landscape does not fit the sheet: it is turned
         c.sides.add(shot)
         if (type.sides == 2 && c.sides.size == 1) {
@@ -158,17 +171,21 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         while (true) {
             if (a == "more") return false
             val def = Names.auto("scan")
-            val typed = d.ui.askText(tx(R.string.scan_nameq), def, tx(R.string.sc_save), tx(R.string.ed_cancel))
-            if (typed != null) return finish(Names.clean(typed).ifEmpty { def })
+            val choice = askSave(d, def)
+            if (choice != null) return finish(Names.clean(choice.name).ifEmpty { def }, choice.recognize)
             a = askMore()
         }
     }
 
-    private suspend fun finish(name: String): Boolean {
+    private suspend fun finish(name: String, recognize: Boolean): Boolean {
         _ui.value = _ui.value.copy(status = tx(R.string.scan_saving))
         return try {
             val list = sheets.toList()
-            val saved = access.save(name, list.size) { i -> list[i].await() }
+            val renderer = d.renderer(recognize)
+            val saved = access.save(name, list.size) { i ->
+                val page = list[i].await()
+                if (recognize) renderer.recognized(page) else page
+            }
             d.ui.toast(tx(R.string.scan_saved_n, saved.name))
             d.nav.libraryChanged()
             d.nav.goTo(Tab.Library)

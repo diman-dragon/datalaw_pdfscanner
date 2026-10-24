@@ -23,6 +23,9 @@ interface CameraSession {
     val minAreaFrac: Double get() = 0.2
     /** True = the thing is a sheet of paper (the texts say "sheet"), false = an item (card, passport, receipt). */
     val sheetLike: Boolean get() = true
+    /** Full auto: Auto mode only, and the shot is made by itself when the item is seen whole and the phone is steady. */
+    val forcedAuto: Boolean get() = false
+    val autoShoot: Boolean get() = false
     fun frameRatio(land: Boolean): Float          // width / height of the frame
     suspend fun onShot(shot: ShotFile): Boolean   // true = the work is done, close the camera
     suspend fun canClose(): Boolean

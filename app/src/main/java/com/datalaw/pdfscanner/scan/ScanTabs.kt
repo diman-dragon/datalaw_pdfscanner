@@ -33,35 +33,31 @@ import com.datalaw.pdfscanner.ui.TRAIL_SEP
 import com.datalaw.pdfscanner.ui.folderTrail
 import kotlinx.coroutines.launch
 
+/** The shooting mode: Frame or Auto. */
 @Composable
-private fun targetText(s: Settings): String {
-    val trail = folderTrail(s.folderUri) ?: return stringResource(R.string.scan_nofolder_label)
-    return stringResource(R.string.scan_to_n, trail.joinToString(TRAIL_SEP))
+private fun ModeSwitch(mode: CamMode, onSelect: (CamMode) -> Unit) {
+    Seg(listOf(CamMode.Frame to stringResource(R.string.mode_frame), CamMode.Auto to stringResource(R.string.mode_auto)), mode, onSelect)
 }
 
-/** QUICK SCAN: nothing to choose, one big button. */
+@Composable
+private fun ShootButton(onClick: () -> Unit) {
+    Button(onClick) { Text("📷  " + stringResource(R.string.scan_shoot), fontSize = 18.sp, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) }
+}
+
+/** QUICK SCAN: the mode and one big button; what it all means is in the (i) of the title bar. */
 @Composable
 fun QuickTab(vm: AppViewModel) {
     val s = LocalSettings.current
     val store = LocalGraph.current.settingsStore
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("⚡", fontSize = 56.sp)
-        Text(stringResource(R.string.quick_title), Modifier.padding(top = 8.dp, bottom = 14.dp), textAlign = TextAlign.Center, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Column(Modifier.fillMaxWidth().padding(bottom = 22.dp)) {
-            QuickFact("📐", stringResource(R.string.quick_f_frame))
-            QuickFact("🎯", stringResource(R.string.quick_f_auto))
-            QuickFact("⚠️", stringResource(R.string.quick_f_fit))
-            QuickFact("📷", stringResource(R.string.quick_f_quality, s.pdfDpi))
-        }
-        ModeRow(s.camMode, stringResource(if (s.camMode == CamMode.Auto) R.string.quick_mode_auto_hint else R.string.quick_mode_frame_hint)) { m -> scope.launch { store.setCamMode(m) } }
-        Spacer(Modifier.height(18.dp))
-        Button({ vm.startQuick() }) { Text(stringResource(R.string.scan_shoot), fontSize = 18.sp, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) }
-        Text(targetText(s), Modifier.padding(top = 16.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        ModeSwitch(s.camMode) { m -> scope.launch { store.setCamMode(m) } }
+        Spacer(Modifier.height(32.dp))
+        ShootButton { vm.startQuick() }
     }
 }
 
-/** SCAN: choose what is scanned (A4, A5, card, business card, passport, receipt) and the mode, then shoot. Everything fits one screen. */
+/** SCAN: what is scanned (Full auto, A4, A5, card, business card, passport, receipt), the mode, and the button. Everything fits one screen. */
 @Composable
 fun ScanTab(vm: AppViewModel) {
     val s = LocalSettings.current
@@ -70,25 +66,12 @@ fun ScanTab(vm: AppViewModel) {
     val type = ScanTypes.byId(s.scanType)
     Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         TypeGrid(type.id) { id -> scope.launch { store.setScanType(id) } }
-        val size = "${type.mm.first.toString().removeSuffix(".0")} × ${type.mm.second.toString().removeSuffix(".0")} mm"
-        val two = if (type.sides == 2) " · ${stringResource(R.string.sc_twosides)}" else ""
-        val eg = type.examplesRes?.let { " · ${stringResource(it)}" } ?: ""
-        Text("$size$two$eg", Modifier.padding(top = 12.dp), fontSize = 14.sp, textAlign = TextAlign.Center)
-        ModeRow(s.camMode, stringResource(if (s.camMode == CamMode.Auto) R.string.sc_mode_auto_hint else R.string.sc_mode_frame_hint)) { m -> scope.launch { store.setCamMode(m) } }
-        Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Button({ vm.startScan() }) { Text("📷  " + stringResource(R.string.scan_shoot), fontSize = 18.sp, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) }
+        if (!type.free) {
+            Spacer(Modifier.height(16.dp))
+            ModeSwitch(s.camMode) { m -> scope.launch { store.setCamMode(m) } }
         }
-        Text(stringResource(R.string.sc_hint), fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-        Text(targetText(s), Modifier.padding(top = 8.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            ShootButton { vm.startScan() }
+        }
     }
-}
-
-/** "Shooting mode: [Frame | Auto]" and one line that says what the chosen mode does. */
-@Composable
-private fun ModeRow(mode: CamMode, hint: String, onSelect: (CamMode) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(stringResource(R.string.mode_title), fontSize = 15.sp)
-        Seg(listOf(CamMode.Frame to stringResource(R.string.mode_frame), CamMode.Auto to stringResource(R.string.mode_auto)), mode, onSelect)
-    }
-    Text(hint, Modifier.fillMaxWidth().padding(top = 6.dp), fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

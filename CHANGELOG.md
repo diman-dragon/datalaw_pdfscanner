@@ -1,4 +1,12 @@
 # Changelog
+## 0.0.7
+- Text recognition moved from Settings to the Save dialog of every PDF (Quick, Scan, editor): "Recognize and save" or "Save as is" (the language data is fetched once; if that fails, save as is). The Scan pages get their text when saving
+- Image quality: Auto = the best the camera gives (up to 6000 px), now the default
+- Camera focus setting removed: the camera always locks the focus on the item when the phone is steady (and again when it moved or the item slid), a tap focuses where the finger is
+- Settings: one screen
+- Quick and Scan screens: only the modes and the Shoot button; the explanation and the save place are behind the (i) in the title bar
+- Scan: "Full auto" preset: no size to pick, the camera shoots by itself when the sheet is seen whole and the phone is still; the page is fitted to the A4 sheet with its shape kept
+- Library: the Add button is removed
 ## 0.0.6
 - Scan: the same camera as Quick scan: Frame and Auto modes (one switch for both tabs, also on the screens), live outline of the item, red frame and a warning when the item goes past the frame or the view
 - Scan, Auto: the item is found in the photo (it has to have the shape of the chosen type), straightened and put on the A4 sheet at its real size; a card is turned to lie, an A4 / A5 follows its own shape

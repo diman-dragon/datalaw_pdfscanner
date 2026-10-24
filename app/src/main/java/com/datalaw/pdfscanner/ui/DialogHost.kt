@@ -1,5 +1,10 @@
 package com.datalaw.pdfscanner.ui
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,7 +44,7 @@ fun DialogHost(host: UiHost) {
     when (val x = d) {
         null -> Unit
         is Dlg.Alert -> Card({ x.result.complete(Unit) }) {
-            Text(x.message.get())
+            Text(x.message.get(), Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), lineHeight = 21.sp)
             Wide(true, false, stringResource(R.string.dlg_ok)) { x.result.complete(Unit) }
         }
         is Dlg.Confirm -> Card({ x.result.complete(false) }) {
@@ -54,6 +59,7 @@ fun DialogHost(host: UiHost) {
             }
         }
         is Dlg.Input -> InputCard(x)
+        is Dlg.Save -> SaveCard(x)
     }
 }
 
@@ -96,5 +102,25 @@ private fun InputCard(x: Dlg.Input) {
         )
         Wide(true, false, x.ok.get()) { x.result.complete(v.text) }
         Wide(false, false, x.cancel.get()) { x.result.complete(null) }
+    }
+}
+
+@Composable
+private fun SaveCard(x: Dlg.Save) {
+    var v by remember(x) { mutableStateOf(TextFieldValue(x.initial, TextRange(0, x.initial.length))) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(x) { focus.requestFocus() }
+    Card({ x.result.complete(null) }) {
+        Text(x.title.get())
+        OutlinedTextField(
+            value = v,
+            onValueChange = { v = it },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions.Default,
+            modifier = Modifier.fillMaxWidth().focusRequester(focus),
+        )
+        Wide(true, false, x.recognize.get()) { x.result.complete(SaveAnswer(v.text, true)) }
+        Wide(false, false, x.plain.get()) { x.result.complete(SaveAnswer(v.text, false)) }
+        TextButton({ x.result.complete(null) }, Modifier.fillMaxWidth()) { Text(x.cancel.get()) }
     }
 }

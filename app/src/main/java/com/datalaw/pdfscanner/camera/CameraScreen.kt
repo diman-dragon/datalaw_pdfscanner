@@ -1,5 +1,8 @@
 package com.datalaw.pdfscanner.camera
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.mutableFloatStateOf
+import android.os.SystemClock
 import android.Manifest
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -66,7 +69,6 @@ import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.imaging.BitmapLoader
 import com.datalaw.pdfscanner.imaging.SheetFit
 import com.datalaw.pdfscanner.imaging.Sharpness
-import com.datalaw.pdfscanner.settings.FocusMode
 import com.datalaw.pdfscanner.settings.CamMode
 import com.datalaw.pdfscanner.settings.FlashMode
 import com.datalaw.pdfscanner.ui.LocalGraph
@@ -128,7 +130,11 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
     var ring by remember { mutableStateOf<Triple<Float, Float, Boolean?>?>(null) }
     var failed by remember { mutableStateOf(false) }
     val smart = session.smart
-    val mode = if (smart) settings.camMode else CamMode.Frame
+    val mode = when {
+        !smart -> CamMode.Frame
+        session.forcedAuto -> CamMode.Auto
+        else -> settings.camMode
+    }
     val auto = mode == CamMode.Auto
     val modeNow by rememberUpdatedState(mode)
     var live by remember { mutableStateOf<List<Offset>?>(null) }
@@ -168,20 +174,23 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         return Offset(cx * rig.previewView.width, cy * rig.previewView.height)
     }
 
-    // Smart focus: lock the focus on the frame; when the phone has moved and is steady again, focus again.
-    LaunchedEffect(ready, settings.focus) {
+    // Focus: locked on the item when the phone is steady; again after the phone has moved or the item has slid elsewhere. A tap focuses where the finger is.
+    LaunchedEffect(ready) {
         if (!ready) return@LaunchedEffect
-        if (settings.focus == FocusMode.System) { rig.releaseFocus(); focus = FocusState.Idle; return@LaunchedEffect }
         var moved = true
         var steadyTicks = 0
+        var at: Offset? = null
         while (isActive) {
             delay(300)
             if (busy) continue
+            val c = centerFocusPoint()
             if (gyro.steady) steadyTicks++ else { steadyTicks = 0; moved = true }
+            val was = at
+            if (was != null && (c - was).getDistance() > 0.12f * rig.previewView.width) moved = true
             if (moved && steadyTicks >= 3 && rig.previewView.width > 0) {
                 focus = FocusState.Seeking
-                val c = centerFocusPoint()
                 focus = if (rig.focusAt(c.x, c.y, lock = true, withExposure = false)) FocusState.Locked else FocusState.NoDetail
+                at = c
                 moved = false
             }
         }
@@ -214,6 +223,35 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         }
     }
 
+    // Full auto: when the item is seen whole, fits the view, is still and in focus for a moment, the shot is made by itself.
+    // The next one waits until the item has left the view or another one has come.
+    var hold by remember { mutableFloatStateOf(0f) }
+    val fitNow by rememberUpdatedState(fit)
+    val shootNow by rememberUpdatedState { shoot() }
+    LaunchedEffect(ready, session.autoShoot) {
+        if (!ready || !session.autoShoot) return@LaunchedEffect
+        var anchor: List<Offset>? = null
+        var since = 0L
+        var armed = true
+        var lastShot = 0L
+        while (isActive) {
+            delay(100)
+            val q = live
+            val now = SystemClock.elapsedRealtime()
+            if (q == null) { anchor = null; hold = 0f; armed = true; continue }
+            val ref = anchor
+            if (ref == null || q.indices.any { (q[it] - ref[it]).getDistance() > 0.02f }) {
+                anchor = q
+                since = now
+                if (now - lastShot > 2000) armed = true
+            }
+            val ok = !busy && fitNow == Fit.Ok && focus != FocusState.Seeking && gyro.steady
+            val held = if (ok && armed) now - since else 0L
+            hold = (held / 1200f).coerceIn(0f, 1f)
+            if (held >= 1200) { armed = false; lastShot = now; hold = 0f; shootNow() }
+        }
+    }
+
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val w = minOf(maxWidth, maxHeight * aspect)
@@ -228,7 +266,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                 }
                 val labelText = if (smart && auto) (camUi.autoLabel ?: camUi.label).get() else camUi.label.get()
                 Canvas(
-                    Modifier.fillMaxSize().pointerInput(ready, settings.focus) {
+                    Modifier.fillMaxSize().pointerInput(ready) {
                         detectTapGestures { p ->
                             ring = Triple(p.x, p.y, null)
                             scope.launch {
@@ -264,7 +302,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                         val p = q.map { Offset(it.x * size.width, it.y * size.height) }
                         val outline = Path().apply { moveTo(p[0].x, p[0].y); for (i in 1..3) lineTo(p[i].x, p[i].y); close() }
                         val ink = if (bad) Color(0xFFFF5A4D) else Color(0xFF4CD964)
-                        drawPath(outline, ink.copy(alpha = 0.18f))
+                        drawPath(outline, ink.copy(alpha = 0.18f + 0.35f * hold))
                         drawPath(outline, ink, style = Stroke(3.dp.toPx()))
                         p.forEach { drawCircle(ink, 6.dp.toPx(), it) }
                     }
@@ -278,7 +316,11 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         // top: close, counter, flash
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Text("✕", color = Color.White, fontSize = 24.sp, modifier = Modifier.clickable(onClick = askClose).padding(8.dp))
-            if (smart) ModeToggle(mode) { m -> scope.launch { graph.settingsStore.setCamMode(m) } } else camUi.badge?.let { Text(it.get(), color = Color.White, fontSize = 15.sp) }
+            when {
+                smart && session.forcedAuto -> Text("✨ " + stringResource(R.string.st_auto), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                smart -> ModeToggle(mode) { m -> scope.launch { graph.settingsStore.setCamMode(m) } }
+                else -> camUi.badge?.let { Text(it.get(), color = Color.White, fontSize = 15.sp) }
+            }
             val flashLabel = when (settings.flash) { FlashMode.Auto -> R.string.fl_auto; FlashMode.On -> R.string.fl_on; FlashMode.Off -> R.string.fl_off }
             Text("⚡ " + stringResource(R.string.cam_flash) + ": " + stringResource(flashLabel), color = Color.White, fontSize = 15.sp, modifier = Modifier.clickable { scope.launch { graph.settingsStore.setFlash(settings.flash.next()) } }.padding(8.dp))
         }
@@ -289,6 +331,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
             val hint = when {
                 failed -> stringResource(R.string.cam_unavailable)
                 camUi.status != null -> camUi.status!!.get()
+                hold > 0.05f -> stringResource(R.string.cam_hold)
                 fit == Fit.Outside -> stringResource(if (session.sheetLike) R.string.qs_outside else R.string.sc_outside)
                 fit == Fit.Cut -> stringResource(if (session.sheetLike) R.string.qs_cut else R.string.sc_cut)
                 fit == Fit.NoSheet -> stringResource(if (session.sheetLike) R.string.qs_nosheet else R.string.sc_nosheet)

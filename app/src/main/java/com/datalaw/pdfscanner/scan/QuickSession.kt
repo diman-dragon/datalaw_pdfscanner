@@ -1,5 +1,6 @@
 package com.datalaw.pdfscanner.scan
 
+import com.datalaw.pdfscanner.ui.askSave
 import androidx.compose.ui.geometry.Offset
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.camera.CamUi
@@ -62,14 +63,15 @@ class QuickSession(private val d: Deps) : CameraSession {
             if (a != "save") { shot.file.delete(); return false }
         }
         val def = Names.auto("qscan")
-        val typed = d.ui.askText(tx(R.string.scan_nameq), def, tx(R.string.sc_save), tx(R.string.ed_cancel)) ?: return false
-        val name = Names.clean(typed).ifEmpty { def }
+        val choice = askSave(d, def) ?: return false
+        val name = Names.clean(choice.name).ifEmpty { def }
+        val renderer = d.renderer(choice.recognize)
         _ui.value = _ui.value.copy(status = tx(R.string.scan_saving))
         return try {
             val page = when {
-                auto && quad != null -> d.renderer().straightened(shot, quad)
-                auto -> d.renderer().raw(ShotFile(shot.file, null, shot.vr, shot.land))
-                else -> d.renderer().raw(shot)
+                auto && quad != null -> renderer.straightened(shot, quad)
+                auto -> renderer.raw(ShotFile(shot.file, null, shot.vr, shot.land))
+                else -> renderer.raw(shot)
             }
             val saved = access.save(name, 1) { page }
             d.ui.toast(tx(R.string.scan_saved_n, saved.name))

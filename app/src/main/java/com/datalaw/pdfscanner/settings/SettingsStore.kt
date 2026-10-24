@@ -2,7 +2,6 @@ package com.datalaw.pdfscanner.settings
 
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -20,8 +19,6 @@ class SettingsStore(private val context: Context) {
         val folderUri = stringPreferencesKey("folder_uri")
         val folderName = stringPreferencesKey("folder_name")
         val dpi = intPreferencesKey("pdf_dpi")
-        val search = booleanPreferencesKey("pdf_search")
-        val focus = stringPreferencesKey("focus")
         val flash = stringPreferencesKey("flash")
         val libView = stringPreferencesKey("lib_view")
         val camMode = stringPreferencesKey("cam_mode")
@@ -40,9 +37,7 @@ class SettingsStore(private val context: Context) {
             lang = p.pick(K.lang, AppLang.Auto),
             folderUri = p[K.folderUri],
             folderName = p[K.folderName] ?: "",
-            pdfDpi = p[K.dpi]?.takeIf { it == 150 || it == 300 || it == 600 } ?: 150,
-            pdfSearch = p[K.search] ?: false,
-            focus = p.pick(K.focus, FocusMode.Smart),
+            pdfDpi = p[K.dpi]?.takeIf { it == 0 || it == 150 || it == 300 || it == 600 } ?: 0,
             flash = p.pick(K.flash, FlashMode.Auto),
             libView = p.pick(K.libView, LibView.List),
             camMode = p.pick(K.camMode, CamMode.Frame),
@@ -58,8 +53,6 @@ class SettingsStore(private val context: Context) {
     suspend fun setTheme(v: ThemeMode) = put(K.theme, v.name)
     suspend fun setLang(v: AppLang) = put(K.lang, v.name)
     suspend fun setPdfDpi(v: Int) = put(K.dpi, v)
-    suspend fun setPdfSearch(v: Boolean) = put(K.search, v)
-    suspend fun setFocus(v: FocusMode) = put(K.focus, v.name)
     suspend fun setFlash(v: FlashMode) = put(K.flash, v.name)
     suspend fun setLibView(v: LibView) = put(K.libView, v.name)
     suspend fun setCamMode(v: CamMode) = put(K.camMode, v.name)

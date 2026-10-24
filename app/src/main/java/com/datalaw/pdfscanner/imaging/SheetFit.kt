@@ -34,6 +34,6 @@ object SheetFit {
         }
         val w = ((p[1] - p[0]).getDistance() + (p[2] - p[3]).getDistance()) / 2
         val h = ((p[3] - p[0]).getDistance() + (p[2] - p[1]).getDistance()) / 2
-        return !checkRatio || min(w, h) / max(w, h) >= 0.4f
+        return !checkRatio || min(w, h) / max(w, h) >= 0.3f
     }
 }

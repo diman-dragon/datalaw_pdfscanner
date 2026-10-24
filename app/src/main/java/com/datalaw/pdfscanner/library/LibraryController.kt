@@ -60,17 +60,4 @@ class LibraryController(private val d: Deps) {
             }
         }
     }
-
-    fun add(sources: List<Uri>) {
-        val tree = d.settings().folderUri ?: return
-        d.scope.launch {
-            try {
-                val n = d.graph.folders.copyIn(Uri.parse(tree), sources)
-                d.ui.toast(tx(R.string.lib_add_ok, n))
-                d.nav.libraryChanged()
-            } catch (e: Exception) {
-                d.ui.askAlert(tx(R.string.lib_fail))
-            }
-        }
-    }
 }

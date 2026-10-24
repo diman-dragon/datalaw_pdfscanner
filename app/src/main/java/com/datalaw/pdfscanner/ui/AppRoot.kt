@@ -1,5 +1,9 @@
 package com.datalaw.pdfscanner.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -82,8 +86,12 @@ private fun Content(vm: AppViewModel) {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             val title = when (tab) { Tab.Library -> R.string.tab_library; Tab.Quick -> R.string.tab_quick; Tab.Scan -> R.string.tab_scan; Tab.Settings -> R.string.tab_settings }
-            Box(Modifier.fillMaxWidth().height(40.dp).background(MaterialTheme.colorScheme.surface).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+            Row(Modifier.fillMaxWidth().height(40.dp).background(MaterialTheme.colorScheme.surface).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(title), fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+                if (tab == Tab.Quick || tab == Tab.Scan) {
+                    val helpLabel = stringResource(R.string.help_label)
+                    Text("ℹ️", fontSize = 20.sp, modifier = Modifier.clickable { vm.showHelp() }.semantics { contentDescription = helpLabel }.padding(horizontal = 8.dp, vertical = 4.dp))
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Box(Modifier.weight(1f).fillMaxWidth()) {

@@ -30,9 +30,11 @@ interface Nav {
 class Deps(val graph: AppGraph, val scope: CoroutineScope, val settings: () -> Settings, val nav: Nav) {
     val ui: UiHost get() = graph.ui
 
-    fun renderer(): PageRenderer {
-        val s = settings()
-        return PageRenderer(PdfTarget.forDpi(s.pdfDpi), if (s.pdfSearch) graph.ocr else null, if (s.pdfSearch) OcrLangs.tess(s.ocrLangs).ifEmpty { listOf("rus", "eng") } else emptyList())
-    }
+    /** The Tesseract language data names of the chosen languages. */
+    fun ocrLangs(): List<String> = OcrLangs.tess(settings().ocrLangs).ifEmpty { listOf("rus", "eng") }
+
+    /** [recognize] = the pages get an invisible text layer (chosen when the PDF is saved). */
+    fun renderer(recognize: Boolean = false): PageRenderer =
+        PageRenderer(PdfTarget.forDpi(settings().pdfDpi), if (recognize) graph.ocr else null, if (recognize) ocrLangs() else emptyList())
 }
 

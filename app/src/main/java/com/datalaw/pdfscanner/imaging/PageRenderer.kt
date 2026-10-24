@@ -1,6 +1,7 @@
 package com.datalaw.pdfscanner.imaging
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.PointF
 import androidx.compose.ui.geometry.Offset
 import com.datalaw.pdfscanner.camera.ShotFile
@@ -41,6 +42,28 @@ class PageRenderer(
             p
         } finally {
             b.recycle()
+        }
+    }
+
+    /** A finished page given its text layer (Scan makes the pages while the user shoots; the text is added when "Recognize and save" is chosen). */
+    suspend fun recognized(p: PdfPage): PdfPage {
+        val engine = ocr ?: return p
+        return gate.withPermit {
+            withContext(Dispatchers.Default) {
+                var bmp: Bitmap? = null
+                try {
+                    bmp = BitmapFactory.decodeByteArray(p.jpeg, 0, p.jpeg.size) ?: return@withContext p
+                    val forOcr = scaleForOcr(bmp)
+                    val words = try { engine.words(forOcr, ocrLangs) } finally { forOcr.recycle() }
+                    if (words.isEmpty()) p else p.withWords(words)
+                } catch (e: Exception) {
+                    p
+                } catch (e: OutOfMemoryError) {
+                    p
+                } finally {
+                    bmp?.recycle()
+                }
+            }
         }
     }
 

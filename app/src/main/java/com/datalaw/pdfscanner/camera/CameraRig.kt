@@ -124,5 +124,4 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
     }
 
     /** Back to the continuous autofocus of the system. */
-    fun releaseFocus() { camera?.cameraControl?.cancelFocusAndMetering() }
 }

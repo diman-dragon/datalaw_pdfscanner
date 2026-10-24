@@ -1,5 +1,6 @@
 package com.datalaw.pdfscanner.docedit
 
+import com.datalaw.pdfscanner.ui.askSave
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -110,16 +111,16 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
         if (busy || pages.isEmpty()) return
         scope.launch {
             val base = Names.withoutPdf(file.name)
-            val typed = d.ui.askText(tx(R.string.scan_nameq), base, tx(R.string.sc_save), tx(R.string.ed_cancel))
-            if (typed == null) { if (single != null) d.nav.pop(); return@launch }
-            val name = Names.clean(typed).ifEmpty { base }
+            val choice = askSave(d, base)
+            if (choice == null) { if (single != null) d.nav.pop(); return@launch }
+            val name = Names.clean(choice.name).ifEmpty { base }
             val same = name.equals(base, ignoreCase = true)
             if (same && !d.ui.askConfirm(tx(R.string.de_replaceq), tx(R.string.de_replace), tx(R.string.dlg_cancel))) { if (single != null) d.nav.pop(); return@launch }
             busy = true
             try {
                 val list = pages.toList()
-                val renderer = d.renderer()
-                val side = PdfTarget.forDpi(d.settings().pdfDpi).side
+                val renderer = d.renderer(choice.recognize)
+                val side = PdfTarget.forDpi(d.settings().pdfDpi).side.coerceAtMost(4800)
                 val r = access.save(if (same) "$base~new" else name, list.size) { i ->
                     d.ui.toast(tx(R.string.scan_saving_n, i + 1, list.size))
                     val p = list[i]

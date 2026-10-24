@@ -1,5 +1,7 @@
 package com.datalaw.pdfscanner.ui
 
+import com.datalaw.pdfscanner.data.FolderPath
+import com.datalaw.pdfscanner.R
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -44,6 +46,18 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), Nav {
     override fun libraryChanged() { _libVersion.value++; library.refresh() }
 
     fun toast(@StringRes id: Int) = ui.toast(tx(id))
+
+    /** The explanation of the scan tab that is open (kept off the screen so it does not clutter it), with the save place. */
+    fun showHelp() {
+        viewModelScope.launch {
+            val p = (settings.value ?: Settings()).folderUri?.let { FolderPath.of(it) }
+            val where: UiText = if (p == null) tx(R.string.scan_nofolder_label) else {
+                val tail = p.path.split('/').filter { it.isNotEmpty() }.joinToString("") { " › $it" }
+                tx(R.string.help_saveto, tx(if (p.primary) R.string.set_internal else R.string.set_volume_sd), uiRaw(tail))
+            }
+            ui.askAlert(tx(if (tab.value == Tab.Scan) R.string.help_scan else R.string.help_quick, where))
+        }
+    }
 
     fun chooseFolder() { viewModelScope.launch { folder.choose() } }
 
