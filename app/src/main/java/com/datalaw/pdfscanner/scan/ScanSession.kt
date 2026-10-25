@@ -76,7 +76,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         while (i < c.sides.size) {
             val part = if (c.row) c.sides.subList(i, minOf(c.sides.size, i + cap)).toList() else c.sides.toList()
             val item = PlacedItem(part, c.mm, c.rotate, c.row)
-            sheets.add(d.scope.async(Dispatchers.Default) { d.renderer().placed(item) })
+            sheets.add(d.scope.async(Dispatchers.Default + kotlinx.coroutines.SupervisorJob()) { d.renderer().placed(item) })
             if (!c.row) break
             i += cap
         }
@@ -158,7 +158,9 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
+            android.util.Log.e("PdfScanner", "ScanSession finish error", e)
+            val msg = "${e.javaClass.simpleName}: ${e.message ?: "error"}"
+            d.ui.askAlert(tx(R.string.scan_fail_n, com.datalaw.pdfscanner.core.uiRaw(msg)))
             false
         } finally {
             _ui.value = _ui.value.copy(status = null)

@@ -203,11 +203,15 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                 preview = null
 
                 val shot = ShotFile(file, crop, aspect, land, found = found)
-                if (session.onShot(shot)) closeNow()
+                val closed = session.onShot(shot)
+                android.util.Log.d("PdfScanner", "shoot: onShot completed with closed=$closed")
+                if (closed) closeNow()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                host.toast(tx(R.string.scan_fail_n, e.userReason()))
+                android.util.Log.e("PdfScanner", "shoot failed", e)
+                val msg = "${e.javaClass.simpleName}: ${e.message ?: "error"}"
+                host.askAlert(tx(R.string.scan_fail_n, com.datalaw.pdfscanner.core.uiRaw(msg)))
             } finally {
                 preview?.recycle()
                 busy = false

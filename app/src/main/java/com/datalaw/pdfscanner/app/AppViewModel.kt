@@ -58,6 +58,13 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
     /** The explanation of the scan tab that is open (kept off the screen so it does not clutter it), with the save place. */
     fun showHelp() {
         viewModelScope.launch {
+            val crashFile = java.io.File(graph.app.cacheDir, "crash.log")
+            if (crashFile.exists()) {
+                val txt = crashFile.readText().take(600)
+                ui.askAlert(tx(R.string.err_unknown, uiRaw("\n\nCrash Log:\n$txt")))
+                crashFile.delete()
+                return@launch
+            }
             val p = (settings.value ?: Settings()).folderUri?.let { FolderPath.of(it) }
             val where: UiText = if (p == null) tx(R.string.scan_nofolder_label) else {
                 val tail = p.path.split('/').filter { it.isNotEmpty() }.joinToString("") { " › $it" }
