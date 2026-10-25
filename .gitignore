@@ -1,12 +1,1 @@
 .gradle/
-build/
-local.properties
-*.iml
-.idea/
-.kotlin/
-captures/
-.externalNativeBuild/
-.cxx/
-*.keystore
-!debug.keystore
-.vscode/
