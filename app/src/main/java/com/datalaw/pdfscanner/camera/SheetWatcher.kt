@@ -17,8 +17,12 @@ class SheetWatcher(private val expect: Double?, private val minAreaFrac: Double,
     private var last = 0L
     private var shown: List<Offset>? = null
     private var misses = 0
+    @Volatile private var busy = false
 
     override fun analyze(image: ImageProxy) {
+        // one frame in flight: while a photo is taken the analysis thread is not allowed to pile big bitmaps up
+        if (busy) { image.close(); return }
+        busy = true
         try {
             if (!active()) { // Frame mode: nothing is searched
                 if (shown != null || misses != 0) { shown = null; misses = 0; onSheet(null) }
@@ -37,13 +41,14 @@ class SheetWatcher(private val expect: Double?, private val minAreaFrac: Double,
         } catch (e: Throwable) {
             publish(null)
         } finally {
+            busy = false
             image.close()
         }
     }
 
     private fun publish(found: List<Offset>?) {
         if (found == null) {
-            if (++misses >= 3) { shown = null; onSheet(null) }
+            if (++misses >= 3) { shown = null; misses = 0; onSheet(null) }
             return
         }
         misses = 0

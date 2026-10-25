@@ -8,6 +8,17 @@ import java.io.File
 
 /** Photos from disk: decoded at the size that is needed (never bigger), turned upright by EXIF. */
 object BitmapLoader {
+    /** A big bitmap of this heap is only decoded when that much is free (a full-resolution photo needs ~50 MB). */
+    private fun hasRoom(needBytes: Long): Boolean = try {
+        val rm = android.app.ActivityManager.getRuntimeMemory()
+        val max = Runtime.getRuntime().maxMemory()
+        val used = max - Runtime.getRuntime().freeMemory()
+        val slack = if (rm > max) rm - max else 0L // largeHeap: the extra is there before the heap grows
+        max - used + slack > needBytes
+    } catch (e: Throwable) {
+        true
+    }
+
     private fun orientation(f: File): Int = try {
         ExifInterface(f.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
     } catch (e: Exception) {
@@ -47,6 +58,8 @@ object BitmapLoader {
         BitmapFactory.decodeFile(f.absolutePath, b)
         var sample = 1
         while (maxOf(b.outWidth, b.outHeight) / (sample * 2) >= longSide) sample *= 2
+        // never decode more than the heap can take: keep raising the sample until there is room (an OOM here would kill the app)
+        while (maxOf(b.outWidth, b.outHeight) > longSide && !hasRoom((b.outWidth.toLong() / sample) * (b.outHeight / sample) * 4)) sample *= 2
         val o = BitmapFactory.Options().apply { inSampleSize = sample; inPreferredConfig = Bitmap.Config.ARGB_8888 }
         val raw = BitmapFactory.decodeFile(f.absolutePath, o) ?: throw java.io.IOException("cannot decode photo")
         val m = matrixFor(orientation(f)) ?: return raw

@@ -20,32 +20,43 @@ object EdgeDetector {
         val sw = Math.round(src.width * k).toInt().coerceAtLeast(8)
         val sh = Math.round(src.height * k).toInt().coerceAtLeast(8)
         val small = if (k < 1.0) Bitmap.createScaledBitmap(src, sw, sh, true) else src
+        // every Mat is released whatever happens: a leak here exhausts the native memory and the process dies
         val rgba = Mat()
-        Utils.bitmapToMat(small, rgba)
-        if (small !== src) small.recycle()
         val gray = Mat()
-        Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
-        rgba.release()
-
-        // closing erases dark text and thin lines on the paper, the sheet stays one bright blob
-        val ks = (maxOf(sw, sh) / 80).coerceAtLeast(5) or 1
-        val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(ks.toDouble(), ks.toDouble()))
         val closed = Mat()
-        Imgproc.morphologyEx(gray, closed, Imgproc.MORPH_CLOSE, kernel)
-        Imgproc.GaussianBlur(closed, closed, Size(5.0, 5.0), 0.0)
         val edges = Mat()
-        Imgproc.Canny(closed, edges, 30.0, 100.0)
-        Imgproc.dilate(edges, edges, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(3.0, 3.0)))
+        var quad: List<Point>? = null
+        try {
+            Utils.bitmapToMat(small, rgba)
+            Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
+            rgba.release()
 
-        val minArea = sw.toDouble() * sh * minAreaFrac
-        var quad = largest(edges, minArea, false)
-        if (quad == null) { // a bright sheet on a dark table: threshold
-            val bw = Mat()
-            Imgproc.threshold(closed, bw, 0.0, 255.0, Imgproc.THRESH_BINARY or Imgproc.THRESH_OTSU)
-            quad = largest(bw, minArea, true)
-            bw.release()
+            // closing erases dark text and thin lines on the paper, the sheet stays one bright blob
+            val ks = (maxOf(sw, sh) / 80).coerceAtLeast(5) or 1
+            val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(ks.toDouble(), ks.toDouble()))
+            Imgproc.morphologyEx(gray, closed, Imgproc.MORPH_CLOSE, kernel)
+            kernel.release()
+            Imgproc.GaussianBlur(closed, closed, Size(5.0, 5.0), 0.0)
+            Imgproc.Canny(closed, edges, 30.0, 100.0)
+            val dil = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(3.0, 3.0))
+            Imgproc.dilate(edges, edges, dil)
+            dil.release()
+
+            val minArea = sw.toDouble() * sh * minAreaFrac
+            quad = largest(edges, minArea, false)
+            if (quad == null) { // a bright sheet on a dark table: threshold
+                val bw = Mat()
+                try {
+                    Imgproc.threshold(closed, bw, 0.0, 255.0, Imgproc.THRESH_BINARY or Imgproc.THRESH_OTSU)
+                    quad = largest(bw, minArea, true)
+                } finally {
+                    bw.release()
+                }
+            }
+        } finally {
+            gray.release(); closed.release(); edges.release()
+            if (small !== src) small.recycle()
         }
-        gray.release(); closed.release(); edges.release()
 
         return quad?.map { PointF((it.x / k).toFloat(), (it.y / k).toFloat()) }?.let { order(it) }
     }
@@ -60,7 +71,9 @@ object EdgeDetector {
     /** The largest convex 4-gon among the contours, or the min-area rectangle of the largest one when [allowRect]. */
     private fun largest(bin: Mat, minArea: Double, allowRect: Boolean): List<Point>? {
         val contours = ArrayList<MatOfPoint>()
-        Imgproc.findContours(bin.clone(), contours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
+        val work = bin.clone()
+        Imgproc.findContours(work, contours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
+        work.release()
         var best: List<Point>? = null
         var bestArea = 0.0
         var big: MatOfPoint? = null
@@ -77,6 +90,7 @@ object EdgeDetector {
                 bestArea = area
                 best = approx.toList()
             }
+            c2f.release(); approx.release()
         }
         if (best == null && allowRect && big != null) {
             val rr = Imgproc.minAreaRect(MatOfPoint2f(*big.toArray()))
@@ -84,6 +98,7 @@ object EdgeDetector {
             rr.points(p)
             best = p.toList()
         }
+        contours.forEach { it.release() }
         return best
     }
 

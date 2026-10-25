@@ -76,9 +76,11 @@ object PageWarp {
         val to = MatOfPoint2f(Point(0.0, 0.0), Point(w - 1.0, 0.0), Point(w - 1.0, h - 1.0), Point(0.0, h - 1.0))
         val m = Imgproc.getPerspectiveTransform(from, to)
         val dst = Mat()
-        Imgproc.warpPerspective(srcMat, dst, m, Size(w.toDouble(), h.toDouble()), Imgproc.INTER_LINEAR)
-        val out = Cv.bitmap(dst)
-        srcMat.release(); dst.release(); m.release(); from.release(); to.release()
-        return out
+        try {
+            Imgproc.warpPerspective(srcMat, dst, m, Size(w.toDouble(), h.toDouble()), Imgproc.INTER_LINEAR)
+            return Cv.bitmap(dst)
+        } finally {
+            srcMat.release(); dst.release(); m.release(); from.release(); to.release()
+        }
     }
 }

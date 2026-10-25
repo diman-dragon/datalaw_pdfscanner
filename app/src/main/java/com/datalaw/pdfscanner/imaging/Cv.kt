@@ -26,10 +26,13 @@ object Cv {
 
     fun bitmap(rgb: Mat): Bitmap {
         val rgba = Mat()
-        Imgproc.cvtColor(rgb, rgba, Imgproc.COLOR_RGB2RGBA)
-        val b = Bitmap.createBitmap(rgb.cols(), rgb.rows(), Bitmap.Config.ARGB_8888)
-        Utils.matToBitmap(rgba, b)
-        rgba.release()
-        return b
+        try {
+            Imgproc.cvtColor(rgb, rgba, Imgproc.COLOR_RGB2RGBA)
+            val b = Bitmap.createBitmap(rgb.cols(), rgb.rows(), Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(rgba, b)
+            return b
+        } finally {
+            rgba.release()
+        }
     }
 }

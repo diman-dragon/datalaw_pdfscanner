@@ -30,6 +30,9 @@ class PageRenderer(
         }
     }
 
+    /** A page is made one at a time: two full-resolution renders at once are more than a phone heap holds. */
+    private suspend fun <T> serialized(block: suspend () -> T): T = gate.withPermit { block() }
+
     private fun page(m: Made) = PdfPage(m.enc.jpeg, m.enc.w, m.enc.h)
 
     private suspend fun withText(m: Made): PdfPage {
@@ -100,7 +103,7 @@ class PageRenderer(
     })
 
     /** Scan tab: an A4 sheet with the item at its real size. */
-    suspend fun placed(item: PlacedItem): PdfPage = withText(guarded { k ->
+    suspend fun placed(item: PlacedItem): PdfPage = serialized { withText(guarded { k ->
         val p = SheetComposer.compose(item, (target.side * k).toInt(), target.budget)
         Made(Encoded(p.jpeg, p.w, p.h), null)
     })

@@ -1,4 +1,6 @@
 # Changelog
+## 0.0.12
+- Fix: the app fell over when shooting (OOM): `largeHeap` for the full-resolution photos, one heavy render at a time (`PageRenderer` gate 2 -> 1), OpenCV Mats released on any failure (`Cv.bitmap`, `EdgeDetector`, `Enhance`, `PageWarp`), live frames no longer pile up in memory while the camera takes the photo (`SheetWatcher` keeps one frame in flight)
 ## 0.0.11
 - Fix: the build (the tap handler of the camera overlay went to the wrong parameter)
 - Frame mode is only the frame: no live search, no outline, no comparison of the sheet with the frame, no check after the shot (`SheetFit.outside`, `ShotProblem.Outside` and their texts are gone); the analysis runs in Auto mode only
