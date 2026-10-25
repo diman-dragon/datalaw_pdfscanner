@@ -1,6 +1,7 @@
 package com.datalaw.pdfscanner.camera
 
 import android.content.Context
+import android.util.Size
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -16,13 +17,12 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import android.util.Size
-import java.util.concurrent.Executors
 import com.datalaw.pdfscanner.settings.FlashMode
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
+import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 /** CameraX: a 4:3 preview and a full-resolution photo of the same field of view, tap / frame focus, flash. */
 class CameraRig(private val context: Context, val previewView: PreviewView) {

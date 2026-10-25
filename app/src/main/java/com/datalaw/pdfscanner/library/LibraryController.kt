@@ -2,10 +2,11 @@ package com.datalaw.pdfscanner.library
 
 import android.net.Uri
 import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.core.Deps
+import com.datalaw.pdfscanner.core.tx
 import com.datalaw.pdfscanner.data.Names
 import com.datalaw.pdfscanner.data.PdfFile
-import com.datalaw.pdfscanner.ui.Deps
-import com.datalaw.pdfscanner.ui.tx
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,8 @@ class LibraryController(private val d: Deps) {
             if (uri == null) { _state.value = LibState.NoFolder; return@launch }
             _state.value = try {
                 LibState.Ok(d.graph.folders.list(Uri.parse(uri)))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 LibState.Error
             }
@@ -43,6 +46,8 @@ class LibraryController(private val d: Deps) {
             try {
                 d.graph.folders.rename(Uri.parse(f.uri), "$name.pdf") ?: throw IllegalStateException("rename failed")
                 d.nav.libraryChanged()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 d.ui.askAlert(tx(R.string.lib_fail))
             }
@@ -55,6 +60,8 @@ class LibraryController(private val d: Deps) {
             try {
                 d.graph.folders.remove(Uri.parse(f.uri))
                 d.nav.libraryChanged()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 d.ui.askAlert(tx(R.string.lib_fail))
             }

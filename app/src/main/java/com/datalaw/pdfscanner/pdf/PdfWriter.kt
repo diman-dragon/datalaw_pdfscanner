@@ -1,5 +1,6 @@
 package com.datalaw.pdfscanner.pdf
 
+import com.datalaw.pdfscanner.R
 import java.io.OutputStream
 import java.util.Locale
 

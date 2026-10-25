@@ -23,10 +23,11 @@ import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.pdf.PdfReader
 import com.datalaw.pdfscanner.ui.LocalGraph
+import com.datalaw.pdfscanner.ui.theme.Dimens
 
 /** The first page of a PDF with the number of sheets in the corner (cached). */
 @Composable
-fun PdfThumbnail(file: PdfFile, modifier: Modifier = Modifier, widthPx: Int = 360) {
+fun PdfThumbnail(file: PdfFile, modifier: Modifier = Modifier, widthPx: Int = 360, rounded: Boolean = true) {
     val graph = LocalGraph.current
     val key = "${file.uri}|${file.modified}|${file.size}"
     val thumb by produceState<Pair<Bitmap, Int>?>(graph.thumbs.get(key), key) {
@@ -38,7 +39,7 @@ fun PdfThumbnail(file: PdfFile, modifier: Modifier = Modifier, widthPx: Int = 36
             }
         }
     }
-    Box(modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+    Box((if (rounded) modifier.clip(RoundedCornerShape(Dimens.thumb)) else modifier).background(MaterialTheme.colorScheme.surfaceVariant)) {
         thumb?.let { (bmp, pages) ->
             Image(bmp.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)
             Text(

@@ -1,6 +1,6 @@
-package com.datalaw.pdfscanner.camera
+package com.datalaw.pdfscanner.core
 
-import com.datalaw.pdfscanner.ui.UiText
+import com.datalaw.pdfscanner.imaging.ShotFile
 import kotlinx.coroutines.flow.StateFlow
 
 /** What the camera screen shows (label in the frame, hint at the bottom, page counter, status such as "Saving…"). */

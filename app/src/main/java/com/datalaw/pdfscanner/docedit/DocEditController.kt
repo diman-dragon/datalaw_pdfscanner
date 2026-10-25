@@ -1,6 +1,5 @@
 package com.datalaw.pdfscanner.docedit
 
-import com.datalaw.pdfscanner.ui.askSave
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -10,15 +9,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.core.Deps
+import com.datalaw.pdfscanner.core.FolderAccess
+import com.datalaw.pdfscanner.core.askSave
+import com.datalaw.pdfscanner.core.get
+import com.datalaw.pdfscanner.core.tx
+import com.datalaw.pdfscanner.core.userReason
 import com.datalaw.pdfscanner.data.Names
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.imaging.Look
 import com.datalaw.pdfscanner.imaging.PageRenderer
 import com.datalaw.pdfscanner.pdf.PdfReader
 import com.datalaw.pdfscanner.pdf.PdfTarget
-import com.datalaw.pdfscanner.scan.FolderAccess
-import com.datalaw.pdfscanner.ui.Deps
-import com.datalaw.pdfscanner.ui.tx
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -59,6 +62,8 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
                 r.ratios.forEachIndexed { i, ratio -> pages.add(EditPage(i, ratio)) }
                 loading = false
                 if (single != null) editing = single.coerceIn(0, pages.size - 1)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 d.ui.toast(tx(R.string.de_fail))
                 d.nav.pop()
@@ -146,8 +151,10 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
                 dirty = false
                 d.nav.libraryChanged()
                 d.nav.pop()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                d.ui.toast(tx(R.string.scan_fail_n, e.message ?: ""))
+                d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
                 if (single != null) d.nav.pop()
             } finally {
                 busy = false

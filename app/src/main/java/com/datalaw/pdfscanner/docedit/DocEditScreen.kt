@@ -41,12 +41,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.core.AppActions
 import com.datalaw.pdfscanner.data.PdfFile
-import com.datalaw.pdfscanner.ui.AppViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun DocEditScreen(vm: AppViewModel, file: PdfFile, single: Int?) {
+fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
     val ctl = remember { DocEditController(vm.deps, file, single) }
     val scope = rememberCoroutineScope()
     DisposableEffect(Unit) { ctl.start(); onDispose { ctl.close() } }

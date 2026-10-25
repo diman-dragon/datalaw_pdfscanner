@@ -72,7 +72,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     lint { abortOnError = false }
-    testOptions { unitTests.isReturnDefaultValues = true }
 }
 
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
@@ -82,7 +81,6 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
-    implementation(libs.compose.icons.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

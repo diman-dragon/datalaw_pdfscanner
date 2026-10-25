@@ -6,8 +6,7 @@ import androidx.camera.core.ImageProxy
 import androidx.compose.ui.geometry.Offset
 import com.datalaw.pdfscanner.imaging.BitmapLoader
 import com.datalaw.pdfscanner.imaging.EdgeDetector
-import com.datalaw.pdfscanner.imaging.ShapeMatch
-import com.datalaw.pdfscanner.imaging.SheetFit
+import com.datalaw.pdfscanner.imaging.SheetFinder
 
 /**
  * [expect] = the width / height of the item that is scanned (null = any sheet), [minAreaFrac] = the smallest share of the picture it fills.
@@ -27,9 +26,8 @@ class SheetWatcher(private val expect: Double?, private val minAreaFrac: Double,
             val raw = image.toBitmap()
             val bmp = BitmapLoader.rotate(raw, image.imageInfo.rotationDegrees)
             if (bmp !== raw) raw.recycle()
-            val aspect = bmp.width.toFloat() / bmp.height
             val found = EdgeDetector.find(bmp, minAreaFrac)?.map { Offset(it.x / bmp.width, it.y / bmp.height) }
-                ?.takeIf { SheetFit.plausible(it, aspect, checkRatio = expect == null) && (expect == null || ShapeMatch.matches(it, bmp.width, bmp.height, expect)) }
+                ?.takeIf { SheetFinder.accepts(it, bmp.width, bmp.height, expect) }
             bmp.recycle()
             publish(found)
         } catch (e: Throwable) {

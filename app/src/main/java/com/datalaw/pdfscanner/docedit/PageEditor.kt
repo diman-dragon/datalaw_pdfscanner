@@ -48,14 +48,14 @@ import com.datalaw.pdfscanner.imaging.Look
 import com.datalaw.pdfscanner.imaging.PageRenderer
 import com.datalaw.pdfscanner.imaging.Sharpness
 import com.datalaw.pdfscanner.ui.Seg
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val FULL = listOf(Offset(0f, 0f), Offset(1f, 0f), Offset(1f, 1f), Offset(0f, 1f))
 

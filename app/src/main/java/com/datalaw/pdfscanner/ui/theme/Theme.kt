@@ -43,7 +43,7 @@ fun AppTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     }
     val scheme = if (dark) Dark else Light
     // The root surface sets the default text colour; without it Text is black, which is invisible on the dark background.
-    MaterialTheme(colorScheme = scheme) {
+    MaterialTheme(colorScheme = scheme, typography = AppTypography) {
         Surface(Modifier.fillMaxSize(), color = scheme.background, contentColor = scheme.onBackground, content = content)
     }
 }

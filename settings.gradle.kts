@@ -10,7 +10,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://jitpack.io") // fallback for Tesseract4Android
     }
 }
 rootProject.name = "datalaw_pdfscanner"

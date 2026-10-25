@@ -1,16 +1,24 @@
-package com.datalaw.pdfscanner.ui
+package com.datalaw.pdfscanner.app
 
-import com.datalaw.pdfscanner.data.FolderPath
-import com.datalaw.pdfscanner.R
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.datalaw.pdfscanner.AppGraph
+import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.core.AppActions
+import com.datalaw.pdfscanner.core.AppGraph
+import com.datalaw.pdfscanner.core.Deps
+import com.datalaw.pdfscanner.core.FolderAccess
+import com.datalaw.pdfscanner.core.Overlay
+import com.datalaw.pdfscanner.core.Tab
+import com.datalaw.pdfscanner.core.UiHost
+import com.datalaw.pdfscanner.core.UiText
+import com.datalaw.pdfscanner.core.tx
+import com.datalaw.pdfscanner.core.uiRaw
+import com.datalaw.pdfscanner.data.FolderPath
 import com.datalaw.pdfscanner.library.LibraryController
-import com.datalaw.pdfscanner.scan.FolderAccess
 import com.datalaw.pdfscanner.scan.QuickSession
 import com.datalaw.pdfscanner.scan.ScanSession
 import com.datalaw.pdfscanner.scan.ScanTypes
@@ -23,7 +31,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Navigation state (tab + overlay stack) and the controllers behind the screens. */
-class AppViewModel(val graph: AppGraph) : ViewModel(), Nav {
+class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
     val ui: UiHost = graph.ui
 
     /** null until the settings are read from disk (the first frame shows nothing instead of a wrong state). */
@@ -34,9 +42,9 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), Nav {
     private val _overlays = MutableStateFlow<List<Overlay>>(emptyList())
     val overlays: StateFlow<List<Overlay>> = _overlays.asStateFlow()
     private val _libVersion = MutableStateFlow(0)
-    val libVersion: StateFlow<Int> = _libVersion.asStateFlow()
+    override val libVersion: StateFlow<Int> = _libVersion.asStateFlow()
 
-    val deps = Deps(graph, viewModelScope, { settings.value ?: Settings() }, this)
+    override val deps = Deps(graph, viewModelScope, { settings.value ?: Settings() }, this)
     val library = LibraryController(deps)
     private val folder = FolderAccess(deps)
 
@@ -45,7 +53,7 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), Nav {
     override fun pop() { _overlays.value = _overlays.value.dropLast(1) }
     override fun libraryChanged() { _libVersion.value++; library.refresh() }
 
-    fun toast(@StringRes id: Int) = ui.toast(tx(id))
+    override fun toast(@StringRes id: Int) = ui.toast(tx(id))
 
     /** The explanation of the scan tab that is open (kept off the screen so it does not clutter it), with the save place. */
     fun showHelp() {
@@ -59,15 +67,15 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), Nav {
         }
     }
 
-    fun chooseFolder() { viewModelScope.launch { folder.choose() } }
+    override fun chooseFolder() { viewModelScope.launch { folder.choose() } }
 
-    fun startQuick() {
+    override fun startQuick() {
         viewModelScope.launch {
             if (folder.ensure()) push(Overlay.Camera(QuickSession(deps)))
         }
     }
 
-    fun startScan() {
+    override fun startScan() {
         viewModelScope.launch {
             if (folder.ensure()) push(Overlay.Camera(ScanSession(deps, ScanTypes.byId((settings.value ?: Settings()).scanType))))
         }

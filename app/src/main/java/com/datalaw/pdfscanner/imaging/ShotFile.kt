@@ -1,4 +1,4 @@
-package com.datalaw.pdfscanner.camera
+package com.datalaw.pdfscanner.imaging
 
 import androidx.compose.ui.geometry.Offset
 import java.io.File

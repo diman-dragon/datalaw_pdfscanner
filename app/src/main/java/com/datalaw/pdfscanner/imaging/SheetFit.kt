@@ -10,6 +10,11 @@ object SheetFit {
     private const val OUT_TOL = 0.02f
     private const val EDGE_TOL = 0.012f
 
+    /** The box around the corners as x0, y0, x1, y1 (0..1). */
+    fun bbox(q: List<Offset>): FloatArray = floatArrayOf(
+        q.minOf { it.x }.coerceIn(0f, 1f), q.minOf { it.y }.coerceIn(0f, 1f), q.maxOf { it.x }.coerceIn(0f, 1f), q.maxOf { it.y }.coerceIn(0f, 1f),
+    )
+
     /** True when a corner is outside [rect] (x0, y0, x1, y1 as 0..1): the sheet does not fit the frame and its edges would be cut. */
     fun outside(q: List<Offset>, rect: FloatArray): Boolean =
         q.any { it.x < rect[0] - OUT_TOL || it.x > rect[2] + OUT_TOL || it.y < rect[1] - OUT_TOL || it.y > rect[3] + OUT_TOL }

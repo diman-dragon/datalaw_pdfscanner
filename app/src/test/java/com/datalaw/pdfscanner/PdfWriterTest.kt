@@ -3,11 +3,11 @@ package com.datalaw.pdfscanner
 import com.datalaw.pdfscanner.pdf.PdfPage
 import com.datalaw.pdfscanner.pdf.PdfWord
 import com.datalaw.pdfscanner.pdf.PdfWriter
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.ByteArrayOutputStream
 
 class PdfWriterTest {
     private fun build(withText: Boolean): String {

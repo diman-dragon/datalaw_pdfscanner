@@ -8,7 +8,6 @@ import android.graphics.Paint
 import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
-import com.datalaw.pdfscanner.camera.ShotFile
 import com.datalaw.pdfscanner.pdf.PdfPage
 
 /** One scanned thing: its shots (the sides of a card, the parts of a receipt), its real size in mm, whether the sheet turns it. */

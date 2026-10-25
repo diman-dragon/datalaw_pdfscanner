@@ -2,16 +2,16 @@ package com.datalaw.pdfscanner.imaging
 
 import android.graphics.Bitmap
 import android.graphics.PointF
-import org.opencv.core.Mat
-import org.opencv.core.MatOfPoint2f
-import org.opencv.core.Point
-import org.opencv.core.Size
-import org.opencv.imgproc.Imgproc
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import org.opencv.core.Mat
+import org.opencv.core.MatOfPoint2f
+import org.opencv.core.Point
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
 
 /** Straightens a photographed sheet (perspective) to a flat page with the TRUE proportions of the sheet. */
 object PageWarp {

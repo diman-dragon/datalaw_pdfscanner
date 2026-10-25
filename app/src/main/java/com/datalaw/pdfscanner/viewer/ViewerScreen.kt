@@ -37,7 +37,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,12 +59,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.core.AppActions
+import com.datalaw.pdfscanner.core.Overlay
+import com.datalaw.pdfscanner.core.get
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.pdf.PdfReader
-import com.datalaw.pdfscanner.ui.AppViewModel
 import com.datalaw.pdfscanner.ui.LocalGraph
-import com.datalaw.pdfscanner.ui.Overlay
 import kotlinx.coroutines.launch
 
 private sealed interface Loaded {
@@ -76,10 +77,10 @@ private sealed interface Loaded {
 
 /** The viewer: strip or page by page, pinch / double-tap zoom; the menu leads to text recognition and to the editor. */
 @Composable
-fun ViewerScreen(vm: AppViewModel, file: PdfFile) {
+fun ViewerScreen(vm: AppActions, file: PdfFile) {
     val graph = LocalGraph.current
     val ctx = LocalContext.current
-    val libVersion by vm.libVersion.collectAsState()
+    val libVersion by vm.libVersion.collectAsStateWithLifecycle()
     BackHandler { vm.pop() }
 
     val loaded by produceState<Loaded>(Loaded.Loading, file.uri, libVersion) {

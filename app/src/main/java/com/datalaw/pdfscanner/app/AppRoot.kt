@@ -1,22 +1,20 @@
-package com.datalaw.pdfscanner.ui
+package com.datalaw.pdfscanner.app
 
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.clickable
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -39,23 +36,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.camera.CameraScreen
+import com.datalaw.pdfscanner.core.Overlay
+import com.datalaw.pdfscanner.core.Tab
+import com.datalaw.pdfscanner.core.resolve
 import com.datalaw.pdfscanner.docedit.DocEditScreen
 import com.datalaw.pdfscanner.library.LibraryScreen
-import com.datalaw.pdfscanner.ocr.OcrScreen
+import com.datalaw.pdfscanner.prefs.SettingsScreen
+import com.datalaw.pdfscanner.recognize.OcrScreen
 import com.datalaw.pdfscanner.scan.QuickTab
 import com.datalaw.pdfscanner.scan.ScanTab
-import com.datalaw.pdfscanner.settings.SettingsScreen
+import com.datalaw.pdfscanner.settings.Settings
+import com.datalaw.pdfscanner.ui.DialogHost
+import com.datalaw.pdfscanner.ui.InfoButton
+import com.datalaw.pdfscanner.ui.LocalGraph
+import com.datalaw.pdfscanner.ui.LocalSettings
+import com.datalaw.pdfscanner.ui.WithLocale
 import com.datalaw.pdfscanner.ui.theme.AppTheme
+import com.datalaw.pdfscanner.ui.theme.Dimens
 import com.datalaw.pdfscanner.viewer.ViewerScreen
 import kotlinx.coroutines.CompletableDeferred
 
 @Composable
 fun AppRoot(vm: AppViewModel) {
-    val settings by vm.settings.collectAsState()
+    val settings by vm.settings.collectAsStateWithLifecycle()
     val s = settings
     if (s == null) {
         Box(Modifier.fillMaxSize().background(Color.Black))
@@ -68,8 +78,8 @@ fun AppRoot(vm: AppViewModel) {
 
 @Composable
 private fun Content(vm: AppViewModel) {
-    val tab by vm.tab.collectAsState()
-    val overlays by vm.overlays.collectAsState()
+    val tab by vm.tab.collectAsStateWithLifecycle()
+    val overlays by vm.overlays.collectAsStateWithLifecycle()
     val snack = remember { SnackbarHostState() }
     val ctx = LocalContext.current
 
@@ -86,17 +96,14 @@ private fun Content(vm: AppViewModel) {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             val title = when (tab) { Tab.Library -> R.string.tab_library; Tab.Quick -> R.string.tab_quick; Tab.Scan -> R.string.tab_scan; Tab.Settings -> R.string.tab_settings }
-            Row(Modifier.fillMaxWidth().height(40.dp).background(MaterialTheme.colorScheme.surface).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(title), fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
-                if (tab == Tab.Quick || tab == Tab.Scan) {
-                    val helpLabel = stringResource(R.string.help_label)
-                    Text("ℹ️", fontSize = 20.sp, modifier = Modifier.clickable { vm.showHelp() }.semantics { contentDescription = helpLabel }.padding(horizontal = 8.dp, vertical = 4.dp))
-                }
+            Row(Modifier.fillMaxWidth().height(48.dp).background(MaterialTheme.colorScheme.surface).padding(start = Dimens.screen, end = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
+                if (tab == Tab.Quick || tab == Tab.Scan) InfoButton(stringResource(R.string.help_label)) { vm.showHelp() }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (tab) {
-                    Tab.Library -> LibraryScreen(vm)
+                    Tab.Library -> LibraryScreen(vm, vm.library)
                     Tab.Quick -> QuickTab(vm)
                     Tab.Scan -> ScanTab(vm)
                     Tab.Settings -> SettingsScreen(vm)

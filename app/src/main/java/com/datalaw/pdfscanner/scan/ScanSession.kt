@@ -1,24 +1,28 @@
 package com.datalaw.pdfscanner.scan
 
-import com.datalaw.pdfscanner.ui.askSave
-import com.datalaw.pdfscanner.R
-import com.datalaw.pdfscanner.camera.CamUi
-import com.datalaw.pdfscanner.camera.CameraSession
-import com.datalaw.pdfscanner.camera.ShotFile
-import com.datalaw.pdfscanner.data.Names
 import androidx.compose.ui.geometry.Offset
-import com.datalaw.pdfscanner.imaging.BitmapLoader
-import com.datalaw.pdfscanner.imaging.EdgeDetector
+import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.core.CamUi
+import com.datalaw.pdfscanner.core.CameraSession
+import com.datalaw.pdfscanner.core.Deps
+import com.datalaw.pdfscanner.core.FolderAccess
+import com.datalaw.pdfscanner.core.Tab
+import com.datalaw.pdfscanner.core.UiText
+import com.datalaw.pdfscanner.core.ask
+import com.datalaw.pdfscanner.core.askSave
+import com.datalaw.pdfscanner.core.askSaveAsIs
+import com.datalaw.pdfscanner.core.tx
+import com.datalaw.pdfscanner.core.userReason
+import com.datalaw.pdfscanner.data.Names
+import com.datalaw.pdfscanner.imaging.Found
 import com.datalaw.pdfscanner.imaging.PlacedItem
-import com.datalaw.pdfscanner.imaging.ShapeMatch
-import com.datalaw.pdfscanner.imaging.SheetFit
-import com.datalaw.pdfscanner.settings.CamMode
 import com.datalaw.pdfscanner.imaging.SheetComposer
+import com.datalaw.pdfscanner.imaging.SheetFinder
+import com.datalaw.pdfscanner.imaging.ShotCheck
+import com.datalaw.pdfscanner.imaging.ShotFile
 import com.datalaw.pdfscanner.pdf.PdfPage
-import com.datalaw.pdfscanner.ui.Deps
-import com.datalaw.pdfscanner.ui.Tab
-import com.datalaw.pdfscanner.ui.UiText
-import com.datalaw.pdfscanner.ui.tx
+import com.datalaw.pdfscanner.settings.CamMode
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -51,7 +55,6 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
     override val forcedAuto: Boolean = type.free
     override val autoShoot: Boolean = type.free
     override val sheetLike: Boolean = type.orient == Orient.Video
-    private val whole = floatArrayOf(0f, 0f, 1f, 1f)
 
     override fun frameRatio(land: Boolean): Float {
         val m = ScanTypes.itemMm(type, land)
@@ -80,35 +83,6 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         badge()
     }
 
-    private class Found(val quad: List<Offset>, val aspect: Double)
-
-    /** The item in the photo: corners as 0..1 and the real width / height they show; null when nothing of the item's shape is seen. */
-    private suspend fun findItem(shot: ShotFile): Found? = withContext(Dispatchers.Default) {
-        try {
-            val img = BitmapLoader.load(shot.file, 1200)
-            try {
-                val found = EdgeDetector.find(img, 0.08)?.map { Offset(it.x / img.width, it.y / img.height) }
-                val expected = type.mm.first / type.mm.second
-                if (found == null || !SheetFit.plausible(found, img.width.toFloat() / img.height, checkRatio = type.free) ||
-                    (!type.free && !ShapeMatch.matches(found, img.width, img.height, expected))) null
-                else Found(found, ShapeMatch.aspectOf(found, img.width, img.height))
-            } finally {
-                img.recycle()
-            }
-        } catch (e: Throwable) {
-            null
-        }
-    }
-
-    /** Full auto: the size the found item is put at. A page (A4, A5, letter...) fills the sheet; anything else is fitted into the sheet, its shape kept. */
-    private fun fitMm(aspect: Double): Pair<Double, Double> {
-        val portrait = aspect < 1
-        val r = if (portrait) aspect else 1 / aspect // short side / long side
-        val long = if (Math.abs(r - 210.0 / 297.0) < 0.07) 297.0 else minOf(277.0, 190.0 / r)
-        val short = if (long == 297.0) 210.0 else long * r
-        return if (portrait) short to long else long to short
-    }
-
     /** The corners turned to the shape of the item (a card shown upright is turned to lie), and whether an A4 / A5 is wide. */
     private fun oriented(f: Found): Pair<List<Offset>, Boolean> {
         val q = f.quad
@@ -121,22 +95,13 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
     /** Checks the item in the photo and, in Auto mode, finds its corners. null = the user chose to retake. */
     private suspend fun prepare(raw: ShotFile): ShotFile? {
         val auto = type.free || d.settings().camMode == CamMode.Auto
-        val found = findItem(raw)
-        val sheet = type.orient == Orient.Video
-        val problem = when {
-            auto && found == null -> if (sheet) R.string.qs_nosheet_ask else R.string.sc_nosheet_ask
-            auto && found != null && SheetFit.touchesEdge(found.quad) -> if (sheet) R.string.qs_cut_ask else R.string.sc_cut_ask
-            !auto && found != null && SheetFit.outside(found.quad, raw.crop ?: whole) -> if (sheet) R.string.qs_outside_ask else R.string.sc_outside_ask
-            else -> null
-        }
-        if (problem != null) {
-            val a = d.ui.askChoice(tx(problem), listOf("retake" to tx(R.string.qs_blur_retake), "save" to tx(R.string.qs_blur_save)))
-            if (a != "save") { raw.file.delete(); return null }
-        }
+        val found = withContext(Dispatchers.Default) { SheetFinder.find(raw.file, 0.08, expectRatio) }
+        val problem = ShotCheck.problem(auto, found?.quad, raw.crop)
+        if (problem != null && !d.ui.askSaveAsIs(problem.ask(sheetLike))) { raw.file.delete(); return null }
         if (!auto) return raw
         if (found == null) return ShotFile(raw.file, null, raw.vr, raw.land)
         val (quad, wide) = oriented(found)
-        return ShotFile(raw.file, raw.crop, raw.vr, if (type.orient == Orient.Video) wide else raw.land, quad, if (type.free) fitMm(found.aspect) else null)
+        return ShotFile(raw.file, raw.crop, raw.vr, if (type.orient == Orient.Video) wide else raw.land, quad, if (type.free) ItemFit.mm(found.aspect) else null)
     }
 
     override suspend fun onShot(shot: ShotFile): Boolean {
@@ -190,8 +155,10 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
             d.nav.libraryChanged()
             d.nav.goTo(Tab.Library)
             true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            d.ui.toast(tx(R.string.scan_fail_n, e.message ?: ""))
+            d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
             false
         } finally {
             _ui.value = _ui.value.copy(status = null)

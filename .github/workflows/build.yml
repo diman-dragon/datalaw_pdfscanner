@@ -26,6 +26,17 @@ jobs:
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
           echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+      - name: Layers (no circles between packages)
+        run: python3 tools/check_layers.py
+      - name: Lint (report only)
+        continue-on-error: true
+        run: ./gradlew --no-daemon lintDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint_report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
       - name: Build APK (+ AAB with the release key)
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then ./gradlew --no-daemon assembleRelease bundleRelease

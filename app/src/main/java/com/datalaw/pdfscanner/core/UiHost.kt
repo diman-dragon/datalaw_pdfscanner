@@ -1,4 +1,4 @@
-package com.datalaw.pdfscanner.ui
+package com.datalaw.pdfscanner.core
 
 import android.net.Uri
 import kotlinx.coroutines.CompletableDeferred

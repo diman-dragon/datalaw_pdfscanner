@@ -1,6 +1,7 @@
 package com.datalaw.pdfscanner.imaging
 
 import android.graphics.Bitmap
+import com.datalaw.pdfscanner.R
 
 /**
  * 0..1 crispness of the edges of a photo, independent of the content: the steepness of strong edges across their own contrast.

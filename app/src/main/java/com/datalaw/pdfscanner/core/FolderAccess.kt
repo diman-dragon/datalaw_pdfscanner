@@ -1,4 +1,4 @@
-package com.datalaw.pdfscanner.scan
+package com.datalaw.pdfscanner.core
 
 import android.net.Uri
 import com.datalaw.pdfscanner.R
@@ -6,8 +6,6 @@ import com.datalaw.pdfscanner.data.FolderMissingException
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.pdf.PdfPage
 import com.datalaw.pdfscanner.pdf.PdfWriter
-import com.datalaw.pdfscanner.ui.Deps
-import com.datalaw.pdfscanner.ui.tx
 
 /** The scan folder: guard before shooting, choosing, and saving a PDF into it (a lost folder asks for another and the save goes on). */
 class FolderAccess(private val d: Deps) {

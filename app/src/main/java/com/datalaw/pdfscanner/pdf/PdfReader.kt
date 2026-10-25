@@ -6,12 +6,12 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import java.io.Closeable
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.Closeable
-import java.io.IOException
 
 /** An opened PDF: page proportions up front, pages rendered on demand (PdfRenderer opens one page at a time, hence the mutex). */
 class PdfReader private constructor(

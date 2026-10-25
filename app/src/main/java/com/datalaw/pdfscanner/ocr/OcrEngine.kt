@@ -4,12 +4,16 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.datalaw.pdfscanner.pdf.PdfWord
 import com.googlecode.tesseract.android.TessBaseAPI
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** The languages of the OCR screen: the app code -> Tesseract data names (Serbian: Cyrillic + Latin). */
 object OcrLangs {
@@ -17,9 +21,24 @@ object OcrLangs {
     fun tess(selected: Set<String>): List<String> = all.filter { it.first in selected }.flatMap { it.second }
 }
 
+/**
+ * Where the language data comes from. The first address is a fixed release of tessdata_fast, the second the moving branch (tried only when the
+ * release has no such file). [sha256] = the checksum of each file (lowercase hex): a language listed there is verified after the download.
+ * Fill it in with `sha256sum rus.traineddata ...` of the release files; until then the files are only checked for size.
+ */
+object TessData {
+    const val RELEASE = "4.1.0"
+    fun urls(lang: String) = listOf(
+        "https://github.com/tesseract-ocr/tessdata_fast/raw/$RELEASE/$lang.traineddata",
+        "https://github.com/tesseract-ocr/tessdata_fast/raw/main/$lang.traineddata",
+    )
+    val sha256: Map<String, String> = emptyMap()
+}
+
 /** Tesseract on the phone. Language data is downloaded once (the first use needs the internet) into the app's private folder. */
 class OcrEngine(private val context: Context) {
     private val lock = Any()
+    private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var tess: TessBaseAPI? = null
     private var key: String? = null
 
@@ -32,19 +51,32 @@ class OcrEngine(private val context: Context) {
             val f = langFile(l)
             if (f.exists() && f.length() > 100_000) continue
             val tmp = File(f.path + ".part")
-            val c = URL("https://github.com/tesseract-ocr/tessdata_fast/raw/main/$l.traineddata").openConnection() as HttpURLConnection
-            c.connectTimeout = 15000
-            c.readTimeout = 30000
-            c.instanceFollowRedirects = true
-            try {
-                if (c.responseCode != 200) throw IOException("HTTP ${c.responseCode}")
-                c.inputStream.use { i -> tmp.outputStream().use { o -> i.copyTo(o, 64 * 1024) } }
-            } finally {
-                c.disconnect()
-            }
+            var last: IOException? = null
+            val got = TessData.urls(l).any { url -> try { fetch(url, tmp); true } catch (e: IOException) { last = e; false } }
+            if (!got) { tmp.delete(); throw last ?: IOException("download failed") }
             if (tmp.length() < 100_000) { tmp.delete(); throw IOException("language data too small") }
+            TessData.sha256[l]?.let { want -> if (sha256(tmp) != want) { tmp.delete(); throw IOException("language data does not match its checksum") } }
             if (!tmp.renameTo(f)) throw IOException("cannot store language data")
         }
+    }
+
+    private fun fetch(url: String, to: File) {
+        val c = URL(url).openConnection() as HttpURLConnection
+        c.connectTimeout = 15000
+        c.readTimeout = 30000
+        c.instanceFollowRedirects = true
+        try {
+            if (c.responseCode != 200) throw IOException("HTTP ${c.responseCode}")
+            c.inputStream.use { i -> to.outputStream().use { o -> i.copyTo(o, 64 * 1024) } }
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    private fun sha256(f: File): String {
+        val md = MessageDigest.getInstance("SHA-256")
+        f.inputStream().use { i -> val buf = ByteArray(64 * 1024); while (true) { val n = i.read(buf); if (n < 0) break; md.update(buf, 0, n) } }
+        return md.digest().joinToString("") { "%02x".format(it) }
     }
 
     private fun open(langs: List<String>): TessBaseAPI {
@@ -77,7 +109,7 @@ class OcrEngine(private val context: Context) {
     }
 
     /** Never blocks the caller: a recognition in progress holds the lock. */
-    fun releaseAsync() { Thread { release() }.start() }
+    fun releaseAsync() { cleanup.launch { release() } }
 
     fun release() = synchronized(lock) {
         tess?.recycle()

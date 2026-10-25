@@ -166,4 +166,8 @@
     <string name="help_saveto">📁 Saving to: %1$s%2$s</string>
     <string name="help_quick">⚡ Quick scan: one tap, a ready PDF.\n\n📐 Frame: fit the sheet into the A4 frame on the screen.\n🎯 Auto: the camera finds the edges of the sheet itself and straightens it.\n⚠️ If the sheet does not fit, the frame and the outline turn red and the app warns you: move the phone away.\n📷 The photo is taken at the camera\'s maximum quality. The image quality in the PDF is set in Settings.\n💾 When saving you choose: Recognize and save (the PDF gets searchable text), or Save as is.\n\n%1$s</string>
     <string name="help_scan">📷 Scan: pick what you shoot and tap Shoot. The item is put on an A4 sheet at real size.\n\n✨ Full auto: no size to pick. When the sheet is seen whole and the phone is still, the camera shoots by itself. The page is put on the A4 sheet, its shape kept.\n📐 Frame: fit the item into the frame of the chosen size.\n🎯 Auto: the camera finds the edges of the item itself and straightens it. Hold a card horizontally, a receipt vertically.\n💳 Card: licence, residence permit, ID, bank card; both sides go on one sheet.\n🧾 Receipt: a long strip can be continued with the next part.\n⚠️ If the item does not fit, the frame turns red and the app warns you.\n💾 When saving you choose: Recognize and save, or Save as is.\n\n%1$s</string>
+    <string name="err_memory">Not enough memory</string>
+    <string name="err_folder">The folder is not available</string>
+    <string name="err_io">Could not write the file</string>
+    <string name="err_unknown">Unexpected error</string>
 </resources>

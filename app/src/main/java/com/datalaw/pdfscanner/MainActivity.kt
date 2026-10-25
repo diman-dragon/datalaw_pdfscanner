@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.datalaw.pdfscanner.ui.AppRoot
-import com.datalaw.pdfscanner.ui.AppViewModel
+import com.datalaw.pdfscanner.app.AppRoot
+import com.datalaw.pdfscanner.app.AppViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

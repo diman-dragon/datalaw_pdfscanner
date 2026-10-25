@@ -4,10 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.PointF
 import androidx.compose.ui.geometry.Offset
-import com.datalaw.pdfscanner.camera.ShotFile
 import com.datalaw.pdfscanner.ocr.OcrEngine
 import com.datalaw.pdfscanner.pdf.PdfPage
 import com.datalaw.pdfscanner.pdf.PdfTarget
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -38,6 +38,8 @@ class PageRenderer(
         return try {
             val words = ocr!!.words(b, ocrLangs)
             if (words.isEmpty()) p else p.withWords(words)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             p
         } finally {
@@ -56,6 +58,8 @@ class PageRenderer(
                     val forOcr = scaleForOcr(bmp)
                     val words = try { engine.words(forOcr, ocrLangs) } finally { forOcr.recycle() }
                     if (words.isEmpty()) p else p.withWords(words)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     p
                 } catch (e: OutOfMemoryError) {
