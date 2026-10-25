@@ -26,7 +26,14 @@ class PageRenderer(
 
     private suspend fun <T> guarded(block: (Double) -> T): T = gate.withPermit {
         withContext(Dispatchers.Default) {
-            try { block(1.0) } catch (e: OutOfMemoryError) { System.gc(); block(0.6) }
+            try {
+                block(1.0)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                System.gc()
+                block(0.6)
+            }
         }
     }
 
@@ -78,7 +85,7 @@ class PageRenderer(
     suspend fun raw(shot: ShotFile): PdfPage = withText(guarded { k ->
         val side = (target.side * k).toInt()
         val c = shot.crop
-        val long = if (c != null) Math.round(minOf(5200f, side / maxOf(c[2] - c[0], c[3] - c[1]))) else side
+        val long = if (c != null) Math.round(minOf(4000f, side / maxOf(c[2] - c[0], c[3] - c[1]))) else minOf(4000, side)
         val img = BitmapLoader.load(shot.file, long)
         var out: Bitmap = img
         if (c != null && Math.abs(img.width.toFloat() / img.height - shot.vr) < 0.04f * shot.vr) {
@@ -96,8 +103,8 @@ class PageRenderer(
     suspend fun straightened(shot: ShotFile, quad: List<Offset>): PdfPage = withText(guarded { k ->
         val side = (target.side * k).toInt()
         val ext = maxOf(quad.maxOf { it.x } - quad.minOf { it.x }, quad.maxOf { it.y } - quad.minOf { it.y }).coerceAtLeast(0.2f)
-        val img = BitmapLoader.load(shot.file, Math.round(minOf(5200f, side / ext)))
-        val out = PageWarp.warp(img, quad.map { PointF(it.x * img.width, it.y * img.height) }, side)
+        val img = BitmapLoader.load(shot.file, Math.round(minOf(4000f, side / ext)))
+        val out = PageWarp.warp(img, quad.map { PointF(it.x * img.width, it.y * img.height) }, minOf(4000, side))
         img.recycle()
         finish(out, null, side)
     })
@@ -111,7 +118,7 @@ class PageRenderer(
     /** An existing page edited: the frame (normalised corners, null = whole), turns (90 deg clockwise each), the look. [src] is not recycled. */
     suspend fun edited(src: Bitmap, quad: List<Offset>?, look: Look, turns: Int): PdfPage = withText(guarded { k ->
         val side = (target.side * k).toInt()
-        finish(transform(src, quad, look, turns, side), src, side)
+        finish(transform(src, quad, look, turns, minOf(4000, side)), src, side)
     })
 
     private fun finish(bmp: Bitmap, keep: Bitmap?, side: Int): Made {
@@ -130,7 +137,7 @@ class PageRenderer(
     }
 
     companion object {
-        private val gate = Semaphore(2)
+        private val gate = Semaphore(1)
 
         fun isFull(q: List<Offset>): Boolean {
             val full = listOf(Offset(0f, 0f), Offset(1f, 0f), Offset(1f, 1f), Offset(0f, 1f))

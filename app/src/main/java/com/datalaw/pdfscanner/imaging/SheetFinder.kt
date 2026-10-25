@@ -1,5 +1,6 @@
 package com.datalaw.pdfscanner.imaging
 
+import android.graphics.Bitmap
 import androidx.compose.ui.geometry.Offset
 import java.io.File
 
@@ -13,12 +14,19 @@ object SheetFinder {
         SheetFit.plausible(quad, w.toFloat() / h, checkRatio = expected == null) &&
             (expected == null || ShapeMatch.matches(quad, w, h, expected))
 
+    /** The sheet in the image bitmap, null when none is seen. [minAreaFrac] = the smallest share of the photo it fills. */
+    fun find(img: Bitmap, minAreaFrac: Double, expected: Double?): Found? = try {
+        val q = EdgeDetector.find(img, minAreaFrac)?.map { Offset(it.x / img.width, it.y / img.height) }
+        if (q != null && accepts(q, img.width, img.height, expected)) Found(q, ShapeMatch.aspectOf(q, img.width, img.height)) else null
+    } catch (e: Throwable) {
+        null
+    }
+
     /** The sheet in the photo, null when none is seen. [minAreaFrac] = the smallest share of the photo it fills. Blocking: call it off the main thread. */
     fun find(file: File, minAreaFrac: Double, expected: Double?): Found? = try {
         val img = BitmapLoader.load(file, 1200)
         try {
-            val q = EdgeDetector.find(img, minAreaFrac)?.map { Offset(it.x / img.width, it.y / img.height) }
-            if (q != null && accepts(q, img.width, img.height, expected)) Found(q, ShapeMatch.aspectOf(q, img.width, img.height)) else null
+            find(img, minAreaFrac, expected)
         } finally {
             img.recycle()
         }

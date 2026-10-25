@@ -49,7 +49,7 @@ object SheetComposer {
                 q != null -> maxOf(q.maxOf { it.x } - q.minOf { it.x }, q.maxOf { it.y } - q.minOf { it.y }).coerceAtLeast(0.2f)
                 else -> s.crop?.let { maxOf(it[2] - it[0], it[3] - it[1]) } ?: 1f
             }
-            val img = BitmapLoader.load(s.file, minOf(5200, Math.round(maxOf(dw, dh) / c0)))
+            val img = BitmapLoader.load(s.file, minOf(4000, Math.round(maxOf(dw, dh) / c0)))
             var piece = if (q != null) {
                 PageWarp.warpTo(img, q.map { PointF(it.x * img.width, it.y * img.height) }, dw, dh)
             } else {

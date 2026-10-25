@@ -74,6 +74,7 @@ import com.datalaw.pdfscanner.core.tx
 import com.datalaw.pdfscanner.core.userReason
 import com.datalaw.pdfscanner.imaging.BitmapLoader
 import com.datalaw.pdfscanner.imaging.Sharpness
+import com.datalaw.pdfscanner.imaging.SheetFinder
 import com.datalaw.pdfscanner.imaging.SheetFit
 import com.datalaw.pdfscanner.imaging.ShotCheck
 import com.datalaw.pdfscanner.imaging.ShotFile
@@ -149,7 +150,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         gyro.start()
         val fut = ProcessCameraProvider.getInstance(appCtx)
         fut.addListener({
-            try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac, { autoNow }) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
+            try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac, { autoNow && !busy }) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
         }, ContextCompat.getMainExecutor(appCtx))
         onDispose {
             gyro.stop()
@@ -174,23 +175,41 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         if (busy || !ready) return
         busy = true
         scope.launch {
+            var preview: android.graphics.Bitmap? = null
             try {
                 val dir = File(appCtx.cacheDir, "shots").apply { mkdirs() }
                 val file = rig.takePhoto(File(dir, "shot_${System.nanoTime()}.jpg"))
                 val (w, h) = withContext(Dispatchers.IO) { BitmapLoader.uprightSize(file) }
                 val region = if (auto) live?.let { SheetFit.bbox(it) } else frame
                 val crop = if (Math.abs(w.toFloat() / h - aspect) < 0.04f * aspect) region else null
-                val shot = ShotFile(file, crop, aspect, land)
-                if (Sharpness.isBlurry(withContext(Dispatchers.Default) { shotSharpness(shot) }) && !host.askSaveAsIs(tx(R.string.qs_blur))) {
+
+                // Load preview/analysis bitmap ONCE for sharpness check and sheet detection
+                val p = withContext(Dispatchers.IO) { BitmapLoader.load(file, 1600) }
+                preview = p
+
+                val isBlurry = withContext(Dispatchers.Default) { Sharpness.isBlurry(shotSharpness(p, crop, aspect)) }
+                if (isBlurry && !host.askSaveAsIs(tx(R.string.qs_blur))) {
+                    p.recycle()
+                    preview = null
                     file.delete()
                     return@launch
                 }
+
+                // If in auto mode, detect the sheet using the already loaded preview bitmap
+                val found = if (auto) withContext(Dispatchers.Default) { SheetFinder.find(p, session.minAreaFrac, session.expectRatio) } else null
+
+                // Free preview bitmap before session.onShot saves / renders
+                p.recycle()
+                preview = null
+
+                val shot = ShotFile(file, crop, aspect, land, found = found)
                 if (session.onShot(shot)) closeNow()
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 host.toast(tx(R.string.scan_fail_n, e.userReason()))
             } finally {
+                preview?.recycle()
                 busy = false
             }
         }

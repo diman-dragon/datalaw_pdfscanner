@@ -95,7 +95,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
     /** Checks the item in the photo and, in Auto mode, finds its corners. null = the user chose to retake. */
     private suspend fun prepare(raw: ShotFile): ShotFile? {
         val auto = type.free || d.settings().camMode == CamMode.Auto
-        val found = if (auto) withContext(Dispatchers.Default) { SheetFinder.find(raw.file, 0.08, expectRatio) } else null
+        val found = raw.found ?: if (auto) withContext(Dispatchers.Default) { SheetFinder.find(raw.file, 0.08, expectRatio) } else null
         val problem = if (auto) ShotCheck.problem(found?.quad) else null
         if (problem != null && !d.ui.askSaveAsIs(problem.ask(sheetLike))) { raw.file.delete(); return null }
         if (!auto) return raw
@@ -157,7 +157,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
             true
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
             false
         } finally {

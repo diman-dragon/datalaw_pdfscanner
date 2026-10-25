@@ -125,7 +125,7 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
             try {
                 val list = pages.toList()
                 val renderer = d.renderer(choice.recognize)
-                val side = PdfTarget.forDpi(d.settings().pdfDpi).side.coerceAtMost(4800)
+                val side = PdfTarget.forDpi(d.settings().pdfDpi).side.coerceAtMost(4000)
                 val r = access.save(if (same) "$base~new" else name, list.size) { i ->
                     d.ui.toast(tx(R.string.scan_saving_n, i + 1, list.size))
                     val p = list[i]
@@ -153,7 +153,7 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
                 d.nav.pop()
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
                 if (single != null) d.nav.pop()
             } finally {

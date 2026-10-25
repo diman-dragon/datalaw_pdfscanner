@@ -72,8 +72,13 @@ object EdgeDetector {
     private fun largest(bin: Mat, minArea: Double, allowRect: Boolean): List<Point>? {
         val contours = ArrayList<MatOfPoint>()
         val work = bin.clone()
-        Imgproc.findContours(work, contours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
-        work.release()
+        val hierarchy = Mat()
+        try {
+            Imgproc.findContours(work, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
+        } finally {
+            work.release()
+            hierarchy.release()
+        }
         var best: List<Point>? = null
         var bestArea = 0.0
         var big: MatOfPoint? = null
@@ -93,10 +98,15 @@ object EdgeDetector {
             c2f.release(); approx.release()
         }
         if (best == null && allowRect && big != null) {
-            val rr = Imgproc.minAreaRect(MatOfPoint2f(*big.toArray()))
-            val p = Array(4) { Point() }
-            rr.points(p)
-            best = p.toList()
+            val big2f = MatOfPoint2f(*big.toArray())
+            try {
+                val rr = Imgproc.minAreaRect(big2f)
+                val p = Array(4) { Point() }
+                rr.points(p)
+                best = p.toList()
+            } finally {
+                big2f.release()
+            }
         }
         contours.forEach { it.release() }
         return best

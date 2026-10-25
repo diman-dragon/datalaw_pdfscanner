@@ -17,11 +17,14 @@ object Cv {
     fun rgb(b: Bitmap): Mat {
         ensure()
         val rgba = Mat()
-        Utils.bitmapToMat(b, rgba)
-        val rgb = Mat()
-        Imgproc.cvtColor(rgba, rgb, Imgproc.COLOR_RGBA2RGB)
-        rgba.release()
-        return rgb
+        try {
+            Utils.bitmapToMat(b, rgba)
+            val rgb = Mat()
+            Imgproc.cvtColor(rgba, rgb, Imgproc.COLOR_RGBA2RGB)
+            return rgb
+        } finally {
+            rgba.release()
+        }
     }
 
     fun bitmap(rgb: Mat): Bitmap {

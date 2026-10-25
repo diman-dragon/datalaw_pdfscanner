@@ -38,7 +38,7 @@ class QuickSession(private val d: Deps) : CameraSession {
 
     override suspend fun onShot(shot: ShotFile): Boolean {
         val auto = d.settings().camMode == CamMode.Auto
-        val found = if (auto) withContext(Dispatchers.Default) { SheetFinder.find(shot.file, 0.2, null) } else null
+        val found = shot.found ?: if (auto) withContext(Dispatchers.Default) { SheetFinder.find(shot.file, 0.2, null) } else null
         val problem = if (auto) ShotCheck.problem(found?.quad) else null
         if (problem != null && !d.ui.askSaveAsIs(problem.ask(sheet = true))) { shot.file.delete(); return false }
         val def = Names.auto("qscan")
@@ -59,7 +59,7 @@ class QuickSession(private val d: Deps) : CameraSession {
             true
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
             false
         } finally {

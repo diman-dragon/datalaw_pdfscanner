@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.datalaw.pdfscanner.ShotCheckTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-25T19:25:02.305Z" hostname="DATALAW" time="0.002">
+  <properties/>
+  <testcase name="sheetCutByTheView" classname="com.datalaw.pdfscanner.ShotCheckTest" time="0.001"/>
+  <testcase name="nothingFound" classname="com.datalaw.pdfscanner.ShotCheckTest" time="0.001"/>
+  <testcase name="sheetFits" classname="com.datalaw.pdfscanner.ShotCheckTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

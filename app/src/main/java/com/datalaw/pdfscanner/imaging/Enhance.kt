@@ -15,29 +15,33 @@ object Enhance {
     fun auto(src: Bitmap): Bitmap {
         Cv.ensure()
         val rgb = Cv.rgb(src)
+        var small: Mat? = null
+        var dk: Mat? = null
+        var paper: Mat? = null
+        var blur: Mat? = null
         try {
             val k = minOf(1.0, 160.0 / maxOf(rgb.cols(), rgb.rows()))
-            val small = Mat()
+            small = Mat()
             Imgproc.resize(rgb, small, Size(Math.round(rgb.cols() * k).toDouble().coerceAtLeast(8.0), Math.round(rgb.rows() * k).toDouble().coerceAtLeast(8.0)), 0.0, 0.0, Imgproc.INTER_AREA)
-            val dk = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(5.0, 5.0))
+            dk = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(5.0, 5.0))
             Imgproc.dilate(small, small, dk)
-            dk.release()
             Imgproc.GaussianBlur(small, small, Size(0.0, 0.0), 3.0)
-            val paper = Mat()
+            paper = Mat()
             Imgproc.resize(small, paper, Size(rgb.cols().toDouble(), rgb.rows().toDouble()), 0.0, 0.0, Imgproc.INTER_CUBIC)
-            small.release()
             Core.max(paper, Scalar(8.0, 8.0, 8.0), paper)
             // a part of the shadow stays: paper' = FIX * paper + (1 - FIX) * 255
             Core.addWeighted(paper, FIX, paper, 0.0, 255.0 * (1 - FIX), paper)
             Core.divide(rgb, paper, rgb, 255.0)
-            paper.release()
-            val blur = Mat()
+            blur = Mat()
             Imgproc.GaussianBlur(rgb, blur, Size(0.0, 0.0), 1.2)
             Core.addWeighted(rgb, 1 + SHARP, blur, -SHARP, 0.0, rgb)
-            blur.release()
             return Cv.bitmap(rgb)
         } finally {
             rgb.release()
+            small?.release()
+            dk?.release()
+            paper?.release()
+            blur?.release()
         }
     }
 }

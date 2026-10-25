@@ -8,15 +8,21 @@ import java.io.File
 
 /** Photos from disk: decoded at the size that is needed (never bigger), turned upright by EXIF. */
 object BitmapLoader {
-    /** A big bitmap of this heap is only decoded when that much is free (a full-resolution photo needs ~50 MB). */
-    private fun hasRoom(needBytes: Long): Boolean = try {
-        val rm = android.app.ActivityManager.getRuntimeMemory()
-        val max = Runtime.getRuntime().maxMemory()
-        val used = max - Runtime.getRuntime().freeMemory()
-        val slack = if (rm > max) rm - max else 0L // largeHeap: the extra is there before the heap grows
-        max - used + slack > needBytes
+    /** Available heap memory before OutOfMemoryError in bytes. */
+    fun availableMemory(): Long = try {
+        val runtime = Runtime.getRuntime()
+        val max = runtime.maxMemory()
+        val used = runtime.totalMemory() - runtime.freeMemory()
+        (max - used).coerceAtLeast(0L)
     } catch (e: Throwable) {
-        true
+        0L
+    }
+
+    /** A big bitmap of this heap is only decoded when that much is free (a full-resolution photo needs ~50 MB). */
+    fun hasRoom(needBytes: Long, safetyBuffer: Long = 16 * 1024 * 1024L): Boolean = try {
+        availableMemory() > (needBytes + safetyBuffer)
+    } catch (e: Throwable) {
+        false
     }
 
     private fun orientation(f: File): Int = try {
@@ -59,13 +65,25 @@ object BitmapLoader {
         var sample = 1
         while (maxOf(b.outWidth, b.outHeight) / (sample * 2) >= longSide) sample *= 2
         // never decode more than the heap can take: keep raising the sample until there is room (an OOM here would kill the app)
-        while (maxOf(b.outWidth, b.outHeight) > longSide && !hasRoom((b.outWidth.toLong() / sample) * (b.outHeight / sample) * 4)) sample *= 2
-        val o = BitmapFactory.Options().apply { inSampleSize = sample; inPreferredConfig = Bitmap.Config.ARGB_8888 }
-        val raw = BitmapFactory.decodeFile(f.absolutePath, o) ?: throw java.io.IOException("cannot decode photo")
-        val m = matrixFor(orientation(f)) ?: return raw
-        val up = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, m, true)
-        if (up !== raw) raw.recycle()
-        return up
+        while (maxOf(b.outWidth, b.outHeight) / sample > 600 && !hasRoom((b.outWidth.toLong() / sample) * (b.outHeight / sample) * 4)) {
+            sample *= 2
+        }
+        var curSample = sample
+        while (true) {
+            try {
+                val o = BitmapFactory.Options().apply { inSampleSize = curSample; inPreferredConfig = Bitmap.Config.ARGB_8888 }
+                val raw = BitmapFactory.decodeFile(f.absolutePath, o) ?: throw java.io.IOException("cannot decode photo")
+                val m = matrixFor(orientation(f))
+                if (m == null) return raw
+                val up = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, m, true)
+                if (up !== raw) raw.recycle()
+                return up
+            } catch (e: OutOfMemoryError) {
+                System.gc()
+                if (curSample >= 32) throw e
+                curSample *= 2
+            }
+        }
     }
 
     /** The same bitmap when it already fits, otherwise a smaller copy with the long side [maxSide]. */
@@ -73,7 +91,14 @@ object BitmapLoader {
         val long = maxOf(b.width, b.height)
         if (long <= maxSide) return b
         val k = maxSide.toFloat() / long
-        return Bitmap.createScaledBitmap(b, Math.round(b.width * k).coerceAtLeast(1), Math.round(b.height * k).coerceAtLeast(1), true)
+        val targetW = Math.round(b.width * k).coerceAtLeast(1)
+        val targetH = Math.round(b.height * k).coerceAtLeast(1)
+        return try {
+            Bitmap.createScaledBitmap(b, targetW, targetH, true)
+        } catch (e: OutOfMemoryError) {
+            System.gc()
+            b
+        }
     }
 
     /** A copy turned by [degrees] clockwise (multiples of 90). */
@@ -81,6 +106,11 @@ object BitmapLoader {
         val d = ((degrees % 360) + 360) % 360
         if (d == 0) return b
         val m = Matrix().apply { postRotate(d.toFloat()) }
-        return Bitmap.createBitmap(b, 0, 0, b.width, b.height, m, true)
+        return try {
+            Bitmap.createBitmap(b, 0, 0, b.width, b.height, m, true)
+        } catch (e: OutOfMemoryError) {
+            System.gc()
+            b
+        }
     }
 }
