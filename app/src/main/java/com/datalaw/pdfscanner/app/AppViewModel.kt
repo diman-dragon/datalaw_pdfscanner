@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.core.AppActions
 import com.datalaw.pdfscanner.core.AppGraph
+import com.datalaw.pdfscanner.core.CrashReport
 import com.datalaw.pdfscanner.core.Deps
 import com.datalaw.pdfscanner.core.FolderAccess
 import com.datalaw.pdfscanner.core.Overlay
@@ -48,6 +49,18 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
     val library = LibraryController(deps)
     private val folder = FolderAccess(deps)
 
+    init {
+        // a crash is never silent: what ended the last run is told at this start
+        CrashReport.pending(graph.app)?.let { r -> viewModelScope.launch { showCrash(r) } }
+    }
+
+    private suspend fun showCrash(r: CrashReport.Report) {
+        if (ui.askConfirm(tx(R.string.crash_ask, tx(r.reason)), tx(R.string.crash_copy), tx(R.string.vw_close))) {
+            CrashReport.copy(graph.app, r)
+            ui.toast(tx(R.string.crash_copied))
+        }
+    }
+
     override fun goTo(tab: Tab) { _tab.value = tab }
     override fun push(o: Overlay) { _overlays.value = _overlays.value + o }
     override fun pop() { _overlays.value = _overlays.value.dropLast(1) }
@@ -58,13 +71,6 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
     /** The explanation of the scan tab that is open (kept off the screen so it does not clutter it), with the save place. */
     fun showHelp() {
         viewModelScope.launch {
-            val crashFile = java.io.File(graph.app.cacheDir, "crash.log")
-            if (crashFile.exists()) {
-                val txt = crashFile.readText().take(600)
-                ui.askAlert(tx(R.string.err_unknown, uiRaw("\n\nCrash Log:\n$txt")))
-                crashFile.delete()
-                return@launch
-            }
             val p = (settings.value ?: Settings()).folderUri?.let { FolderPath.of(it) }
             val where: UiText = if (p == null) tx(R.string.scan_nofolder_label) else {
                 val tail = p.path.split('/').filter { it.isNotEmpty() }.joinToString("") { " › $it" }

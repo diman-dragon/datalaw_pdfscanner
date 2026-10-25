@@ -60,9 +60,7 @@ class QuickSession(private val d: Deps) : CameraSession {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            android.util.Log.e("PdfScanner", "QuickSession save error", e)
-            val msg = "${e.javaClass.simpleName}: ${e.message ?: "error"}"
-            d.ui.askAlert(tx(R.string.scan_fail_n, com.datalaw.pdfscanner.core.uiRaw(msg)))
+            d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
             false
         } finally {
             _ui.value = _ui.value.copy(status = null)

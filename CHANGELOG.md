@@ -1,4 +1,11 @@
 # Changelog
+## 0.0.13
+- Fix: a Scan page could never be finished (the app hung on "Saving..."): `PageRenderer.placed` took the one-permit gate twice (0.0.12 made it one permit); the extra `serialized` wrapper is gone
+- Fix: the photo is taken at up to ~16 MP (was: the highest the camera lists, 50-200 MP on many phones): the PDF page never holds more than 4000 px and 4 MB, but every decode, rotation and crop of a huge JPEG got the app killed for memory on the shot
+- Fix: a failed text recognition (memory, native library) no longer loses the scan: the page is saved without the text layer
+- Fix: a crop of the whole picture recycled the bitmap that was then compressed (`PageRenderer.raw`)
+- Fix: the camera is not bound when the screen was closed before the camera provider was ready
+- A crash is never silent: an uncaught exception is saved by `CrashReport` and, together with how the last process ended (Android 11+: native crash, killed for memory, not responding), told at the next start in plain words, with "Copy details" for the developer
 ## 0.0.12
 - Fix: the app fell over when shooting (OOM): `largeHeap` for the full-resolution photos, one heavy render at a time (`PageRenderer` gate 2 -> 1), OpenCV Mats released on any failure (`Cv.bitmap`, `EdgeDetector`, `Enhance`, `PageWarp`), live frames no longer pile up in memory while the camera takes the photo (`SheetWatcher` keeps one frame in flight)
 ## 0.0.11

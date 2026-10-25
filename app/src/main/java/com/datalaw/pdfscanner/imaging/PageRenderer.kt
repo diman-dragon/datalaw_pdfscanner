@@ -14,7 +14,7 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
 /**
- * Makes PDF pages. At most two heavy renders run at once (phone memory); on an out-of-memory failure the page is made again smaller.
+ * Makes PDF pages. Heavy renders run strictly one at a time (phone memory); on a failure the page is made again smaller.
  * With [ocr] set, the recognised words become the invisible text layer of the page.
  */
 class PageRenderer(
@@ -24,6 +24,7 @@ class PageRenderer(
 ) {
     private class Made(val enc: Encoded, val forOcr: Bitmap?)
 
+    /** The gate is NOT re-entrant (one permit): a render must never wait for the gate while it already holds it. */
     private suspend fun <T> guarded(block: (Double) -> T): T = gate.withPermit {
         withContext(Dispatchers.Default) {
             try {
@@ -37,9 +38,6 @@ class PageRenderer(
         }
     }
 
-    /** A page is made one at a time: two full-resolution renders at once are more than a phone heap holds. */
-    private suspend fun <T> serialized(block: suspend () -> T): T = gate.withPermit { block() }
-
     private fun page(m: Made) = PdfPage(m.enc.jpeg, m.enc.w, m.enc.h)
 
     private suspend fun withText(m: Made): PdfPage {
@@ -50,7 +48,9 @@ class PageRenderer(
             if (words.isEmpty()) p else p.withWords(words)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // the text layer is a bonus: a failed recognition (memory, native library) never loses the scan itself
+            android.util.Log.w("PdfScanner", "text layer skipped", e)
             p
         } finally {
             b.recycle()
@@ -94,7 +94,7 @@ class PageRenderer(
             val x1 = (c[2] * img.width).toInt().coerceIn(x0 + 1, img.width)
             val y1 = (c[3] * img.height).toInt().coerceIn(y0 + 1, img.height)
             out = Bitmap.createBitmap(img, x0, y0, x1 - x0, y1 - y0)
-            img.recycle()
+            if (out !== img) img.recycle() // a crop of the whole picture is the same bitmap
         }
         finish(out, null, side)
     })
@@ -110,10 +110,10 @@ class PageRenderer(
     })
 
     /** Scan tab: an A4 sheet with the item at its real size. */
-    suspend fun placed(item: PlacedItem): PdfPage = serialized { withText(guarded { k ->
+    suspend fun placed(item: PlacedItem): PdfPage = withText(guarded { k ->
         val p = SheetComposer.compose(item, (target.side * k).toInt(), target.budget)
         Made(Encoded(p.jpeg, p.w, p.h), null)
-    }) }
+    })
 
     /** An existing page edited: the frame (normalised corners, null = whole), turns (90 deg clockwise each), the look. [src] is not recycled. */
     suspend fun edited(src: Bitmap, quad: List<Offset>?, look: Look, turns: Int): PdfPage = withText(guarded { k ->

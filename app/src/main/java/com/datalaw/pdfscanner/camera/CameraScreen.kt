@@ -148,11 +148,15 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
 
     DisposableEffect(owner) {
         gyro.start()
+        var gone = false // the screen may be closed before the camera provider is ready: then nothing is bound
         val fut = ProcessCameraProvider.getInstance(appCtx)
         fut.addListener({
-            try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac, { autoNow && !busy }) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
+            if (!gone) {
+                try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac, { autoNow && !busy }) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
+            }
         }, ContextCompat.getMainExecutor(appCtx))
         onDispose {
+            gone = true
             gyro.stop()
             if (fut.isDone) runCatching { fut.get().unbindAll() }
             ready = false
@@ -203,15 +207,11 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                 preview = null
 
                 val shot = ShotFile(file, crop, aspect, land, found = found)
-                val closed = session.onShot(shot)
-                android.util.Log.d("PdfScanner", "shoot: onShot completed with closed=$closed")
-                if (closed) closeNow()
+                if (session.onShot(shot)) closeNow()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                android.util.Log.e("PdfScanner", "shoot failed", e)
-                val msg = "${e.javaClass.simpleName}: ${e.message ?: "error"}"
-                host.askAlert(tx(R.string.scan_fail_n, com.datalaw.pdfscanner.core.uiRaw(msg)))
+                host.toast(tx(R.string.scan_fail_n, e.userReason()))
             } finally {
                 preview?.recycle()
                 busy = false

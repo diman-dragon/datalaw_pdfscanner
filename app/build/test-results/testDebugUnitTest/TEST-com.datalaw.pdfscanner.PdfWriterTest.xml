@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.datalaw.pdfscanner.PdfWriterTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-25T19:25:02.194Z" hostname="DATALAW" time="0.105">
-  <properties/>
-  <testcase name="xrefPointsToObjectsWithTextLayer" classname="com.datalaw.pdfscanner.PdfWriterTest" time="0.101"/>
-  <testcase name="xrefPointsToObjects" classname="com.datalaw.pdfscanner.PdfWriterTest" time="0.002"/>
-  <testcase name="textLayerHasUnicodeMap" classname="com.datalaw.pdfscanner.PdfWriterTest" time="0.002"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

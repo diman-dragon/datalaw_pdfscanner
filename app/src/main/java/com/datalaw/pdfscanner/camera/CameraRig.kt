@@ -24,7 +24,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
-/** CameraX: a 4:3 preview and a full-resolution photo of the same field of view, tap / frame focus, flash. */
+/** CameraX: a 4:3 preview and a photo (up to ~16 MP) of the same field of view, tap / frame focus, flash. */
 class CameraRig(private val context: Context, val previewView: PreviewView) {
     private val executor = ContextCompat.getMainExecutor(context)
     private var camera: Camera? = null
@@ -47,14 +47,16 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
             val previewSel = ResolutionSelector.Builder().setAspectRatioStrategy(ratio).build()
             val captureSel = ResolutionSelector.Builder()
                 .setAspectRatioStrategy(ratio)
-                .setResolutionStrategy(ResolutionStrategy(Size(4000, 3000), ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER))
+                // up to ~16 MP: the PDF page never has more than 4000 px along its long side (and a 4 MB budget), while a 50-200 MP JPEG
+                // makes every decode, rotation and crop 2-4 times bigger and gets the app killed for memory on the shot
+                .setResolutionStrategy(ResolutionStrategy(Size(4608, 3456), ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER))
                 .build()
             val preview = Preview.Builder().setResolutionSelector(previewSel).build()
             preview.setSurfaceProvider(previewView.surfaceProvider)
             val cap = ImageCapture.Builder()
                 .setResolutionSelector(captureSel)
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .setJpegQuality(90)
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                .setJpegQuality(95)
                 .build()
             provider.unbindAll()
             analysis = null
@@ -96,22 +98,10 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
             c.resumeWithException(IllegalStateException("camera not ready"))
             return@suspendCancellableCoroutine
         }
-        try {
-            val options = ImageCapture.OutputFileOptions.Builder(file).build()
-            cap.takePicture(options, executor, object : ImageCapture.OnImageSavedCallback {
-                override fun onImageSaved(r: ImageCapture.OutputFileResults) {
-                    android.util.Log.d("PdfScanner", "takePhoto saved: ${file.length()} bytes")
-                    c.resume(file)
-                }
-                override fun onError(e: ImageCaptureException) {
-                    android.util.Log.e("PdfScanner", "takePhoto onError: ${e.imageCaptureError}", e)
-                    c.resumeWithException(e)
-                }
-            })
-        } catch (t: Throwable) {
-            android.util.Log.e("PdfScanner", "takePhoto sync exception", t)
-            c.resumeWithException(t)
-        }
+        cap.takePicture(ImageCapture.OutputFileOptions.Builder(file).build(), executor, object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(r: ImageCapture.OutputFileResults) { c.resume(file) }
+            override fun onError(e: ImageCaptureException) { c.resumeWithException(e) }
+        })
     }
 
     /** Focuses on a point of the preview (pixels of the preview view). [lock] keeps the focus until the next call. True if the camera reports a sharp focus. */
