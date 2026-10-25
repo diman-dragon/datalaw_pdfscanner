@@ -59,6 +59,7 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -88,9 +89,9 @@ fun PageEditor(
     val preview by produceState<Bitmap?>(null, b, quad, p.look, p.turns) {
         if (b == null) return@produceState
         delay(150)
-        value = withContext(Dispatchers.Default) { PageRenderer.preview(b, quad, p.look, p.turns, 360) }
+        optional { PageRenderer.preview(b, quad, p.look, p.turns, 360) }?.let { value = it }
     }
-    val sharp by produceState(1f, b) { if (b != null) value = withContext(Dispatchers.Default) { Sharpness.of(b) } }
+    val sharp by produceState(1f, b) { if (b != null) optional { Sharpness.of(b) }?.let { value = it } }
 
     fun setQuad(q: List<Offset>) { quad = q; p.quad = q; ctl.markDirty() }
 
@@ -139,7 +140,7 @@ fun PageEditor(
                         .pointerInput(b) {
                             detectTapGestures(onDoubleTap = {
                                 scope.launch {
-                                    val pts = withContext(Dispatchers.Default) { EdgeDetector.detect(b) }
+                                    val pts = optional { EdgeDetector.detect(b) } ?: return@launch
                                     setQuad(pts.map { Offset(it.x / b.width, it.y / b.height) })
                                 }
                             })
@@ -178,6 +179,15 @@ fun PageEditor(
             Button(onNext) { Text(stringResource(nextLabel)) }
         }
     }
+}
+
+/** The preview, the sharpness and the automatic frame are extras: when one of them fails (memory, OpenCV) the editor goes on without it instead of closing the app. null = it failed. */
+private suspend fun <T> optional(block: () -> T): T? = try {
+    withContext(Dispatchers.Default) { block() }
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Throwable) {
+    null
 }
 
 /** Percent of perspective distortion of the frame (null when small). */

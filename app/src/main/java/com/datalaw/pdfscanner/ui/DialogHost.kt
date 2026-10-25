@@ -40,6 +40,7 @@ import com.datalaw.pdfscanner.core.Dlg
 import com.datalaw.pdfscanner.core.SaveAnswer
 import com.datalaw.pdfscanner.core.UiHost
 import com.datalaw.pdfscanner.core.get
+import kotlinx.coroutines.delay
 
 /** Draws the dialog that a controller is waiting for: a centred card, wide buttons, the main one filled, the dangerous one red. */
 @Composable
@@ -90,11 +91,21 @@ private fun Wide(main: Boolean, danger: Boolean, text: String, onClick: () -> Un
     }
 }
 
+/** Asks for the keyboard once the dialog window has composed its field. A dialog is a window of its own and composes one frame later than the screen that shows it; a request that comes too early throws and would close the app. */
+private suspend fun FocusRequester.requestWhenReady() {
+    delay(100)
+    try {
+        requestFocus()
+    } catch (e: Exception) {
+        // the field is not there (yet): the dialog still works, the person taps the field
+    }
+}
+
 @Composable
 private fun InputCard(x: Dlg.Input) {
     var v by remember(x) { mutableStateOf(TextFieldValue(x.initial, TextRange(0, x.initial.length))) }
     val focus = remember { FocusRequester() }
-    LaunchedEffect(x) { focus.requestFocus() }
+    LaunchedEffect(x) { focus.requestWhenReady() }
     Card({ x.result.complete(null) }) {
         Text(x.title.get())
         OutlinedTextField(
@@ -113,7 +124,7 @@ private fun InputCard(x: Dlg.Input) {
 private fun SaveCard(x: Dlg.Save) {
     var v by remember(x) { mutableStateOf(TextFieldValue(x.initial, TextRange(0, x.initial.length))) }
     val focus = remember { FocusRequester() }
-    LaunchedEffect(x) { focus.requestFocus() }
+    LaunchedEffect(x) { focus.requestWhenReady() }
     Card({ x.result.complete(null) }) {
         Text(x.title.get())
         OutlinedTextField(

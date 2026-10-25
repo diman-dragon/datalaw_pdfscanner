@@ -21,14 +21,41 @@ class PdfReader private constructor(
     val ratios: List<Float>,
 ) : Closeable {
     private val mutex = Mutex()
+    private val lock = Any()
+    private var rendering = false
+    private var closeAsked = false
+    private var closed = false
     val pageCount: Int get() = ratios.size
 
     /** A white-backed bitmap of the page, [width] px wide (the height is capped at [maxHeight]). */
     suspend fun render(index: Int, width: Int, maxHeight: Int = 4500): Bitmap = mutex.withLock {
-        withContext(Dispatchers.IO) { renderPage(renderer, index, width, maxHeight) }
+        withContext(Dispatchers.IO) {
+            synchronized(lock) {
+                if (closeAsked) throw IOException("document closed")
+                rendering = true
+            }
+            try {
+                renderPage(renderer, index, width, maxHeight)
+            } finally {
+                synchronized(lock) {
+                    rendering = false
+                    if (closeAsked) shut()
+                }
+            }
+        }
     }
 
+    /** A page that is being drawn is never cut off: the document is closed when that page is done (closing under the renderer leaves the file open and the drawing without its file). */
     override fun close() {
+        synchronized(lock) {
+            closeAsked = true
+            if (!rendering) shut()
+        }
+    }
+
+    private fun shut() {
+        if (closed) return
+        closed = true
         runCatching { renderer.close() }
         runCatching { pfd.close() }
     }

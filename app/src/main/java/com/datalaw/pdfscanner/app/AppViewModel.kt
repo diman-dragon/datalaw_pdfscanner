@@ -82,15 +82,18 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
 
     override fun chooseFolder() { viewModelScope.launch { folder.choose() } }
 
+    /** A second tap on Shoot while the first one is still checking the folder must not put a second camera over the first. */
+    private fun cameraOpen(): Boolean = _overlays.value.any { it is Overlay.Camera }
+
     override fun startQuick() {
         viewModelScope.launch {
-            if (folder.ensure()) push(Overlay.Camera(QuickSession(deps)))
+            if (folder.ensure() && !cameraOpen()) push(Overlay.Camera(QuickSession(deps)))
         }
     }
 
     override fun startScan() {
         viewModelScope.launch {
-            if (folder.ensure()) push(Overlay.Camera(ScanSession(deps, ScanTypes.byId((settings.value ?: Settings()).scanType))))
+            if (folder.ensure() && !cameraOpen()) push(Overlay.Camera(ScanSession(deps, ScanTypes.byId((settings.value ?: Settings()).scanType))))
         }
     }
 

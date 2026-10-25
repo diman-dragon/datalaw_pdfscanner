@@ -54,7 +54,7 @@ object EdgeDetector {
                 }
             }
         } finally {
-            gray.release(); closed.release(); edges.release()
+            rgba.release(); gray.release(); closed.release(); edges.release()
             if (small !== src) small.recycle()
         }
 

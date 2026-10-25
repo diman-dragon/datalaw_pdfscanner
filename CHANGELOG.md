@@ -1,4 +1,10 @@
 # Changelog
+## 0.0.14
+- Fix: the Save and Rename windows asked for the keyboard before their own window had composed the text field (`FocusRequester is not initialized` closes the app, and it was thrown outside any guard): the request now waits a moment and can no longer throw
+- Fix: in the page editor the preview, the sharpness warning and the automatic frame ran without a guard: a failure of memory or of OpenCV closed the app, now the editor goes on without that extra
+- Fix: Back right after scrolling a PDF closed the file under the renderer that was still drawing a page (`PdfReader.close` never waited for it): the document now closes when that page is done
+- Fix: a second tap on Shoot while the first one was still checking the folder put a second camera over the first
+- Fix: `EdgeDetector.find` released its RGBA buffer only when nothing went wrong (the live search runs it five times a second)
 ## 0.0.13
 - Fix: a Scan page could never be finished (the app hung on "Saving..."): `PageRenderer.placed` took the one-permit gate twice (0.0.12 made it one permit); the extra `serialized` wrapper is gone
 - Fix: the photo is taken at up to ~16 MP (was: the highest the camera lists, 50-200 MP on many phones): the PDF page never holds more than 4000 px and 4 MB, but every decode, rotation and crop of a huge JPEG got the app killed for memory on the shot
