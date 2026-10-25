@@ -1,1 +1,3 @@
 .gradle/
+*.tar.gz
+.gradle/

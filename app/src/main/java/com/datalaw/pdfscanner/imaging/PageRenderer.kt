@@ -106,7 +106,7 @@ class PageRenderer(
     suspend fun placed(item: PlacedItem): PdfPage = serialized { withText(guarded { k ->
         val p = SheetComposer.compose(item, (target.side * k).toInt(), target.budget)
         Made(Encoded(p.jpeg, p.w, p.h), null)
-    })
+    }) }
 
     /** An existing page edited: the frame (normalised corners, null = whole), turns (90 deg clockwise each), the look. [src] is not recycled. */
     suspend fun edited(src: Bitmap, quad: List<Offset>?, look: Look, turns: Int): PdfPage = withText(guarded { k ->
