@@ -1,4 +1,6 @@
 # Changelog
+## 0.0.10
+- Fix: the build could not find Tesseract4Android 4.9.0 (it is not on Maven Central): Jitpack is back, limited to that one group
 ## 0.0.9
 - Fix: the app fell over when a language was chosen (Settings, language): the language context did not lead to the activity, so the system pickers had no owner. Now it is a wrapper of the activity; the strings come from `LocalResources` as well; the same tree for every language
 - Fix: the build lost the `BuildConfig` import of the settings screen (after the package move)
@@ -15,7 +17,7 @@
 - Cancellation of a coroutine is no longer swallowed by `catch (e: Exception)`
 - `collectAsStateWithLifecycle` everywhere; the page previews are cached by bytes; the OCR release uses a scope, not a raw thread
 - Language data of Tesseract: a fixed release first, the branch as a fallback; a checksum check is ready (`TessData.sha256`, to be filled)
-- Light window background (no black flash at start in the light theme); the 10 unused raster launcher icons, the icons dependency, Jitpack and the `.vscode` folder are removed
+- Light window background (no black flash at start in the light theme); the 10 unused raster launcher icons, the icons dependency, the `.vscode` folder are removed
 - Lint report in CI (does not fail the build); the unit tests do not hide Android calls any more; new tests: ShotCheck, ItemFit, FrameMath, Names
 ## 0.0.7
 - Text recognition moved from Settings to the Save dialog of every PDF (Quick, Scan, editor): "Recognize and save" or "Save as is" (the language data is fetched once; if that fails, save as is). The Scan pages get their text when saving
