@@ -1,5 +1,8 @@
 package com.datalaw.pdfscanner.docedit
 
+import kotlinx.coroutines.CancellationException
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -43,6 +46,13 @@ import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.core.AppActions
 import com.datalaw.pdfscanner.data.PdfFile
+import com.datalaw.pdfscanner.ui.AppCard
+import com.datalaw.pdfscanner.ui.BottomBar
+import com.datalaw.pdfscanner.ui.CenterNote
+import com.datalaw.pdfscanner.ui.OverflowMenu
+import com.datalaw.pdfscanner.ui.PageBadge
+import com.datalaw.pdfscanner.ui.TitleBar
+import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlinx.coroutines.launch
 
 @Composable
@@ -87,15 +97,15 @@ fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
     }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("✕", fontSize = 22.sp, modifier = Modifier.clickable { ctl.requestClose() }.padding(10.dp))
-            Text(file.name, Modifier.weight(1f).padding(horizontal = 8.dp), fontSize = 15.sp, maxLines = 1)
-        }
+        TitleBar(file.name, onBack = { ctl.requestClose() })
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (ctl.loading || single != null) {
-                Text(stringResource(R.string.scan_saving).takeIf { ctl.busy } ?: stringResource(R.string.de_loading), Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                CenterNote(stringResource(if (ctl.busy) R.string.scan_saving else R.string.de_loading))
             } else {
-                LazyVerticalGrid(GridCells.Fixed(2), Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyVerticalGrid(
+                    GridCells.Fixed(2), Modifier.fillMaxSize(), contentPadding = PaddingValues(Dimens.screen),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.gap), verticalArrangement = Arrangement.spacedBy(Dimens.gap),
+                ) {
                     itemsIndexed(ctl.pages, key = { _, p -> p.index }) { i, p ->
                         PageCard(ctl, p, i, onEdit = { ctl.sequence = false; ctl.editing = i })
                     }
@@ -103,10 +113,10 @@ fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
             }
         }
         if (single == null) {
-            Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BottomBar {
                 OutlinedButton({ ctl.requestClose() }) { Text(stringResource(R.string.ed_cancel)) }
                 OutlinedButton({ ctl.sequence = true; ctl.editing = 0 }, enabled = !ctl.loading && ctl.pages.isNotEmpty()) { Text(stringResource(R.string.de_all)) }
-                Box(Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
                 Button({ ctl.save() }, enabled = !ctl.loading && !ctl.busy) { Text(stringResource(R.string.sc_save)) }
             }
         }
@@ -116,22 +126,16 @@ fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
 @Composable
 private fun PageCard(ctl: DocEditController, p: EditPage, i: Int, onEdit: () -> Unit) {
     val scope = rememberCoroutineScope()
-    var menu by remember { mutableStateOf(false) }
-    LaunchedEffect(p.quad, p.look, p.turns) { try { p.thumb = ctl.makeThumb(p) } catch (e: Exception) { } }
-    Box(
-        Modifier.fillMaxWidth().aspectRatio(0.72f).clip(RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant).clickable(onClick = onEdit),
-    ) {
-        p.thumb?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
-        Text("${i + 1}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.align(Alignment.BottomStart).padding(6.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)).padding(horizontal = 7.dp, vertical = 1.dp))
-        Box(Modifier.align(Alignment.TopEnd)) {
-            Text("⋮", fontSize = 22.sp, modifier = Modifier.clickable { menu = true }.padding(8.dp))
-            DropdownMenu(menu, { menu = false }) {
-                DropdownMenuItem({ Text(stringResource(R.string.sc_edit)) }, { menu = false; onEdit() })
-                if (i > 0) DropdownMenuItem({ Text(stringResource(R.string.sc_left)) }, { menu = false; ctl.move(i, -1) })
-                if (i < ctl.pages.size - 1) DropdownMenuItem({ Text(stringResource(R.string.sc_right)) }, { menu = false; ctl.move(i, 1) })
-                if (ctl.pages.size > 1) DropdownMenuItem({ Text(stringResource(R.string.sc_delete), color = MaterialTheme.colorScheme.error) }, { menu = false; scope.launch { ctl.delete(i) } })
+    LaunchedEffect(p.quad, p.look, p.turns) { try { p.thumb = ctl.makeThumb(p) } catch (e: CancellationException) { throw e } catch (e: Exception) { } }
+    AppCard(Modifier.fillMaxWidth(), onClick = onEdit) {
+        Box(Modifier.fillMaxWidth().aspectRatio(0.72f).background(MaterialTheme.colorScheme.surfaceVariant)) {
+            p.thumb?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+            PageBadge("${i + 1}", Modifier.align(Alignment.BottomStart).padding(6.dp))
+            OverflowMenu(stringResource(R.string.lib_menu), Modifier.align(Alignment.TopEnd)) { close ->
+                DropdownMenuItem({ Text(stringResource(R.string.sc_edit)) }, { close(); onEdit() })
+                if (i > 0) DropdownMenuItem({ Text(stringResource(R.string.sc_left)) }, { close(); ctl.move(i, -1) })
+                if (i < ctl.pages.size - 1) DropdownMenuItem({ Text(stringResource(R.string.sc_right)) }, { close(); ctl.move(i, 1) })
+                if (ctl.pages.size > 1) DropdownMenuItem({ Text(stringResource(R.string.sc_delete), color = MaterialTheme.colorScheme.error) }, { close(); scope.launch { ctl.delete(i) } })
             }
         }
     }

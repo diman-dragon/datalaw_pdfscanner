@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.11
+- Fix: the build (the tap handler of the camera overlay went to the wrong parameter)
+- Frame mode is only the frame: no live search, no outline, no comparison of the sheet with the frame, no check after the shot (`SheetFit.outside`, `ShotProblem.Outside` and their texts are gone); the analysis runs in Auto mode only
+- All screens are made of one kit (`ui/ScreenKit`: TitleBar, BottomBar, GlyphButton, OverflowMenu, CenterNote, PageBadge) with `AppCard`, `Seg` and the theme: the viewer, the document editor, the page editor and the recognition screen have nothing of their own (title bar, text roles, cards, buttons, colours of the handles and the outline from the theme); the language choice of the recognition is a row of cards
 ## 0.0.10
 - Fix: the build could not find Tesseract4Android 4.9.0 (it is not on Maven Central): Jitpack is back, limited to that one group
 ## 0.0.9

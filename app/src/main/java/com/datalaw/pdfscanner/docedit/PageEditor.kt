@@ -1,5 +1,8 @@
 package com.datalaw.pdfscanner.docedit
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Spacer
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -47,7 +50,11 @@ import com.datalaw.pdfscanner.imaging.EdgeDetector
 import com.datalaw.pdfscanner.imaging.Look
 import com.datalaw.pdfscanner.imaging.PageRenderer
 import com.datalaw.pdfscanner.imaging.Sharpness
+import com.datalaw.pdfscanner.ui.BottomBar
+import com.datalaw.pdfscanner.ui.GlyphButton
 import com.datalaw.pdfscanner.ui.Seg
+import com.datalaw.pdfscanner.ui.TitleBar
+import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -87,16 +94,13 @@ fun PageEditor(
 
     fun setQuad(q: List<Offset>) { quad = q; p.quad = q; ctl.markDirty() }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("✕", fontSize = 22.sp, modifier = Modifier.clickable(onClick = onCancel).padding(10.dp))
-            Text(
-                if (total > 1) stringResource(R.string.rs_pageof, number, total) else stringResource(R.string.rs_title),
-                Modifier.weight(1f).padding(horizontal = 8.dp), fontSize = 15.sp,
-            )
-        }
+    val scheme = MaterialTheme.colorScheme
+    val rotLeft = stringResource(R.string.rs_rotl)
+    val rotRight = stringResource(R.string.rs_rotr)
+    Column(Modifier.fillMaxSize().background(scheme.background).systemBarsPadding()) {
+        TitleBar(if (total > 1) stringResource(R.string.rs_pageof, number, total) else stringResource(R.string.rs_title), onBack = onCancel)
 
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(12.dp)) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(Dimens.screen)) {
             val wPx = constraints.maxWidth.toFloat()
             val hPx = constraints.maxHeight.toFloat()
             if (b != null) {
@@ -143,31 +147,35 @@ fun PageEditor(
                 ) {
                     val pts = quad.map { Offset(ox + it.x * dw, oy + it.y * dh) }
                     val path = Path().apply { moveTo(pts[0].x, pts[0].y); for (i in 1..3) lineTo(pts[i].x, pts[i].y); close() }
-                    drawPath(path, Color(0x228A5A2B), style = Fill)
-                    drawPath(path, Color(0xFFD8A25E), style = Stroke(2.dp.toPx()))
-                    pts.forEach { drawCircle(Color(0xFFD8A25E), 11.dp.toPx(), it); drawCircle(Color.Black, 11.dp.toPx(), it, style = Stroke(1.5.dp.toPx())) }
+                    drawPath(path, scheme.primary.copy(alpha = 0.15f), style = Fill)
+                    drawPath(path, scheme.primary, style = Stroke(2.dp.toPx()))
+                    pts.forEach { drawCircle(scheme.primary, 11.dp.toPx(), it); drawCircle(scheme.surface, 11.dp.toPx(), it, style = Stroke(1.5.dp.toPx())) }
                 }
                 preview?.let {
-                    Image(it.asImageBitmap(), null, Modifier.align(Alignment.TopEnd).width(84.dp).border(1.dp, MaterialTheme.colorScheme.outline).background(Color.White), contentScale = ContentScale.Fit)
+                    Image(
+                        it.asImageBitmap(), null,
+                        Modifier.align(Alignment.TopEnd).width(84.dp).clip(RoundedCornerShape(Dimens.thumb)).border(1.dp, scheme.outline, RoundedCornerShape(Dimens.thumb)).background(Color.White),
+                        contentScale = ContentScale.Fit,
+                    )
                 }
             }
         }
 
-        Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (Sharpness.isBlurry(sharp)) Text(stringResource(R.string.rs_warn_blur), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-            tilt(quad, b)?.let { Text(stringResource(R.string.rs_warn_tilt_n, it), color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
-            Text(stringResource(R.string.rs_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("⟲", fontSize = 26.sp, modifier = Modifier.clickable { p.turns = (p.turns + 3) % 4; ctl.markDirty() }.padding(8.dp))
-                Text("⟳", fontSize = 26.sp, modifier = Modifier.clickable { p.turns = (p.turns + 1) % 4; ctl.markDirty() }.padding(8.dp))
-                Seg(listOf(Look.Original to stringResource(R.string.fx_color), Look.Auto to stringResource(R.string.fx_auto)), p.look, { p.look = it; ctl.markDirty() })
+        Column(Modifier.padding(horizontal = Dimens.screen).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(Dimens.gap)) {
+            if (Sharpness.isBlurry(sharp)) Text(stringResource(R.string.rs_warn_blur), style = MaterialTheme.typography.bodySmall, color = scheme.error)
+            tilt(quad, b)?.let { Text(stringResource(R.string.rs_warn_tilt_n, it), style = MaterialTheme.typography.bodySmall, color = scheme.error) }
+            Text(stringResource(R.string.rs_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.gap)) {
+                GlyphButton("⟲", rotLeft, { p.turns = (p.turns + 3) % 4; ctl.markDirty() })
+                GlyphButton("⟳", rotRight, { p.turns = (p.turns + 1) % 4; ctl.markDirty() })
+                Seg(listOf(Look.Original to stringResource(R.string.fx_color), Look.Auto to stringResource(R.string.fx_auto)), p.look, { p.look = it; ctl.markDirty() }, Modifier.weight(1f), fill = true)
             }
-            Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (showBack) OutlinedButton(onBack) { Text(stringResource(R.string.rs_back)) }
-                if (ctl.pages.size > 1) OutlinedButton(onDelete) { Text(stringResource(R.string.sc_delete)) }
-                Box(Modifier.weight(1f))
-                Button(onNext) { Text(stringResource(nextLabel)) }
-            }
+        }
+        BottomBar {
+            if (showBack) OutlinedButton(onBack) { Text(stringResource(R.string.rs_back)) }
+            if (ctl.pages.size > 1) OutlinedButton(onDelete) { Text(stringResource(R.string.sc_delete)) }
+            Spacer(Modifier.weight(1f))
+            Button(onNext) { Text(stringResource(nextLabel)) }
         }
     }
 }

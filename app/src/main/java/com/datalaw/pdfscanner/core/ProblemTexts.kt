@@ -8,7 +8,6 @@ fun ShotProblem.hint(sheet: Boolean): UiText = tx(
     when (this) {
         ShotProblem.NoSheet -> if (sheet) R.string.qs_nosheet else R.string.sc_nosheet
         ShotProblem.Cut -> if (sheet) R.string.qs_cut else R.string.sc_cut
-        ShotProblem.Outside -> if (sheet) R.string.qs_outside else R.string.sc_outside
     },
 )
 
@@ -17,6 +16,5 @@ fun ShotProblem.ask(sheet: Boolean): UiText = tx(
     when (this) {
         ShotProblem.NoSheet -> if (sheet) R.string.qs_nosheet_ask else R.string.sc_nosheet_ask
         ShotProblem.Cut -> if (sheet) R.string.qs_cut_ask else R.string.sc_cut_ask
-        ShotProblem.Outside -> if (sheet) R.string.qs_outside_ask else R.string.sc_outside_ask
     },
 )

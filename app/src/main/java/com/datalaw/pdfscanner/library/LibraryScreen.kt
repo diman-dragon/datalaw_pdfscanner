@@ -62,6 +62,7 @@ import com.datalaw.pdfscanner.settings.Settings
 import com.datalaw.pdfscanner.ui.AppCard
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
+import com.datalaw.pdfscanner.ui.OverflowMenu
 import com.datalaw.pdfscanner.ui.theme.Dimens
 import java.text.DateFormat
 import java.util.Date
@@ -163,17 +164,10 @@ private fun FileCard(f: PdfFile, onOpen: (PdfFile) -> Unit, menu: @Composable (P
 
 @Composable
 private fun FileMenu(f: PdfFile, onEdit: () -> Unit, onExternal: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        val menuLabel = stringResource(R.string.lib_menu)
-        Box(Modifier.size(40.dp).clickable { expanded = true }.semantics { contentDescription = menuLabel }, contentAlignment = Alignment.Center) {
-            Text("⋮", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        }
-        DropdownMenu(expanded, { expanded = false }) {
-            DropdownMenuItem({ Text(stringResource(R.string.lib_edit)) }, { expanded = false; onEdit() })
-            DropdownMenuItem({ Text(stringResource(R.string.lib_openext)) }, { expanded = false; onExternal() })
-            DropdownMenuItem({ Text(stringResource(R.string.lib_rename)) }, { expanded = false; onRename() })
-            DropdownMenuItem({ Text(stringResource(R.string.lib_delete), color = MaterialTheme.colorScheme.error) }, { expanded = false; onDelete() })
-        }
+    OverflowMenu(stringResource(R.string.lib_menu)) { close ->
+        DropdownMenuItem({ Text(stringResource(R.string.lib_edit)) }, { close(); onEdit() })
+        DropdownMenuItem({ Text(stringResource(R.string.lib_openext)) }, { close(); onExternal() })
+        DropdownMenuItem({ Text(stringResource(R.string.lib_rename)) }, { close(); onRename() })
+        DropdownMenuItem({ Text(stringResource(R.string.lib_delete), color = MaterialTheme.colorScheme.error) }, { close(); onDelete() })
     }
 }

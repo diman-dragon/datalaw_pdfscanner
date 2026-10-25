@@ -142,12 +142,14 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         else -> settings.camMode
     }
     val auto = mode == CamMode.Auto
+    val autoNow by rememberUpdatedState(auto)
+    LaunchedEffect(auto) { if (!auto) live = null }
 
     DisposableEffect(owner) {
         gyro.start()
         val fut = ProcessCameraProvider.getInstance(appCtx)
         fut.addListener({
-            try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
+            try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac, { autoNow }) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
         }, ContextCompat.getMainExecutor(appCtx))
         onDispose {
             gyro.stop()
@@ -164,9 +166,9 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
     val aspect = if (land) 4f / 3f else 3f / 4f
     val frame = FrameMath.frame(session.frameRatio(land), aspect)
     val sheet = live
-    // the same rule as after the shot; a sheet that is not seen is a problem only in Auto mode, and only while the watching works
-    val problem = if (smart && (sheet != null || (auto && watching))) ShotCheck.problem(auto, sheet, frame) else null
-    val bad = problem == ShotProblem.Outside || problem == ShotProblem.Cut
+    // Auto mode only, by the same rule as after the shot; Frame mode searches and compares nothing
+    val problem = if (smart && auto && (sheet != null || watching)) ShotCheck.problem(sheet) else null
+    val bad = problem == ShotProblem.Cut
 
     fun shoot() {
         if (busy || !ready) return
@@ -240,7 +242,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
             val w = minOf(maxWidth, maxHeight * aspect)
             Box(Modifier.align(Alignment.Center).size(w, w / aspect)) {
                 AndroidView(factory = { rig.previewView }, modifier = Modifier.fillMaxSize())
-                CameraOverlay(frame, auto, label, frameColor, bad, sheet, hold, ring) { p ->
+                CameraOverlay(frame, auto, label, frameColor, bad, sheet, hold, ring, onTap = { p ->
                     if (ready) {
                         ring = Triple(p.x, p.y, null)
                         scope.launch {
@@ -249,7 +251,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                             focus = if (ok) FocusState.Locked else FocusState.NoDetail
                         }
                     }
-                }
+                })
             }
         }
         CameraTopBar(

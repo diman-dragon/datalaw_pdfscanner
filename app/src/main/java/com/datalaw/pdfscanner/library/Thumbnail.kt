@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.pdf.PdfReader
 import com.datalaw.pdfscanner.ui.LocalGraph
+import com.datalaw.pdfscanner.ui.PageBadge
 import com.datalaw.pdfscanner.ui.theme.Dimens
 
 /** The first page of a PDF with the number of sheets in the corner (cached). */
@@ -42,10 +43,7 @@ fun PdfThumbnail(file: PdfFile, modifier: Modifier = Modifier, widthPx: Int = 36
     Box((if (rounded) modifier.clip(RoundedCornerShape(Dimens.thumb)) else modifier).background(MaterialTheme.colorScheme.surfaceVariant)) {
         thumb?.let { (bmp, pages) ->
             Image(bmp.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)
-            Text(
-                "$pages", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
-            )
+            PageBadge("$pages", Modifier.align(Alignment.BottomEnd).padding(4.dp))
         }
     }
 }

@@ -66,7 +66,13 @@ import com.datalaw.pdfscanner.core.Overlay
 import com.datalaw.pdfscanner.core.get
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.pdf.PdfReader
+import com.datalaw.pdfscanner.ui.BottomBar
+import com.datalaw.pdfscanner.ui.CenterNote
+import com.datalaw.pdfscanner.ui.GlyphButton
 import com.datalaw.pdfscanner.ui.LocalGraph
+import com.datalaw.pdfscanner.ui.OverflowMenu
+import com.datalaw.pdfscanner.ui.TitleBar
+import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlinx.coroutines.launch
 
 private sealed interface Loaded {
@@ -109,38 +115,36 @@ fun ViewerScreen(vm: AppActions, file: PdfFile) {
     }
     fun goPage(i: Int) { val t = i.coerceIn(0, maxOf(n - 1, 0)); scope.launch { if (strip) listState.animateScrollToItem(t) else pager.animateScrollToPage(t) } }
 
+    val prevLabel = stringResource(R.string.vw_prev)
+    val nextLabel = stringResource(R.string.vw_next)
+    val zoomInLabel = stringResource(R.string.vw_zoomin)
+    val zoomOutLabel = stringResource(R.string.vw_zoomout)
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("✕", fontSize = 22.sp, modifier = Modifier.clickable { vm.pop() }.padding(10.dp))
-            Text(file.name, Modifier.weight(1f).padding(horizontal = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 15.sp)
-            if (n > 0) Text(stringResource(R.string.vw_page_n, page + 1, n), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Box {
-                Text("⋮", fontSize = 22.sp, modifier = Modifier.clickable { menu = true }.padding(10.dp))
-                DropdownMenu(menu, { menu = false }) {
-                    DropdownMenuItem({ Text(stringResource(R.string.vw_mode)) }, { menu = false; strip = !strip })
-                    DropdownMenuItem({ Text(stringResource(R.string.ocr_menu)) }, { menu = false; vm.push(Overlay.Ocr(file, page, n)) })
-                    DropdownMenuItem({ Text(stringResource(R.string.vw_editpage)) }, { menu = false; vm.push(Overlay.DocEdit(file, page)) })
-                    DropdownMenuItem({ Text(stringResource(R.string.vw_editdoc)) }, { menu = false; vm.push(Overlay.DocEdit(file)) })
-                    DropdownMenuItem({ Text(stringResource(R.string.lib_openext)) }, {
-                        menu = false
-                        try { ctx.startActivity(graph.folders.viewIntent(Uri.parse(file.uri))) } catch (e: ActivityNotFoundException) { vm.toast(R.string.lib_noviewer) }
-                    })
-                }
+        TitleBar(file.name, onBack = { vm.pop() }) {
+            if (n > 0) Text(stringResource(R.string.vw_page_n, page + 1, n), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OverflowMenu(stringResource(R.string.lib_menu)) { close ->
+                DropdownMenuItem({ Text(stringResource(R.string.vw_mode)) }, { close(); strip = !strip })
+                DropdownMenuItem({ Text(stringResource(R.string.ocr_menu)) }, { close(); vm.push(Overlay.Ocr(file, page, n)) })
+                DropdownMenuItem({ Text(stringResource(R.string.vw_editpage)) }, { close(); vm.push(Overlay.DocEdit(file, page)) })
+                DropdownMenuItem({ Text(stringResource(R.string.vw_editdoc)) }, { close(); vm.push(Overlay.DocEdit(file)) })
+                DropdownMenuItem({ Text(stringResource(R.string.lib_openext)) }, {
+                    close()
+                    try { ctx.startActivity(graph.folders.viewIntent(Uri.parse(file.uri))) } catch (e: ActivityNotFoundException) { vm.toast(R.string.lib_noviewer) }
+                })
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (val l = loaded) {
                 Loaded.Loading -> Unit
-                Loaded.Failed -> Text(stringResource(R.string.vw_fail), Modifier.align(Alignment.Center))
+                Loaded.Failed -> CenterNote(stringResource(R.string.vw_fail))
                 is Loaded.Ok -> {
                     val reader = l.reader
                     BoxWithConstraints(Modifier.fillMaxSize().pinchZoom({ zoom }, { zoom = it }).doubleTapZoom({ zoom }, { zoom = it })) {
                         val screenW = maxWidth
                         if (strip) {
                             val hs = rememberScrollState()
-                            LazyColumn(Modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LazyColumn(Modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(Dimens.gap)) {
                                 items(reader.pageCount) { i ->
                                     Box(Modifier.fillMaxWidth().horizontalScroll(hs)) { PdfPageView(reader, i, screenW * zoom) }
                                 }
@@ -157,14 +161,11 @@ fun ViewerScreen(vm: AppActions, file: PdfFile) {
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            for ((label, action) in listOf<Pair<String, () -> Unit>>(
-                "◀" to { goPage(page - 1) }, "−" to { zoom = (zoom / 1.25f).coerceIn(1f, 4f) },
-                "+" to { zoom = (zoom * 1.25f).coerceIn(1f, 4f) }, "▶" to { goPage(page + 1) },
-            )) {
-                Text(label, fontSize = 22.sp, modifier = Modifier.clickable(onClick = action).padding(horizontal = 24.dp, vertical = 8.dp))
-            }
+        BottomBar {
+            GlyphButton("◀", prevLabel, { goPage(page - 1) }, Modifier.weight(1f))
+            GlyphButton("−", zoomOutLabel, { zoom = (zoom / 1.25f).coerceIn(1f, 4f) }, Modifier.weight(1f))
+            GlyphButton("+", zoomInLabel, { zoom = (zoom * 1.25f).coerceIn(1f, 4f) }, Modifier.weight(1f))
+            GlyphButton("▶", nextLabel, { goPage(page + 1) }, Modifier.weight(1f))
         }
     }
 }

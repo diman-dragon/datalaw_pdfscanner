@@ -57,9 +57,9 @@ import com.datalaw.pdfscanner.ui.DialogHost
 import com.datalaw.pdfscanner.ui.InfoButton
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
+import com.datalaw.pdfscanner.ui.TitleBar
 import com.datalaw.pdfscanner.ui.WithLocale
 import com.datalaw.pdfscanner.ui.theme.AppTheme
-import com.datalaw.pdfscanner.ui.theme.Dimens
 import com.datalaw.pdfscanner.viewer.ViewerScreen
 import kotlinx.coroutines.CompletableDeferred
 
@@ -96,11 +96,9 @@ private fun Content(vm: AppViewModel) {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             val title = when (tab) { Tab.Library -> R.string.tab_library; Tab.Quick -> R.string.tab_quick; Tab.Scan -> R.string.tab_scan; Tab.Settings -> R.string.tab_settings }
-            Row(Modifier.fillMaxWidth().height(48.dp).background(MaterialTheme.colorScheme.surface).padding(start = Dimens.screen, end = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
+            TitleBar(stringResource(title)) {
                 if (tab == Tab.Quick || tab == Tab.Scan) InfoButton(stringResource(R.string.help_label)) { vm.showHelp() }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (tab) {
                     Tab.Library -> LibraryScreen(vm, vm.library)

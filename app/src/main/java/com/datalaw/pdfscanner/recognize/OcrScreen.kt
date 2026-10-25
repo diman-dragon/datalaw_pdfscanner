@@ -42,8 +42,12 @@ import com.datalaw.pdfscanner.core.tx
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.ocr.OcrLangs
 import com.datalaw.pdfscanner.pdf.PdfReader
+import com.datalaw.pdfscanner.ui.AppCard
+import com.datalaw.pdfscanner.ui.BottomBar
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
+import com.datalaw.pdfscanner.ui.TitleBar
+import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -98,26 +102,30 @@ fun OcrScreen(vm: AppActions, file: PdfFile, startPage: Int, pages: Int) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.ocr_title), Modifier.weight(1f), fontSize = 17.sp)
-            Text("✕", fontSize = 22.sp, modifier = Modifier.clickable { vm.pop() }.padding(8.dp))
-        }
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for ((code, _) in OcrLangs.all) {
-                FilterChip(
-                    selected = code in settings.ocrLangs,
-                    onClick = { scope.launch { graph.settingsStore.setOcrLangs(if (code in settings.ocrLangs) settings.ocrLangs - code else settings.ocrLangs + code) } },
-                    label = { Text(code.uppercase()) },
-                )
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxSize().background(scheme.background).systemBarsPadding()) {
+        TitleBar(stringResource(R.string.ocr_title), onBack = { vm.pop() })
+        Column(Modifier.weight(1f).fillMaxWidth().padding(Dimens.screen), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.gap)) {
+                for ((code, _) in OcrLangs.all) {
+                    val on = code in settings.ocrLangs
+                    AppCard(
+                        Modifier.weight(1f), selected = on, horizontalAlignment = Alignment.CenterHorizontally,
+                        onClick = { scope.launch { graph.settingsStore.setOcrLangs(if (on) settings.ocrLangs - code else settings.ocrLangs + code) } },
+                    ) {
+                        Text(code.uppercase(), Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.titleMedium, color = if (on) scheme.primary else scheme.onSurface)
+                    }
+                }
             }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.gap)) {
+                Button({ go(false) }, Modifier.weight(1f), enabled = !busy) { Text(stringResource(R.string.ocr_page), maxLines = 1) }
+                Button({ go(true) }, Modifier.weight(1f), enabled = !busy) { Text(stringResource(R.string.ocr_all), maxLines = 1) }
+            }
+            status?.let { Text(it.get(), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant) }
+            OutlinedTextField(text, {}, Modifier.fillMaxWidth().weight(1f), readOnly = true)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button({ go(false) }, enabled = !busy) { Text(stringResource(R.string.ocr_page)) }
-            Button({ go(true) }, enabled = !busy) { Text(stringResource(R.string.ocr_all)) }
-            OutlinedButton({ if (text.isNotEmpty()) { clipboard.setText(AnnotatedString(text)); vm.toast(R.string.ocr_copied) } }, enabled = text.isNotEmpty()) { Text(stringResource(R.string.ocr_copy)) }
+        BottomBar {
+            OutlinedButton({ if (text.isNotEmpty()) { clipboard.setText(AnnotatedString(text)); vm.toast(R.string.ocr_copied) } }, Modifier.weight(1f), enabled = text.isNotEmpty()) { Text(stringResource(R.string.ocr_copy)) }
         }
-        status?.let { Text(it.get(), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        OutlinedTextField(text, {}, Modifier.fillMaxWidth().weight(1f), readOnly = true)
     }
 }

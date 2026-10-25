@@ -13,13 +13,17 @@ import com.datalaw.pdfscanner.imaging.SheetFinder
  * Looks for the sheet in the live camera frames (about 5 times a second) and reports its corners as 0..1 of the preview,
  * smoothed so the outline does not jitter; null when no sheet is seen for a moment. Runs on the analysis thread.
  */
-class SheetWatcher(private val expect: Double?, private val minAreaFrac: Double, private val onSheet: (List<Offset>?) -> Unit) : ImageAnalysis.Analyzer {
+class SheetWatcher(private val expect: Double?, private val minAreaFrac: Double, private val active: () -> Boolean, private val onSheet: (List<Offset>?) -> Unit) : ImageAnalysis.Analyzer {
     private var last = 0L
     private var shown: List<Offset>? = null
     private var misses = 0
 
     override fun analyze(image: ImageProxy) {
         try {
+            if (!active()) { // Frame mode: nothing is searched
+                if (shown != null || misses != 0) { shown = null; misses = 0; onSheet(null) }
+                return
+            }
             val now = SystemClock.elapsedRealtime()
             if (now - last < 200) return
             last = now
