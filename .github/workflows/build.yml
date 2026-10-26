@@ -56,5 +56,10 @@ jobs:
           for f in out/*.apk; do echo "$f"; "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$f" | grep -i 'SHA-256'; done
       - uses: actions/upload-artifact@v4
         with:
+          name: r8_mapping_${{ env.V }}
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
           name: datalaw_pdfscanner_${{ env.V }}
           path: out/*

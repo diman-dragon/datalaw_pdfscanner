@@ -1,4 +1,7 @@
 # Changelog
+## 0.0.15
+- Fix: `local.properties` (a Windows SDK path of one machine) is no longer in the repository and is listed in `.gitignore`
+- Diagnostics: R8 is off for the release build while the `NullPointerException` in a main-thread coroutine is hunted (the crash report showed only `a0.y1.g`, no class names); it also rules R8 in or out as the cause. The R8 mapping is kept as a CI artifact for when it is turned back on
 ## 0.0.14
 - Fix: the Save and Rename windows asked for the keyboard before their own window had composed the text field (`FocusRequester is not initialized` closes the app, and it was thrown outside any guard): the request now waits a moment and can no longer throw
 - Fix: in the page editor the preview, the sharpness warning and the automatic frame ran without a guard: a failure of memory or of OpenCV closed the app, now the editor goes on without that extra

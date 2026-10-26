@@ -48,8 +48,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // OFF while a crash is being hunted: with R8 the report reads "a0.y1.g" instead of class names. Turn back on once found.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName(if (!releaseKeystore.isNullOrEmpty()) "release" else "debug")
         }
