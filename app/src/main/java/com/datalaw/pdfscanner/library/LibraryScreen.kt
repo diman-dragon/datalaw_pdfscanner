@@ -59,6 +59,7 @@ import com.datalaw.pdfscanner.core.Tab
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.settings.LibView
 import com.datalaw.pdfscanner.settings.Settings
+import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.AppCard
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
@@ -115,10 +116,10 @@ fun LibraryScreen(vm: AppActions, lib: LibraryController) {
 @Composable
 private fun Empty(icon: String, title: String, hint: String, action: String?, onAction: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(icon, fontSize = 48.sp)
+        Text(icon, fontSize = Dimens.glyphBig)
         Text(title, Modifier.padding(top = 12.dp), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         Text(hint, Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-        if (action != null) Button(onAction, Modifier.padding(top = 20.dp)) { Text(action) }
+        if (action != null) PrimaryButton(action, onAction, Modifier.padding(top = 20.dp))
     }
 }
 
@@ -156,8 +157,8 @@ private fun FileCard(f: PdfFile, onOpen: (PdfFile) -> Unit, menu: @Composable (P
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
             Text(f.name, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-            Text(date, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(size, maxLines = 1, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(date, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(size, maxLines = 1, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

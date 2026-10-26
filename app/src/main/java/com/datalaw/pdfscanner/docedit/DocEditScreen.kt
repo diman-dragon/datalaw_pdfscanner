@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.core.AppActions
 import com.datalaw.pdfscanner.data.PdfFile
+import com.datalaw.pdfscanner.ui.SecondaryButton
+import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.AppCard
 import com.datalaw.pdfscanner.ui.BottomBar
 import com.datalaw.pdfscanner.ui.CenterNote
@@ -114,10 +116,9 @@ fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
         }
         if (single == null) {
             BottomBar {
-                OutlinedButton({ ctl.requestClose() }) { Text(stringResource(R.string.ed_cancel)) }
-                OutlinedButton({ ctl.sequence = true; ctl.editing = 0 }, enabled = !ctl.loading && ctl.pages.isNotEmpty()) { Text(stringResource(R.string.de_all)) }
+                SecondaryButton(stringResource(R.string.de_all), { ctl.sequence = true; ctl.editing = 0 }, enabled = !ctl.loading && ctl.pages.isNotEmpty())
                 Spacer(Modifier.weight(1f))
-                Button({ ctl.save() }, enabled = !ctl.loading && !ctl.busy) { Text(stringResource(R.string.sc_save)) }
+                PrimaryButton(stringResource(R.string.sc_save), { ctl.save() }, enabled = !ctl.loading && !ctl.busy)
             }
         }
     }

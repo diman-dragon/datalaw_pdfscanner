@@ -31,7 +31,7 @@
     <string name="lib_delq">Удалить файл?</string>
     <string name="lib_edit">Редактировать</string>
     <string name="lib_empty">В папке нет PDF</string>
-    <string name="lib_empty_hint">Нажмите «Добавить», чтобы скопировать файл в папку</string>
+    <string name="lib_empty_hint">Отсканируйте документ — он появится здесь</string>
     <string name="lib_error">Не удалось открыть папку</string>
     <string name="lib_error_hint">Выберите папку заново в настройках</string>
     <string name="lib_fail">Не удалось выполнить действие</string>
@@ -67,17 +67,15 @@
     <string name="qs_hint">Впишите лист в рамку A4 и нажмите кнопку. Не в фокусе? Коснитесь нужной точки на экране.</string>
     <string name="qs_nodetail">Мало деталей для фокуса. Коснитесь текста или края листа</string>
     <string name="rs_back">Назад</string>
-    <string name="rs_hint">Потяните за углы рамки. Двойное касание — рамка автоматически. Свайп — следующая страница.</string>
+    <string name="rs_hint">Тяните углы рамки. Двойное касание — рамка автоматически.</string>
     <string name="rs_next">Далее</string>
-    <string name="rs_pageof">Страница %1$d из %2$d</string>
-    <string name="rs_title">Результат</string>
-    <string name="rs_warn_blur">Снимок может быть нерезким - лучше переснять</string>
+    <string name="rs_warn_blur">Снимок может быть нерезким — лучше переснять</string>
     <string name="rs_warn_tilt_n">Сильный перекос %1$d%%</string>
     <string name="save_folderlost">Папка для сохранения недоступна (удалена, перемещена или карта извлечена). Выбрать другую папку?</string>
     <string name="sc_askback">Лицевая сторона снята. Снять и обратную?</string>
     <string name="sc_back">Снять обратную</string>
     <string name="sc_count_n">Страниц: %1$d</string>
-    <string name="sc_delete">Удалить страницу</string>
+    <string name="sc_delete">Удалить</string>
     <string name="sc_deleteq">Удалить эту страницу?</string>
     <string name="sc_discard">Закрыть</string>
     <string name="sc_discardq">Закрыть камеру? Снятые страницы будут потеряны.</string>
@@ -94,7 +92,7 @@
     <string name="sc_noback">Без обратной</string>
     <string name="sc_part">Продолжение чека</string>
     <string name="sc_right">Сдвинуть вправо</string>
-    <string name="sc_save">Сохранить PDF</string>
+    <string name="sc_save">Сохранить</string>
     <string name="scan_fail_n">Не удалось сохранить скан: %1$s</string>
     <string name="scan_nameq">Имя файла</string>
     <string name="scan_nofolder">Папка для сканов не выбрана. Выбрать сейчас? В окне выбора можно создать новую папку (кнопка «Новая папка»).</string>
@@ -130,7 +128,6 @@
     <string name="vw_editdoc">Редактировать документ</string>
     <string name="vw_editpage">Править страницу</string>
     <string name="vw_fail">Не удалось открыть PDF</string>
-    <string name="vw_mode">Лентой / постранично</string>
     <string name="vw_page_n">%1$d / %2$d</string>
     <string name="de_keptnew_n">Не удалось заменить оригинал. Новая версия сохранена как: %1$s</string>
     <string name="set_pdfdpi_hint">Разрешение картинок страниц в PDF. «Авто» — максимум, который даёт камера (до 6000 px). Чем выше, тем чётче, но файл больше.</string>
@@ -155,7 +152,7 @@
     <string name="save_recognize">Распознать и сохранить</string>
     <string name="save_plain">Сохранить как есть</string>
     <string name="save_ocr_fail">Не удалось подготовить распознавание (нужен интернет один раз). Сохранить без распознавания?</string>
-    <string name="cam_hold">Держите ровно — снимаю сама</string>
+    <string name="cam_hold">Держите ровно — снимок сделается сам</string>
     <string name="st_auto">Полное авто</string>
     <string name="sc_hint_full">Наведите на лист: когда он виден целиком и телефон неподвижен, снимок сделается сам</string>
     <string name="help_label">Что это</string>
@@ -184,4 +181,7 @@
     <string name="vw_pages">Листы</string>
     <string name="rs_autoframe">Рамка авто</string>
     <string name="rs_resetframe">Вся страница</string>
+    <string name="fx_clean">Без теней</string>
+    <string name="fx_gray">Серый</string>
+    <string name="fx_bw">Ч/б</string>
 </resources>

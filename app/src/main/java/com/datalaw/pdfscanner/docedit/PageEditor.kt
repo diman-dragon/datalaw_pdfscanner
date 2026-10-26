@@ -43,6 +43,8 @@ import com.datalaw.pdfscanner.imaging.EdgeDetector
 import com.datalaw.pdfscanner.imaging.Enhance
 import com.datalaw.pdfscanner.imaging.Look
 import com.datalaw.pdfscanner.imaging.Sharpness
+import com.datalaw.pdfscanner.ui.SecondaryButton
+import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.BottomBar
 import com.datalaw.pdfscanner.ui.RotateButtons
 import com.datalaw.pdfscanner.ui.Seg
@@ -92,7 +94,7 @@ fun PageEditor(
         val look = p.look
         optional {
             var x: Bitmap = b
-            if (look == Look.Auto) x = Enhance.auto(x)
+            if (look != Look.Original) x = Enhance.apply(x, look)
             if (t != 0) x = BitmapLoader.rotate(x, t * 90)
             Shown(x, t)
         }?.let { value = it }
@@ -174,51 +176,17 @@ fun PageEditor(
         }
         ToolRow {
             RotateButtons { d -> p.turns = ((p.turns + d) % 4 + 4) % 4; ctl.markDirty() }
-            Seg(listOf(Look.Original to stringResource(R.string.fx_color), Look.Auto to stringResource(R.string.fx_auto)), p.look, { p.look = it; ctl.markDirty() }, Modifier.weight(1f), fill = true)
+            Seg(Look.entries.map { it to stringResource(it.labelRes()) }, p.look, { p.look = it; ctl.markDirty() }, Modifier.weight(1f), scroll = true)
         }
         ToolRow {
-            OutlinedButton({ autoFrame() }, Modifier.weight(1f)) { Text(stringResource(R.string.rs_autoframe)) }
-            OutlinedButton({ setQuad(FULL) }, Modifier.weight(1f)) { Text(stringResource(R.string.rs_resetframe)) }
+            SecondaryButton(stringResource(R.string.rs_autoframe), { autoFrame() }, Modifier.weight(1f))
+            SecondaryButton(stringResource(R.string.rs_resetframe), { setQuad(FULL) }, Modifier.weight(1f))
         }
         BottomBar {
-            if (showBack) OutlinedButton(onBack) { Text(stringResource(R.string.rs_back)) }
-            if (ctl.pages.size > 1) OutlinedButton(onDelete) { Text(stringResource(R.string.sc_delete)) }
+            if (showBack) SecondaryButton(stringResource(R.string.rs_back), onBack)
+            if (ctl.pages.size > 1) SecondaryButton(stringResource(R.string.sc_delete), onDelete)
             Spacer(Modifier.weight(1f))
-            Button(onNext) { Text(stringResource(nextLabel)) }
+            PrimaryButton(stringResource(nextLabel), onNext)
         }
     }
-}
-
-/** A point of the page (0..1 of the page as it was shot) as it is seen on the picture turned by [k] quarter-turns clockwise. */
-private fun toView(o: Offset, k: Int): Offset = when (k) {
-    1 -> Offset(1f - o.y, o.x)
-    2 -> Offset(1f - o.x, 1f - o.y)
-    3 -> Offset(o.y, 1f - o.x)
-    else -> o
-}
-
-/** The way back of [toView]: a point touched on the turned picture, in the page as it was shot. */
-private fun fromView(o: Offset, k: Int): Offset = when (k) {
-    1 -> Offset(o.y, 1f - o.x)
-    2 -> Offset(1f - o.x, 1f - o.y)
-    3 -> Offset(1f - o.y, o.x)
-    else -> o
-}
-
-/** The picture, the sharpness and the automatic frame are extras: when one of them fails (memory, OpenCV) the editor goes on without it instead of closing the app. null = it failed. */
-private suspend fun <T> optional(block: () -> T): T? = try {
-    withContext(Dispatchers.Default) { block() }
-} catch (e: CancellationException) {
-    throw e
-} catch (e: Throwable) {
-    null
-}
-
-/** Percent of perspective distortion of the frame (null when small). */
-private fun tilt(q: List<Offset>, b: Bitmap?): Int? {
-    if (b == null) return null
-    fun d(a: Offset, c: Offset) = hypot((a.x - c.x) * b.width, (a.y - c.y) * b.height)
-    val top = d(q[0], q[1]); val bot = d(q[3], q[2]); val lef = d(q[0], q[3]); val rig = d(q[1], q[2])
-    val t = max(abs(top / max(bot, 1f) - 1f), abs(lef / max(rig, 1f) - 1f))
-    return if (t > 0.15f) (t * 100).toInt() else null
 }

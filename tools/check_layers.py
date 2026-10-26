@@ -7,6 +7,8 @@
       <- camera, scan, library, docedit, viewer, prefs, recognize   (the features)
       <- app                            (the shell: tabs, overlays, the view model)
 
+A feature builds its buttons only of the kit (PrimaryButton, SecondaryButton, GlyphButton).
+
 Run from the repository root: python3 tools/check_layers.py. Exit code 1 = a violation.
 """
 import collections
@@ -18,6 +20,9 @@ BASE = "app/src/main/java/com/datalaw/pdfscanner/"
 PKG = "com.datalaw.pdfscanner"
 LOW = {"data", "pdf", "ocr", "imaging", "settings"}
 HIGH = {"core", "ui", "app"}
+FEATURES = {"camera", "scan", "library", "docedit", "viewer", "prefs", "recognize"}
+# a screen has no buttons of its own: PrimaryButton / SecondaryButton / GlyphButton of the kit (ui) only
+RAW_BUTTON = re.compile(r"(?<![A-Za-z])(Outlined|Text|Filled|Elevated)?Button\(")
 
 
 def top(path: str) -> str:
@@ -29,6 +34,10 @@ graph = collections.defaultdict(set)
 errors = []
 for f in glob.glob(BASE + "**/*.kt", recursive=True):
     a = top(f)
+    if a in FEATURES:
+        for n, line in enumerate(open(f).read().splitlines(), 1):
+            if RAW_BUTTON.search(line.split("//")[0]):
+                errors.append(f"{f}:{n}: a raw Material button in a feature; use PrimaryButton / SecondaryButton from ui")
     for m in re.finditer(r"^import " + re.escape(PKG) + r"\.(\w+)\.", open(f).read(), re.M):
         b = m.group(1)
         if b == a or not b[0].islower():

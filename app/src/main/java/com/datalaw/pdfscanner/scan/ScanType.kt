@@ -31,6 +31,12 @@ object ScanTypes {
 
     fun byId(id: String): ScanType = all.firstOrNull { it.id == id } ?: all.first()
 
+    /** What the "Auto" switch scans: whatever the camera finds, fitted to A4 and shot by itself. */
+    val auto: ScanType = all.first { it.free }
+
+    /** The size chosen for the "Frame" switch (a stored "auto" from an older version means A4). */
+    fun preset(id: String): ScanType = all.firstOrNull { it.id == id && !it.free } ?: all.first { !it.free }
+
     /** Real size (w, h) of the item in the picture: A4 / A5 held landscape swap. */
     fun itemMm(t: ScanType, land: Boolean): Pair<Double, Double> =
         if (t.orient == Orient.Video && land) t.mm.second to t.mm.first else t.mm

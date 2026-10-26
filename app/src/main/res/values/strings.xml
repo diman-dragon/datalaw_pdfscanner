@@ -31,7 +31,7 @@
     <string name="lib_delq">Delete file?</string>
     <string name="lib_edit">Edit</string>
     <string name="lib_empty">No PDFs in this folder</string>
-    <string name="lib_empty_hint">Tap “Add” to copy a file into the folder</string>
+    <string name="lib_empty_hint">Scan a document — it will appear here</string>
     <string name="lib_error">Cannot open the folder</string>
     <string name="lib_error_hint">Choose the folder again in Settings</string>
     <string name="lib_fail">Action failed</string>
@@ -67,17 +67,15 @@
     <string name="qs_hint">Fit the sheet into the A4 frame and tap the button. Out of focus? Tap the spot on the screen.</string>
     <string name="qs_nodetail">Too little detail to focus. Tap the text or the edge of the sheet</string>
     <string name="rs_back">Back</string>
-    <string name="rs_hint">Drag the frame corners. Double-tap = automatic frame. Swipe = next page.</string>
+    <string name="rs_hint">Drag the frame corners. Double-tap finds the frame by itself.</string>
     <string name="rs_next">Next</string>
-    <string name="rs_pageof">Page %1$d of %2$d</string>
-    <string name="rs_title">Result</string>
-    <string name="rs_warn_blur">The shot may be blurry - better retake</string>
+    <string name="rs_warn_blur">The shot may be blurry — better retake</string>
     <string name="rs_warn_tilt_n">Strong tilt %1$d%%</string>
     <string name="save_folderlost">The save folder is not available (deleted, moved or the card was removed). Choose another folder?</string>
     <string name="sc_askback">Front side is shot. Shoot the back side too?</string>
     <string name="sc_back">Shoot the back</string>
     <string name="sc_count_n">Pages: %1$d</string>
-    <string name="sc_delete">Delete page</string>
+    <string name="sc_delete">Delete</string>
     <string name="sc_deleteq">Delete this page?</string>
     <string name="sc_discard">Close</string>
     <string name="sc_discardq">Close the camera? The pages shot so far will be lost.</string>
@@ -94,7 +92,7 @@
     <string name="sc_noback">Without the back</string>
     <string name="sc_part">Receipt continues</string>
     <string name="sc_right">Move right</string>
-    <string name="sc_save">Save PDF</string>
+    <string name="sc_save">Save</string>
     <string name="scan_fail_n">Could not save the scan: %1$s</string>
     <string name="scan_nameq">File name</string>
     <string name="scan_nofolder">No folder for scans yet. Choose one now? The picker has a \"New folder\" button.</string>
@@ -130,7 +128,6 @@
     <string name="vw_editdoc">Edit the document</string>
     <string name="vw_editpage">Edit this page</string>
     <string name="vw_fail">Could not open the PDF</string>
-    <string name="vw_mode">Strip / page by page</string>
     <string name="vw_page_n">%1$d / %2$d</string>
     <string name="de_keptnew_n">Could not replace the original. The new version is saved as: %1$s</string>
     <string name="set_pdfdpi_hint">Resolution of the page pictures in the PDF. Auto is the best the camera gives (up to 6000 px). Higher is sharper, but the file is bigger.</string>
@@ -155,7 +152,7 @@
     <string name="save_recognize">Recognize and save</string>
     <string name="save_plain">Save as is</string>
     <string name="save_ocr_fail">Could not prepare the text recognition (it needs the internet once). Save without recognition?</string>
-    <string name="cam_hold">Hold still — shooting by itself</string>
+    <string name="cam_hold">Hold still — it shoots by itself</string>
     <string name="st_auto">Full auto</string>
     <string name="sc_hint_full">Point at the sheet: when it is seen whole and the phone is still, the shot is made by itself</string>
     <string name="help_label">What is this</string>
@@ -184,4 +181,7 @@
     <string name="vw_pages">Pages</string>
     <string name="rs_autoframe">Auto frame</string>
     <string name="rs_resetframe">Whole page</string>
+    <string name="fx_clean">No shadows</string>
+    <string name="fx_gray">Gray</string>
+    <string name="fx_bw">B/W</string>
 </resources>

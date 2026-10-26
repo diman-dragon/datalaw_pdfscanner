@@ -42,6 +42,8 @@ import com.datalaw.pdfscanner.core.tx
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.ocr.OcrLangs
 import com.datalaw.pdfscanner.pdf.PdfReader
+import com.datalaw.pdfscanner.ui.SecondaryButton
+import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.AppCard
 import com.datalaw.pdfscanner.ui.BottomBar
 import com.datalaw.pdfscanner.ui.LocalGraph
@@ -118,14 +120,14 @@ fun OcrScreen(vm: AppActions, file: PdfFile, startPage: Int, pages: Int) {
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.gap)) {
-                Button({ go(false) }, Modifier.weight(1f), enabled = !busy) { Text(stringResource(R.string.ocr_page), maxLines = 1) }
-                Button({ go(true) }, Modifier.weight(1f), enabled = !busy) { Text(stringResource(R.string.ocr_all), maxLines = 1) }
+                PrimaryButton(stringResource(R.string.ocr_page), { go(false) }, Modifier.weight(1f), enabled = !busy)
+                PrimaryButton(stringResource(R.string.ocr_all), { go(true) }, Modifier.weight(1f), enabled = !busy)
             }
             status?.let { Text(it.get(), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant) }
             OutlinedTextField(text, {}, Modifier.fillMaxWidth().weight(1f), readOnly = true)
         }
         BottomBar {
-            OutlinedButton({ if (text.isNotEmpty()) { clipboard.setText(AnnotatedString(text)); vm.toast(R.string.ocr_copied) } }, Modifier.weight(1f), enabled = text.isNotEmpty()) { Text(stringResource(R.string.ocr_copy)) }
+            SecondaryButton(stringResource(R.string.ocr_copy), { if (text.isNotEmpty()) { clipboard.setText(AnnotatedString(text)); vm.toast(R.string.ocr_copied) } }, Modifier.weight(1f), enabled = text.isNotEmpty())
         }
     }
 }

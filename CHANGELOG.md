@@ -1,4 +1,10 @@
 # Changelog
+## 0.0.17
+- Add: page looks like in the scanner apps, all by plain image processing (no neural network): "Auto" (uneven light and soft shadows), "No shadows" (also the folds and creases of the sheet; paper pure white), "Gray", "B/W" (black text on white); the switch of the editor scrolls sideways
+- Change: Scan tab: first the switch Frame / Auto, under it the ready sizes (only for Frame), last "Shoot"; everything stands in the middle of the screen. The separate "Full auto" cell is gone: "Auto" is the full automatic scan. Quick scan stands in the middle too
+- Change: Settings: a setting is one card, a tap on it changes the value (shown on the right); About is centred
+- Fix: the label of "Save" in the document editor was broken into pieces: buttons come from one kit (PrimaryButton, SecondaryButton) and keep their label on ONE line; "Save PDF" is "Save", "Delete page" on a button is "Delete", the duplicate "Cancel" of the document editor is gone (the close button is in the title); stale texts fixed (the hint of the editor spoke of a swipe, the empty library of an "Add" button that does not exist)
+- Atomicity: the viewer is split (page view, zoom gestures, the maths of the zoom focus), the page editor too (geometry, safe extras, look names); the maths has unit tests; text sizes and glyph sizes come from the theme roles and `Dimens`; `check_layers.py` also rejects a raw Material button in a feature
 ## 0.0.16
 - Change: saving no longer keeps the camera open. After the name is chosen the camera closes at once and the Library opens; the page is finished, recognised and written in the background and the progress is a line with a bar at the top of the app (also for editing a document)
 - Change: the page editor has no small preview window any more: the page itself shows the turn and Original / Auto at once, the frame is drawn over it and the outside of the frame is darkened

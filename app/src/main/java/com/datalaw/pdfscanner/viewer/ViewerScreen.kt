@@ -152,19 +152,11 @@ fun ViewerScreen(vm: AppActions, file: PdfFile) {
             if (n == 0 || w <= 0f || h <= 0f || z1 == z0) { zoom = z1; continue }
             val k = z1 / z0
             if (strip) {
-                fun hOf(i: Int, z: Float) = w * z * ratioOf(i)
-                // the point of the strip under the finger: which page, and how far down it
-                var y = r.fy + listState.firstVisibleItemScrollOffset
-                for (j in 0 until listState.firstVisibleItemIndex) y += hOf(j, z0) + gapPx
-                var p = 0
-                var rest = y
-                while (p < n - 1 && rest > hOf(p, z0)) { rest -= hOf(p, z0) + gapPx; p++ }
-                val f = (rest / hOf(p, z0)).coerceIn(0f, 1f)
-                // the same point after the zoom
-                var ny = f * hOf(p, z1) - r.fy
-                for (j in 0 until p) ny += hOf(j, z1) + gapPx
-                var idx = 0
-                while (idx < n - 1 && ny >= hOf(idx, z1) + gapPx) { ny -= hOf(idx, z1) + gapPx; idx++ }
+                val hOf: (Int, Float) -> Float = { i, z -> w * z * ratioOf(i) }
+                // the point of the strip under the finger: which page, how far down it; then where that point is after the zoom
+                val y = StripFocus.top(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, z0, gapPx, hOf) + r.fy
+                val (p, f) = StripFocus.pointAt(y, z0, n, gapPx, hOf)
+                val (idx, ny) = StripFocus.itemAt(StripFocus.yOf(p, f, z1, gapPx, hOf) - r.fy, z1, n, gapPx, hOf)
                 val x0 = stripH.value + r.fx
                 zoom = z1
                 listState.scrollToItem(idx, ny.roundToInt().coerceAtLeast(0))
@@ -252,54 +244,4 @@ fun ViewerScreen(vm: AppActions, file: PdfFile) {
             GlyphButton("▶", nextLabel, { goPage(page + 1) }, Modifier.weight(1f))
         }
     }
-}
-
-/**
- * A page at the given width. The bitmap is drawn at least [base] px wide and then at steps of 400 px; while the zoom is still moving the old bitmap is simply
- * stretched by the GPU (nothing waits), and only the size it stops at is drawn anew.
- */
-@Composable
-private fun PdfPageView(reader: PdfReader, index: Int, width: Dp, base: Float, turns: Int) {
-    val px = with(LocalDensity.current) { width.toPx() }
-    val renderW = max(((px / 400f).toInt() + 1) * 400f, base).toInt().coerceAtMost(3200)
-    val odd = turns % 2 != 0
-    val ratio = reader.ratios[index]
-    val bmp by produceState<Bitmap?>(null, reader, index, renderW, turns) {
-        if (value != null) delay(250)
-        val got = try {
-            val w = if (odd) (renderW / ratio).toInt() else renderW
-            val raw = reader.render(index, w, cache = true)
-            if (turns % 4 == 0) raw else withContext(Dispatchers.Default) { BitmapLoader.rotate(raw, turns * 90) }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            null
-        }
-        if (got != null) value = got
-    }
-    Box(Modifier.width(width).aspectRatio(if (odd) ratio else 1f / ratio).background(Color.White)) {
-        bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds) }
-    }
-}
-
-/** Two fingers change the zoom around the middle between them; one finger is left to the scrolling. */
-private fun Modifier.pinchZoom(get: () -> Float, set: (Float, Offset) -> Unit): Modifier = pointerInput(Unit) {
-    awaitEachGesture {
-        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-        do {
-            val ev = awaitPointerEvent(PointerEventPass.Initial)
-            if (ev.changes.size >= 2) {
-                val z = ev.calculateZoom()
-                if (z != 1f) {
-                    set(get() * z, ev.calculateCentroid())
-                    ev.changes.forEach { it.consume() }
-                }
-            }
-        } while (ev.changes.any { it.pressed })
-    }
-}
-
-/** A double tap zooms in at the place tapped, and the next one returns to the normal size. */
-private fun Modifier.doubleTapZoom(onTap: (Offset) -> Unit): Modifier = pointerInput(Unit) {
-    detectTapGestures(onDoubleTap = { onTap(it) })
 }

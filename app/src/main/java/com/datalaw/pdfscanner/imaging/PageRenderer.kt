@@ -154,7 +154,7 @@ class PageRenderer(
                 swap(BitmapLoader.fit(src, side))
             }
             if (((turns % 4) + 4) % 4 != 0) swap(BitmapLoader.rotate(c, turns * 90))
-            if (look == Look.Auto) swap(Enhance.auto(c))
+            if (look != Look.Original) swap(Enhance.apply(c, look))
             return c
         }
 

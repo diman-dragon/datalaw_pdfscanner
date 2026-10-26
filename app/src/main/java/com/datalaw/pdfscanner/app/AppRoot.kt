@@ -60,6 +60,7 @@ import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
 import com.datalaw.pdfscanner.ui.TitleBar
 import com.datalaw.pdfscanner.ui.WithLocale
+import com.datalaw.pdfscanner.ui.theme.Dimens
 import com.datalaw.pdfscanner.ui.theme.AppTheme
 import com.datalaw.pdfscanner.viewer.ViewerScreen
 import kotlinx.coroutines.CompletableDeferred
@@ -113,7 +114,7 @@ private fun Content(vm: AppViewModel) {
                     Triple(Tab.Library, "📚", R.string.nav_library), Triple(Tab.Quick, "⚡", R.string.nav_quick),
                     Triple(Tab.Scan, "📷", R.string.nav_scan), Triple(Tab.Settings, "⚙️", R.string.nav_settings),
                 ).forEach { (t, icon, label) ->
-                    NavigationBarItem(selected = tab == t, onClick = { vm.goTo(t) }, icon = { Text(icon, fontSize = 22.sp) }, label = { Text(stringResource(label), fontSize = 12.sp, maxLines = 1) })
+                    NavigationBarItem(selected = tab == t, onClick = { vm.goTo(t) }, icon = { Text(icon, fontSize = Dimens.glyph) }, label = { Text(stringResource(label), style = MaterialTheme.typography.labelSmall, maxLines = 1) })
                 }
             }
         }

@@ -23,6 +23,7 @@ import com.datalaw.pdfscanner.library.LibraryController
 import com.datalaw.pdfscanner.scan.QuickSession
 import com.datalaw.pdfscanner.scan.ScanSession
 import com.datalaw.pdfscanner.scan.ScanTypes
+import com.datalaw.pdfscanner.settings.CamMode
 import com.datalaw.pdfscanner.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -93,7 +94,10 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
 
     override fun startScan() {
         viewModelScope.launch {
-            if (folder.ensure() && !cameraOpen()) push(Overlay.Camera(ScanSession(deps, ScanTypes.byId((settings.value ?: Settings()).scanType))))
+            if (folder.ensure() && !cameraOpen()) {
+                val s = settings.value ?: Settings()
+                push(Overlay.Camera(ScanSession(deps, if (s.camMode == CamMode.Auto) ScanTypes.auto else ScanTypes.preset(s.scanType))))
+            }
         }
     }
 

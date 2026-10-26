@@ -35,26 +35,14 @@ import com.datalaw.pdfscanner.ui.theme.Dimens
 
 private fun mm(v: Double) = v.toString().removeSuffix(".0")
 
-/** What is scanned: Full auto on top, then every type as a cell with a picture of its real shape, the name and the size; all on the screen at once. */
+/** The sizes to choose for the Frame switch: every type is a cell with a picture of its real shape, the name and the size; all on the screen at once. */
 @Composable
 fun TypeGrid(selectedId: String, onSelect: (String) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.gap)) {
-        ScanTypes.all.filter { it.free }.forEach { t -> AutoCell(t, t.id == selectedId) { onSelect(t.id) } }
         ScanTypes.all.filter { !it.free }.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.gap)) {
                 row.forEach { t -> TypeCell(t, t.id == selectedId, { onSelect(t.id) }, Modifier.weight(1f)) }
             }
-        }
-    }
-}
-
-/** Full auto: one wide cell, no size. */
-@Composable
-private fun AutoCell(t: ScanType, on: Boolean, onClick: () -> Unit) {
-    AppCard(Modifier.fillMaxWidth(), selected = on, onClick = onClick, horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("✨", fontSize = 22.sp)
-            Text(stringResource(t.nameRes), Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium, color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -66,7 +54,7 @@ private fun TypeCell(t: ScanType, on: Boolean, onClick: () -> Unit, modifier: Mo
     AppCard(modifier, selected = on, onClick = onClick, horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.padding(horizontal = 4.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Canvas(Modifier.size(38.dp)) { glyph(t, ink) }
-            Text(stringResource(t.nameRes), Modifier.padding(top = 4.dp), fontSize = 14.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(stringResource(t.nameRes), Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("${mm(t.mm.first)}×${mm(t.mm.second)}", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1)
         }
     }

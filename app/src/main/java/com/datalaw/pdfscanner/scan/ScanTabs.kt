@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.core.AppActions
 import com.datalaw.pdfscanner.settings.CamMode
+import com.datalaw.pdfscanner.ui.CenterColumn
+import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
 import com.datalaw.pdfscanner.ui.Seg
@@ -39,7 +41,7 @@ private fun ModeSwitch(mode: CamMode, onSelect: (CamMode) -> Unit) {
 
 @Composable
 private fun ShootButton(onClick: () -> Unit) {
-    Button(onClick) { Text("📷  " + stringResource(R.string.scan_shoot), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)) }
+    PrimaryButton("📷  " + stringResource(R.string.scan_shoot), onClick, Modifier.padding(horizontal = 24.dp, vertical = 4.dp), big = true)
 }
 
 /** QUICK SCAN: the mode and one big button; what it all means is in the (i) of the title bar. */
@@ -48,28 +50,29 @@ fun QuickTab(vm: AppActions) {
     val s = LocalSettings.current
     val store = LocalGraph.current.settingsStore
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+    CenterColumn {
         ModeSwitch(s.camMode) { m -> scope.launch { store.setCamMode(m) } }
         Spacer(Modifier.height(32.dp))
         ShootButton { vm.startQuick() }
     }
 }
 
-/** SCAN: what is scanned (Full auto, A4, A5, card, business card, passport, receipt), the mode, and the button. Everything fits one screen. */
+/**
+ * SCAN: the same page as the quick one, with the sizes added. First the switch Frame / Auto; Auto is the full automatic scan (no size to choose, the camera
+ * finds the item by itself), Frame shows the ready sizes under the switch; last the button.
+ */
 @Composable
 fun ScanTab(vm: AppActions) {
     val s = LocalSettings.current
     val store = LocalGraph.current.settingsStore
     val scope = rememberCoroutineScope()
-    val type = ScanTypes.byId(s.scanType)
-    Column(Modifier.fillMaxSize().padding(Dimens.screen), horizontalAlignment = Alignment.CenterHorizontally) {
-        TypeGrid(type.id) { id -> scope.launch { store.setScanType(id) } }
-        if (!type.free) {
+    CenterColumn {
+        ModeSwitch(s.camMode) { m -> scope.launch { store.setCamMode(m) } }
+        if (s.camMode == CamMode.Frame) {
             Spacer(Modifier.height(16.dp))
-            ModeSwitch(s.camMode) { m -> scope.launch { store.setCamMode(m) } }
+            TypeGrid(ScanTypes.preset(s.scanType).id) { id -> scope.launch { store.setScanType(id) } }
         }
-        Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            ShootButton { vm.startScan() }
-        }
+        Spacer(Modifier.height(32.dp))
+        ShootButton { vm.startScan() }
     }
 }

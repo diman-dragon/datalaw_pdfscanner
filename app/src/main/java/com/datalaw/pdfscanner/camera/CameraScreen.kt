@@ -81,6 +81,7 @@ import com.datalaw.pdfscanner.imaging.ShotFile
 import com.datalaw.pdfscanner.imaging.ShotProblem
 import com.datalaw.pdfscanner.imaging.shotSharpness
 import com.datalaw.pdfscanner.settings.CamMode
+import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.LocalGraph
 import com.datalaw.pdfscanner.ui.LocalSettings
 import java.io.File
@@ -120,8 +121,8 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
     if (!granted) {
         Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(stringResource(R.string.cam_perm), color = Color.White)
-            Button({ permission.launch(Manifest.permission.CAMERA) }, Modifier.padding(top = 16.dp)) { Text(stringResource(R.string.cam_grant)) }
-            Button(askClose, Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.vw_close)) }
+            PrimaryButton(stringResource(R.string.cam_grant), { permission.launch(Manifest.permission.CAMERA) }, Modifier.padding(top = 16.dp))
+            PrimaryButton(stringResource(R.string.vw_close), askClose, Modifier.padding(top = 8.dp))
         }
         return
     }
