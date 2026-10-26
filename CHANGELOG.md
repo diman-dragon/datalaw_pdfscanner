@@ -1,4 +1,10 @@
 # Changelog
+## 0.0.19
+- Quality, camera: half a stop more exposure for documents (the meter takes white paper for grey and under-exposes it: the paper is whiter, the shot less noisy)
+- Quality, camera: a soft shot is no longer shown to the person at once: the camera takes up to two more photos and keeps the sharpest; "Retake / Save as is" is asked only when even the best one is soft
+- Quality, camera: the tap on the shutter shakes the phone, so the photo waits for it to settle (a moment, at most half a second)
+- Quality, picture: a page is brought from the 16 MP shot to its size with cubic interpolation (was linear, which blurs small text) and a light unsharp mask
+- Quality, compression: the JPEG starts at quality 92 (was 82): a clean page, which is small anyway, keeps crisp text; a noisy photo still goes down to what the size budget allows (5 steps of search instead of 4)
 ## 0.0.18
 - Add: the full crash report. When (and only when) the last run ended badly (an uncaught exception, a native crash, "not responding", killed for memory while on the screen) the app starts with a window "The app closed unexpectedly": what to do ("contact the developer and pass this report"), the whole report, and the buttons Copy / Send / Close. The report stays until it is closed
 - Add: the report holds the version and build, the device, Android and ABI, language, the time, the age of the process, the Java and native heap, the free memory of the device, the stack with its causes, how the process ended, and the trail of the last 40 things done (tabs, screens, dialogs, saves, shots), kept in a small file (`Breadcrumbs`)

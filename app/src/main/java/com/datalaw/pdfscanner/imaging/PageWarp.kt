@@ -7,6 +7,7 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
@@ -76,17 +77,24 @@ object PageWarp {
         var to: MatOfPoint2f? = null
         var m: Mat? = null
         var dst: Mat? = null
+        var blur: Mat? = null
         try {
             srcMat = Cv.rgb(src)
             from = MatOfPoint2f(*q.map { Point(it.x.toDouble(), it.y.toDouble()) }.toTypedArray())
             to = MatOfPoint2f(Point(0.0, 0.0), Point(w - 1.0, 0.0), Point(w - 1.0, h - 1.0), Point(0.0, h - 1.0))
             m = Imgproc.getPerspectiveTransform(from, to)
             dst = Mat()
-            Imgproc.warpPerspective(srcMat, dst, m, Size(w.toDouble(), h.toDouble()), Imgproc.INTER_LINEAR)
+            // cubic, not linear: linear blurs the strokes of small text when a 16 MP shot is brought to the size of the page
+            Imgproc.warpPerspective(srcMat, dst, m, Size(w.toDouble(), h.toDouble()), Imgproc.INTER_CUBIC)
+            // a light unsharp mask gives back what any resampling takes
+            blur = Mat()
+            Imgproc.GaussianBlur(dst, blur, Size(0.0, 0.0), 1.0)
+            Core.addWeighted(dst, 1.25, blur, -0.25, 0.0, dst)
             return Cv.bitmap(dst)
         } finally {
             srcMat?.release()
             dst?.release()
+            blur?.release()
             m?.release()
             from?.release()
             to?.release()

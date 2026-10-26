@@ -21,6 +21,7 @@ import com.datalaw.pdfscanner.settings.FlashMode
 import java.io.File
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
+import kotlin.math.roundToInt
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -32,6 +33,8 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
     private var analysis: ImageAnalysis? = null
 
     private companion object {
+        /** The meter takes white paper for grey and under-exposes it: half a stop more makes the paper white and the shot less noisy. */
+        const val DOC_EV = 0.5f
         // one thread for the whole process: the analysis never blocks the screen
         val analysisExecutor by lazy { Executors.newSingleThreadExecutor() }
     }
@@ -79,7 +82,22 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
         if (watcher != null) live = try { attempt(true); true } catch (e: Exception) { false }
         if (!live) attempt(false)
         setFlash(flash)
+        setDocumentExposure()
         return live
+    }
+
+    private fun setDocumentExposure() {
+        val cam = camera ?: return
+        try {
+            val st = cam.cameraInfo.exposureState
+            if (!st.isExposureCompensationSupported) return
+            val step = st.exposureCompensationStep.toFloat()
+            if (step <= 0f) return
+            val index = (DOC_EV / step).roundToInt().coerceIn(st.exposureCompensationRange.lower, st.exposureCompensationRange.upper)
+            cam.cameraControl.setExposureCompensationIndex(index)
+        } catch (e: Exception) {
+            // not every phone lets the exposure be changed: the shot is then simply as the meter wants it
+        }
     }
 
     fun setFlash(m: FlashMode) {

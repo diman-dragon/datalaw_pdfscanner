@@ -175,6 +175,10 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         busy = true
         scope.launch {
             try {
+                // the tap on the shutter shakes the phone: let it settle (at most half a second) before the photo is taken
+                delay(100)
+                var waited = 0
+                while (!gyro.steady && waited < 400) { delay(50); waited += 50 }
                 val region = if (auto) live?.let { SheetFit.bbox(it) } else frame
                 val shot = takeShot(rig, appCtx.cacheDir, host, session, auto, region, aspect, land)
                 if (shot != null && session.onShot(shot)) closeNow()

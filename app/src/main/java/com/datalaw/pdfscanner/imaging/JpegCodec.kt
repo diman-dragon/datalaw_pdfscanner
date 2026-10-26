@@ -7,6 +7,8 @@ class Encoded(val jpeg: ByteArray, val w: Int, val h: Int)
 
 /** JPEG into a byte budget: the best quality that fits, and if even the lowest does not, a smaller picture. */
 object JpegCodec {
+    private const val TOP = 92
+
     private fun encode(b: Bitmap, q: Int): ByteArray {
         val o = ByteArrayOutputStream(256 * 1024)
         b.compress(Bitmap.CompressFormat.JPEG, q, o)
@@ -16,12 +18,13 @@ object JpegCodec {
     fun encodeToBudget(src: Bitmap, max: Int): Encoded {
         var c = src
         for (round in 0 until 5) {
-            val first = encode(c, 82)
+            // a clean page (white paper) fits at the top quality and keeps its crisp text; a noisy photo goes down to what the budget allows
+            val first = encode(c, TOP)
             if (first.size <= max) return done(c, src, first)
             var lo = 30
-            var hi = 82
+            var hi = TOP
             var best: ByteArray? = null
-            for (step in 0 until 4) {
+            for (step in 0 until 5) {
                 val q = (lo + hi) / 2
                 val b = encode(c, q)
                 if (b.size <= max) { best = b; lo = q } else hi = q
