@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.util.LruCache
 import android.os.ParcelFileDescriptor
 import java.io.Closeable
 import java.io.IOException
@@ -27,22 +28,33 @@ class PdfReader private constructor(
     private var closed = false
     val pageCount: Int get() = ratios.size
 
-    /** A white-backed bitmap of the page, [width] px wide (the height is capped at [maxHeight]). */
-    suspend fun render(index: Int, width: Int, maxHeight: Int = 4500): Bitmap = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            synchronized(lock) {
-                if (closeAsked) throw IOException("document closed")
-                rendering = true
-            }
-            try {
-                renderPage(renderer, index, width, maxHeight)
-            } finally {
+    /** The pages the viewer drew lately: scrolling back or zooming out shows them at once. Never recycled (a drawn bitmap may still be on the screen), the garbage collector takes them. */
+    private val pageCache = object : LruCache<String, Bitmap>(48 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+    }
+
+    /** A white-backed bitmap of the page, [width] px wide (the height is capped at [maxHeight]). [cache] = the caller never recycles it (the viewer), so it may be handed out again. */
+    suspend fun render(index: Int, width: Int, maxHeight: Int = 4500, cache: Boolean = false): Bitmap {
+        val key = "$index:$width:$maxHeight"
+        if (cache) pageCache.get(key)?.let { return it }
+        val bmp = mutex.withLock {
+            withContext(Dispatchers.IO) {
                 synchronized(lock) {
-                    rendering = false
-                    if (closeAsked) shut()
+                    if (closeAsked) throw IOException("document closed")
+                    rendering = true
+                }
+                try {
+                    renderPage(renderer, index, width, maxHeight)
+                } finally {
+                    synchronized(lock) {
+                        rendering = false
+                        if (closeAsked) shut()
+                    }
                 }
             }
         }
+        if (cache) pageCache.put(key, bmp)
+        return bmp
     }
 
     /** A page that is being drawn is never cut off: the document is closed when that page is done (closing under the renderer leaves the file open and the drawing without its file). */
@@ -56,6 +68,7 @@ class PdfReader private constructor(
     private fun shut() {
         if (closed) return
         closed = true
+        pageCache.evictAll()
         runCatching { renderer.close() }
         runCatching { pfd.close() }
     }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -130,6 +131,15 @@ private fun Content(vm: AppViewModel) {
                         }
                     }
                 }
+            }
+        }
+
+        // What is being saved in the background (a scan, an edited document): a line with a bar over everything, so the Library stays usable.
+        val saving by vm.ui.progress.collectAsStateWithLifecycle()
+        saving?.let { text ->
+            Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(MaterialTheme.colorScheme.surface).statusBarsPadding()) {
+                Text(text.resolve(ctx), Modifier.padding(horizontal = 16.dp, vertical = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                LinearProgressIndicator(Modifier.fillMaxWidth())
             }
         }
 

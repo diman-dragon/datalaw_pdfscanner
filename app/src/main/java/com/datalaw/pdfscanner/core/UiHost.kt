@@ -33,6 +33,16 @@ class UiHost {
     private val _folderRequests = MutableSharedFlow<CompletableDeferred<Uri?>>(extraBufferCapacity = 1)
     val folderRequests: SharedFlow<CompletableDeferred<Uri?>> = _folderRequests.asSharedFlow()
 
+    private val _progress = MutableStateFlow<UiText?>(null)
+    /** What is being saved in the background right now (the line with the progress bar at the top of the app), null = nothing. */
+    val progress: StateFlow<UiText?> = _progress.asStateFlow()
+    private var running = 0
+
+    /** Called on the main thread when a background save starts; every [beginProgress] is closed by an [endProgress]. */
+    fun beginProgress(t: UiText) { running++; _progress.value = t }
+    fun setProgress(t: UiText) { _progress.value = t }
+    fun endProgress() { running = (running - 1).coerceAtLeast(0); if (running == 0) _progress.value = null }
+
     private val mutex = Mutex()
 
     fun toast(t: UiText) { _toasts.tryEmit(t) }

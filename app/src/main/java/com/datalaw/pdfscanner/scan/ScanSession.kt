@@ -29,6 +29,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -43,6 +44,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
     private val sheets = ArrayList<Deferred<PdfPage>>()
     private val shots = ArrayList<ShotFile>()
     private var cur: Draft? = null
+    @Volatile private var saving = 0 // a save running in the background owns the pages and the shot files
 
     private val defaultHint: UiText = tx(if (type.orient == Orient.Video) R.string.sc_hint_page else R.string.sc_hint_item)
     private val autoHint: UiText = tx(if (type.free) R.string.sc_hint_full else R.string.sc_hint_auto)
@@ -142,33 +144,41 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         }
     }
 
-    private suspend fun finish(name: String, recognize: Boolean): Boolean {
-        _ui.value = _ui.value.copy(status = tx(R.string.scan_saving))
-        return try {
-            val list = sheets.toList()
-            val renderer = d.renderer(recognize)
-            val saved = access.save(name, list.size) { i ->
-                val page = list[i].await()
-                if (recognize) renderer.recognized(page) else page
+    /** The camera closes at once and the Library opens; the pages are finished, recognised and written in the background, with the progress at the top of the app. */
+    private fun finish(name: String, recognize: Boolean): Boolean {
+        val list = sheets.toList()
+        val files = shots.map { it.file }.distinct()
+        val renderer = d.renderer(recognize)
+        saving++
+        d.nav.goTo(Tab.Library)
+        d.scope.launch {
+            d.ui.beginProgress(tx(R.string.scan_saving))
+            try {
+                val saved = access.save(name, list.size) { i ->
+                    d.ui.setProgress(tx(R.string.scan_saving_n, i + 1, list.size))
+                    val page = list[i].await()
+                    if (recognize) renderer.recognized(page) else page
+                }
+                d.ui.toast(tx(R.string.scan_saved_n, saved.name))
+                d.nav.libraryChanged()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
+            } finally {
+                saving--
+                files.forEach { it.delete() }
+                d.ui.endProgress()
             }
-            d.ui.toast(tx(R.string.scan_saved_n, saved.name))
-            d.nav.libraryChanged()
-            d.nav.goTo(Tab.Library)
-            true
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
-            false
-        } finally {
-            _ui.value = _ui.value.copy(status = null)
         }
+        return true
     }
 
     override suspend fun canClose(): Boolean =
         (sheets.isEmpty() && cur == null) || d.ui.askConfirm(tx(R.string.sc_discardq), tx(R.string.sc_discard), tx(R.string.dlg_stay), danger = true)
 
     override fun onClosed() {
+        if (saving > 0) return
         sheets.forEach { it.cancel() }
         d.graph.clearShots()
     }

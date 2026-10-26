@@ -180,4 +180,8 @@
     <string name="vw_zoomout">Zoom out</string>
     <string name="rs_rotl">Rotate left</string>
     <string name="rs_rotr">Rotate right</string>
+    <string name="vw_strip">Strip</string>
+    <string name="vw_pages">Pages</string>
+    <string name="rs_autoframe">Auto frame</string>
+    <string name="rs_resetframe">Whole page</string>
 </resources>

@@ -180,4 +180,8 @@
     <string name="vw_zoomout">Отдалить</string>
     <string name="rs_rotl">Повернуть влево</string>
     <string name="rs_rotr">Повернуть вправо</string>
+    <string name="vw_strip">Лента</string>
+    <string name="vw_pages">Листы</string>
+    <string name="rs_autoframe">Рамка авто</string>
+    <string name="rs_resetframe">Вся страница</string>
 </resources>

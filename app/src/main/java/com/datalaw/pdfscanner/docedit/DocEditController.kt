@@ -122,12 +122,13 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
             val same = name.equals(base, ignoreCase = true)
             if (same && !d.ui.askConfirm(tx(R.string.de_replaceq), tx(R.string.de_replace), tx(R.string.dlg_cancel))) { if (single != null) d.nav.pop(); return@launch }
             busy = true
+            d.ui.beginProgress(tx(R.string.scan_saving))
             try {
                 val list = pages.toList()
                 val renderer = d.renderer(choice.recognize)
                 val side = PdfTarget.forDpi(d.settings().pdfDpi).side.coerceAtMost(4000)
                 val r = access.save(if (same) "$base~new" else name, list.size) { i ->
-                    d.ui.toast(tx(R.string.scan_saving_n, i + 1, list.size))
+                    d.ui.setProgress(tx(R.string.scan_saving_n, i + 1, list.size))
                     val p = list[i]
                     val src = source(p, side)
                     try { renderer.edited(src, p.quad, p.look, p.turns) } finally { src.recycle() }
@@ -158,6 +159,7 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
                 if (single != null) d.nav.pop()
             } finally {
                 busy = false
+                d.ui.endProgress()
             }
         }
     }

@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -33,6 +34,7 @@ class QuickSession(private val d: Deps) : CameraSession {
     override val ui: StateFlow<CamUi> = _ui.asStateFlow()
     override val smart: Boolean = true
     private val access = FolderAccess(d)
+    @Volatile private var pending = 0 // saves still running in the background: their shot files must not be cleared
 
     override fun frameRatio(land: Boolean): Float = if (land) 297f / 210f else 210f / 297f
 
@@ -45,28 +47,33 @@ class QuickSession(private val d: Deps) : CameraSession {
         val choice = askSave(d, def) ?: return false
         val name = Names.clean(choice.name).ifEmpty { def }
         val renderer = d.renderer(choice.recognize)
-        _ui.value = _ui.value.copy(status = tx(R.string.scan_saving))
-        return try {
-            val page = when {
-                auto && found != null -> renderer.straightened(shot, found.quad)
-                auto -> renderer.raw(ShotFile(shot.file, null, shot.vr, shot.land))
-                else -> renderer.raw(shot)
+        // The camera closes at once and the Library opens: the page is made and saved in the background, the progress is the line at the top of the app.
+        pending++
+        d.nav.goTo(Tab.Library)
+        d.scope.launch {
+            d.ui.beginProgress(tx(R.string.scan_saving))
+            try {
+                val page = when {
+                    auto && found != null -> renderer.straightened(shot, found.quad)
+                    auto -> renderer.raw(ShotFile(shot.file, null, shot.vr, shot.land))
+                    else -> renderer.raw(shot)
+                }
+                val saved = access.save(name, 1) { page }
+                d.ui.toast(tx(R.string.scan_saved_n, saved.name))
+                d.nav.libraryChanged()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
+            } finally {
+                pending--
+                shot.file.delete()
+                d.ui.endProgress()
             }
-            val saved = access.save(name, 1) { page }
-            d.ui.toast(tx(R.string.scan_saved_n, saved.name))
-            d.nav.libraryChanged()
-            d.nav.goTo(Tab.Library)
-            true
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
-            false
-        } finally {
-            _ui.value = _ui.value.copy(status = null)
         }
+        return true
     }
 
     override suspend fun canClose(): Boolean = true
-    override fun onClosed() { d.graph.clearShots() }
+    override fun onClosed() { if (pending == 0) d.graph.clearShots() }
 }

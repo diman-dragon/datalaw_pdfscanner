@@ -1,26 +1,19 @@
 package com.datalaw.pdfscanner.docedit
 
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.Spacer
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -32,28 +25,29 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.imaging.BitmapLoader
 import com.datalaw.pdfscanner.imaging.EdgeDetector
+import com.datalaw.pdfscanner.imaging.Enhance
 import com.datalaw.pdfscanner.imaging.Look
-import com.datalaw.pdfscanner.imaging.PageRenderer
 import com.datalaw.pdfscanner.imaging.Sharpness
 import com.datalaw.pdfscanner.ui.BottomBar
-import com.datalaw.pdfscanner.ui.GlyphButton
+import com.datalaw.pdfscanner.ui.RotateButtons
 import com.datalaw.pdfscanner.ui.Seg
 import com.datalaw.pdfscanner.ui.TitleBar
+import com.datalaw.pdfscanner.ui.ToolRow
 import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -61,13 +55,18 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val FULL = listOf(Offset(0f, 0f), Offset(1f, 0f), Offset(1f, 1f), Offset(0f, 1f))
 
-/** The editor of one page: drag the corners (double tap = automatic frame), Original / Auto, rotate; Back / Next / Delete. */
+/** The page as it is on the screen: its look and turns applied, and how many quarter-turns that was (the frame is drawn to match). */
+private class Shown(val bmp: Bitmap, val turns: Int)
+
+/**
+ * The editor of one page. The page itself shows every change at once (turn, Original / Auto); the frame is drawn over it, the outside is darkened.
+ * Drag the corners; double tap or "Auto frame" finds the frame by itself, "Whole page" takes it off. The tools are the row the viewer has.
+ */
 @Composable
 fun PageEditor(
     ctl: DocEditController,
@@ -86,41 +85,59 @@ fun PageEditor(
     var quad by remember(p) { mutableStateOf(p.quad ?: FULL) }
     val b = bmp
 
-    val preview by produceState<Bitmap?>(null, b, quad, p.look, p.turns) {
+    // The picture on the screen: the old one stays until the new one is ready, so nothing blinks.
+    val shown by produceState<Shown?>(null, b, p.look, p.turns) {
         if (b == null) return@produceState
-        delay(150)
-        optional { PageRenderer.preview(b, quad, p.look, p.turns, 360) }?.let { value = it }
+        val t = ((p.turns % 4) + 4) % 4
+        val look = p.look
+        optional {
+            var x: Bitmap = b
+            if (look == Look.Auto) x = Enhance.auto(x)
+            if (t != 0) x = BitmapLoader.rotate(x, t * 90)
+            Shown(x, t)
+        }?.let { value = it }
     }
     val sharp by produceState(1f, b) { if (b != null) optional { Sharpness.of(b) }?.let { value = it } }
 
     fun setQuad(q: List<Offset>) { quad = q; p.quad = q; ctl.markDirty() }
+    fun autoFrame() {
+        val s = b ?: return
+        scope.launch {
+            val pts = optional { EdgeDetector.detect(s) } ?: return@launch
+            setQuad(pts.map { Offset(it.x / s.width, it.y / s.height) })
+        }
+    }
 
+    val sh = shown
+    val view: Bitmap? = sh?.bmp ?: b
+    val k = sh?.turns ?: 0
     val scheme = MaterialTheme.colorScheme
-    val rotLeft = stringResource(R.string.rs_rotl)
-    val rotRight = stringResource(R.string.rs_rotr)
     Column(Modifier.fillMaxSize().background(scheme.background).systemBarsPadding()) {
-        TitleBar(if (total > 1) stringResource(R.string.rs_pageof, number, total) else stringResource(R.string.rs_title), onBack = onCancel)
+        TitleBar(ctl.file.name, onBack = onCancel) {
+            Text(stringResource(R.string.vw_page_n, number, total), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        }
 
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(Dimens.screen)) {
             val wPx = constraints.maxWidth.toFloat()
             val hPx = constraints.maxHeight.toFloat()
-            if (b != null) {
-                val scale = min(wPx / b.width, hPx / b.height)
-                val dw = b.width * scale
-                val dh = b.height * scale
+            if (view != null) {
+                val scale = min(wPx / view.width, hPx / view.height)
+                val dw = view.width * scale
+                val dh = view.height * scale
                 val ox = (wPx - dw) / 2
                 val oy = (hPx - dh) / 2
-                Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                Image(view.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                 Canvas(
                     Modifier.fillMaxSize()
-                        .pointerInput(b) {
+                        .pointerInput(view, k) {
                             var active = -1
                             detectDragGestures(
                                 onDragStart = { pt ->
                                     var best = -1
                                     var bestD = 56.dp.toPx()
                                     quad.forEachIndexed { i, q ->
-                                        val dist = hypot(pt.x - (ox + q.x * dw), pt.y - (oy + q.y * dh))
+                                        val v = toView(q, k)
+                                        val dist = hypot(pt.x - (ox + v.x * dw), pt.y - (oy + v.y * dh))
                                         if (dist < bestD) { bestD = dist; best = i }
                                     }
                                     active = best
@@ -131,46 +148,37 @@ fun PageEditor(
                                 if (active >= 0) {
                                     change.consume()
                                     val q = quad.toMutableList()
-                                    val c = q[active]
-                                    q[active] = Offset((c.x + drag.x / dw).coerceIn(0f, 1f), (c.y + drag.y / dh).coerceIn(0f, 1f))
+                                    val v = toView(q[active], k)
+                                    val nv = Offset((v.x + drag.x / dw).coerceIn(0f, 1f), (v.y + drag.y / dh).coerceIn(0f, 1f))
+                                    q[active] = fromView(nv, k)
                                     setQuad(q)
                                 }
                             }
                         }
-                        .pointerInput(b) {
-                            detectTapGestures(onDoubleTap = {
-                                scope.launch {
-                                    val pts = optional { EdgeDetector.detect(b) } ?: return@launch
-                                    setQuad(pts.map { Offset(it.x / b.width, it.y / b.height) })
-                                }
-                            })
-                        },
+                        .pointerInput(b) { detectTapGestures(onDoubleTap = { autoFrame() }) },
                 ) {
-                    val pts = quad.map { Offset(ox + it.x * dw, oy + it.y * dh) }
+                    val pts = quad.map { toView(it, k) }.map { Offset(ox + it.x * dw, oy + it.y * dh) }
                     val path = Path().apply { moveTo(pts[0].x, pts[0].y); for (i in 1..3) lineTo(pts[i].x, pts[i].y); close() }
-                    drawPath(path, scheme.primary.copy(alpha = 0.15f), style = Fill)
+                    val outside = Path().apply { fillType = PathFillType.EvenOdd; addRect(Rect(ox, oy, ox + dw, oy + dh)); addPath(path) }
+                    drawPath(outside, Color.Black.copy(alpha = 0.4f))
                     drawPath(path, scheme.primary, style = Stroke(2.dp.toPx()))
                     pts.forEach { drawCircle(scheme.primary, 11.dp.toPx(), it); drawCircle(scheme.surface, 11.dp.toPx(), it, style = Stroke(1.5.dp.toPx())) }
-                }
-                preview?.let {
-                    Image(
-                        it.asImageBitmap(), null,
-                        Modifier.align(Alignment.TopEnd).width(84.dp).clip(RoundedCornerShape(Dimens.thumb)).border(1.dp, scheme.outline, RoundedCornerShape(Dimens.thumb)).background(Color.White),
-                        contentScale = ContentScale.Fit,
-                    )
                 }
             }
         }
 
-        Column(Modifier.padding(horizontal = Dimens.screen).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(Dimens.gap)) {
+        Column(Modifier.padding(horizontal = Dimens.screen), verticalArrangement = Arrangement.spacedBy(Dimens.gap)) {
             if (Sharpness.isBlurry(sharp)) Text(stringResource(R.string.rs_warn_blur), style = MaterialTheme.typography.bodySmall, color = scheme.error)
             tilt(quad, b)?.let { Text(stringResource(R.string.rs_warn_tilt_n, it), style = MaterialTheme.typography.bodySmall, color = scheme.error) }
             Text(stringResource(R.string.rs_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.gap)) {
-                GlyphButton("⟲", rotLeft, { p.turns = (p.turns + 3) % 4; ctl.markDirty() })
-                GlyphButton("⟳", rotRight, { p.turns = (p.turns + 1) % 4; ctl.markDirty() })
-                Seg(listOf(Look.Original to stringResource(R.string.fx_color), Look.Auto to stringResource(R.string.fx_auto)), p.look, { p.look = it; ctl.markDirty() }, Modifier.weight(1f), fill = true)
-            }
+        }
+        ToolRow {
+            RotateButtons { d -> p.turns = ((p.turns + d) % 4 + 4) % 4; ctl.markDirty() }
+            Seg(listOf(Look.Original to stringResource(R.string.fx_color), Look.Auto to stringResource(R.string.fx_auto)), p.look, { p.look = it; ctl.markDirty() }, Modifier.weight(1f), fill = true)
+        }
+        ToolRow {
+            OutlinedButton({ autoFrame() }, Modifier.weight(1f)) { Text(stringResource(R.string.rs_autoframe)) }
+            OutlinedButton({ setQuad(FULL) }, Modifier.weight(1f)) { Text(stringResource(R.string.rs_resetframe)) }
         }
         BottomBar {
             if (showBack) OutlinedButton(onBack) { Text(stringResource(R.string.rs_back)) }
@@ -181,7 +189,23 @@ fun PageEditor(
     }
 }
 
-/** The preview, the sharpness and the automatic frame are extras: when one of them fails (memory, OpenCV) the editor goes on without it instead of closing the app. null = it failed. */
+/** A point of the page (0..1 of the page as it was shot) as it is seen on the picture turned by [k] quarter-turns clockwise. */
+private fun toView(o: Offset, k: Int): Offset = when (k) {
+    1 -> Offset(1f - o.y, o.x)
+    2 -> Offset(1f - o.x, 1f - o.y)
+    3 -> Offset(o.y, 1f - o.x)
+    else -> o
+}
+
+/** The way back of [toView]: a point touched on the turned picture, in the page as it was shot. */
+private fun fromView(o: Offset, k: Int): Offset = when (k) {
+    1 -> Offset(o.y, 1f - o.x)
+    2 -> Offset(1f - o.x, 1f - o.y)
+    3 -> Offset(1f - o.y, o.x)
+    else -> o
+}
+
+/** The picture, the sharpness and the automatic frame are extras: when one of them fails (memory, OpenCV) the editor goes on without it instead of closing the app. null = it failed. */
 private suspend fun <T> optional(block: () -> T): T? = try {
     withContext(Dispatchers.Default) { block() }
 } catch (e: CancellationException) {

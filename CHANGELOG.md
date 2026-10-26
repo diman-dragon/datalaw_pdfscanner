@@ -1,4 +1,10 @@
 # Changelog
+## 0.0.16
+- Change: saving no longer keeps the camera open. After the name is chosen the camera closes at once and the Library opens; the page is finished, recognised and written in the background and the progress is a line with a bar at the top of the app (also for editing a document)
+- Change: the page editor has no small preview window any more: the page itself shows the turn and Original / Auto at once, the frame is drawn over it and the outside of the frame is darkened
+- Add: the page editor has "Auto frame" and "Whole page" buttons (the double tap still finds the frame)
+- Change: the viewer and the page editor share one tool row (turn left / right + a switch: Strip / Pages in the viewer, Original / Auto in the editor) and the same title; the viewer can turn a page to look at it (the file is not changed)
+- Change: viewer zoom: a double tap zooms in at the place tapped and the next one returns to the normal size; two fingers zoom around the point between them; the page is drawn 1.5x wide from the start and a new size is drawn only after the zoom stops, so zooming never waits; drawn pages are cached
 ## 0.0.15
 - Fix: `local.properties` (a Windows SDK path of one machine) is no longer in the repository and is listed in `.gitignore`
 - Diagnostics: R8 is off for the release build while the `NullPointerException` in a main-thread coroutine is hunted (the crash report showed only `a0.y1.g`, no class names); it also rules R8 in or out as the cause. The R8 mapping is kept as a CI artifact for when it is turned back on
