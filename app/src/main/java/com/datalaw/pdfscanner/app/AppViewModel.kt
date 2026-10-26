@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.core.AppActions
 import com.datalaw.pdfscanner.core.AppGraph
+import com.datalaw.pdfscanner.core.Breadcrumbs
 import com.datalaw.pdfscanner.core.CrashReport
 import com.datalaw.pdfscanner.core.Deps
 import com.datalaw.pdfscanner.core.FolderAccess
@@ -56,15 +57,17 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
     }
 
     private suspend fun showCrash(r: CrashReport.Report) {
-        if (ui.askConfirm(tx(R.string.crash_ask, tx(r.reason)), tx(R.string.crash_copy), tx(R.string.vw_close))) {
-            CrashReport.copy(graph.app, r)
-            ui.toast(tx(R.string.crash_copied))
-        }
+        ui.askReport(
+            tx(R.string.crash_title), tx(R.string.crash_ask, tx(r.reason)), r.text, tx(R.string.crash_copy), tx(R.string.crash_send), tx(R.string.vw_close),
+            onCopy = { CrashReport.copy(graph.app, r); ui.toast(tx(R.string.crash_copied)) },
+            onSend = { CrashReport.share(graph.app, r, graph.app.getString(R.string.crash_send)) },
+        )
+        CrashReport.dismiss(graph.app)
     }
 
-    override fun goTo(tab: Tab) { _tab.value = tab }
-    override fun push(o: Overlay) { _overlays.value = _overlays.value + o }
-    override fun pop() { _overlays.value = _overlays.value.dropLast(1) }
+    override fun goTo(tab: Tab) { Breadcrumbs.note("tab ${tab.name}"); _tab.value = tab }
+    override fun push(o: Overlay) { Breadcrumbs.note("open ${o::class.simpleName}"); _overlays.value = _overlays.value + o }
+    override fun pop() { Breadcrumbs.note("close screen"); _overlays.value = _overlays.value.dropLast(1) }
     override fun libraryChanged() { _libVersion.value++; library.refresh() }
 
     override fun toast(@StringRes id: Int) = ui.toast(tx(id))

@@ -20,6 +20,8 @@ sealed interface Dlg {
     data class Save(val title: UiText, val initial: String, val recognize: UiText, val plain: UiText, val cancel: UiText, val result: CompletableDeferred<SaveAnswer?>) : Dlg
     data class Confirm(val message: UiText, val ok: UiText, val cancel: UiText, val danger: Boolean, val result: CompletableDeferred<Boolean>) : Dlg
     data class Alert(val message: UiText, val result: CompletableDeferred<Unit>) : Dlg
+    /** The crash report: a title, what to do, the report itself, and the three buttons (copy, send, close). */
+    data class Report(val title: UiText, val message: UiText, val report: String, val copy: UiText, val send: UiText, val close: UiText, val onCopy: () -> Unit, val onSend: () -> Unit, val result: CompletableDeferred<Unit>) : Dlg
 }
 
 /** Dialogs, toasts and the folder picker that controllers can await like plain functions. */
@@ -39,9 +41,9 @@ class UiHost {
     private var running = 0
 
     /** Called on the main thread when a background save starts; every [beginProgress] is closed by an [endProgress]. */
-    fun beginProgress(t: UiText) { running++; _progress.value = t }
+    fun beginProgress(t: UiText) { running++; _progress.value = t; Breadcrumbs.note("save begins") }
     fun setProgress(t: UiText) { _progress.value = t }
-    fun endProgress() { running = (running - 1).coerceAtLeast(0); if (running == 0) _progress.value = null }
+    fun endProgress() { running = (running - 1).coerceAtLeast(0); if (running == 0) _progress.value = null; Breadcrumbs.note("save ends") }
 
     private val mutex = Mutex()
 
@@ -50,7 +52,13 @@ class UiHost {
     private suspend fun <T> show(make: (CompletableDeferred<T>) -> Dlg): T = mutex.withLock {
         val d = CompletableDeferred<T>()
         _dialog.value = make(d)
+        Breadcrumbs.note("dialog " + (_dialog.value?.let { it::class.simpleName } ?: "?"))
         try { d.await() } finally { _dialog.value = null }
+    }
+
+    /** Shows the crash report until the person closes it. */
+    suspend fun askReport(title: UiText, message: UiText, report: String, copy: UiText, send: UiText, close: UiText, onCopy: () -> Unit, onSend: () -> Unit) {
+        show<Unit> { Dlg.Report(title, message, report, copy, send, close, onCopy, onSend, it) }
     }
 
     /** The id of the pressed option, null if dismissed. */

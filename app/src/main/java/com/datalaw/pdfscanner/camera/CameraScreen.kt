@@ -110,20 +110,14 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
     val camUi by session.ui.collectAsStateWithLifecycle()
     val host = graph.ui
 
-    var granted by remember { mutableStateOf(ContextCompat.checkSelfPermission(appCtx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
-    LaunchedEffect(Unit) { if (!granted) permission.launch(Manifest.permission.CAMERA) }
+    val permission = rememberCameraPermission()
 
     val closeNow = { session.onClosed(); onClose() }
     val askClose: () -> Unit = { scope.launch { if (session.canClose()) closeNow() } }
     BackHandler(onBack = askClose)
 
-    if (!granted) {
-        Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(stringResource(R.string.cam_perm), color = Color.White)
-            PrimaryButton(stringResource(R.string.cam_grant), { permission.launch(Manifest.permission.CAMERA) }, Modifier.padding(top = 16.dp))
-            PrimaryButton(stringResource(R.string.vw_close), askClose, Modifier.padding(top = 8.dp))
-        }
+    if (!permission.granted) {
+        CameraPermissionPrompt(permission.ask, askClose)
         return
     }
 
@@ -180,41 +174,15 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         if (busy || !ready) return
         busy = true
         scope.launch {
-            var preview: android.graphics.Bitmap? = null
             try {
-                val dir = File(appCtx.cacheDir, "shots").apply { mkdirs() }
-                val file = rig.takePhoto(File(dir, "shot_${System.nanoTime()}.jpg"))
-                val (w, h) = withContext(Dispatchers.IO) { BitmapLoader.uprightSize(file) }
                 val region = if (auto) live?.let { SheetFit.bbox(it) } else frame
-                val crop = if (Math.abs(w.toFloat() / h - aspect) < 0.04f * aspect) region else null
-
-                // Load preview/analysis bitmap ONCE for sharpness check and sheet detection
-                val p = withContext(Dispatchers.IO) { BitmapLoader.load(file, 1600) }
-                preview = p
-
-                val isBlurry = withContext(Dispatchers.Default) { Sharpness.isBlurry(shotSharpness(p, crop, aspect)) }
-                if (isBlurry && !host.askSaveAsIs(tx(R.string.qs_blur))) {
-                    p.recycle()
-                    preview = null
-                    file.delete()
-                    return@launch
-                }
-
-                // If in auto mode, detect the sheet using the already loaded preview bitmap
-                val found = if (auto) withContext(Dispatchers.Default) { SheetFinder.find(p, session.minAreaFrac, session.expectRatio) } else null
-
-                // Free preview bitmap before session.onShot saves / renders
-                p.recycle()
-                preview = null
-
-                val shot = ShotFile(file, crop, aspect, land, found = found)
-                if (session.onShot(shot)) closeNow()
+                val shot = takeShot(rig, appCtx.cacheDir, host, session, auto, region, aspect, land)
+                if (shot != null && session.onShot(shot)) closeNow()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
                 host.toast(tx(R.string.scan_fail_n, e.userReason()))
             } finally {
-                preview?.recycle()
                 busy = false
             }
         }
@@ -242,24 +210,9 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
         shoot = { shoot() },
     )
 
-    val frameColor = when {
-        bad -> Color(0xFFFF5A4D)
-        focus == FocusState.Locked -> Color(0xFF4CD964)
-        focus == FocusState.NoDetail -> Color(0xFFFFB020)
-        else -> Color.White
-    }
+    val frameColor = frameColorOf(bad, focus)
     val label = if (smart && auto) (camUi.autoLabel ?: camUi.label).get() else camUi.label.get()
-    val hint = when {
-        failed -> stringResource(R.string.cam_unavailable)
-        camUi.status != null -> camUi.status!!.get()
-        hold > 0.05f -> stringResource(R.string.cam_hold)
-        problem != null -> problem.hint(session.sheetLike).get()
-        focus == FocusState.Seeking -> stringResource(R.string.qs_focusing)
-        focus == FocusState.Locked -> stringResource(R.string.qs_focuslock)
-        focus == FocusState.NoDetail -> stringResource(R.string.qs_nodetail)
-        smart && auto -> (camUi.autoHint ?: camUi.hint).get()
-        else -> camUi.hint.get()
-    }
+    val hint = cameraHint(failed, camUi, hold, problem, session.sheetLike, focus, smart && auto)
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {

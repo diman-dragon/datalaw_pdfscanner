@@ -30,6 +30,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +41,7 @@ import com.datalaw.pdfscanner.core.Dlg
 import com.datalaw.pdfscanner.core.SaveAnswer
 import com.datalaw.pdfscanner.core.UiHost
 import com.datalaw.pdfscanner.core.get
+import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlinx.coroutines.delay
 
 /** Draws the dialog that a controller is waiting for: a centred card, wide buttons, the main one filled, the dangerous one red. */
@@ -62,6 +64,20 @@ fun DialogHost(host: UiHost) {
             x.options.forEachIndexed { i, (id, label) ->
                 Wide(i == 0, false, label.get()) { x.result.complete(id) }
             }
+        }
+        is Dlg.Report -> Card({ x.result.complete(Unit) }) {
+            Text(x.title.get(), style = MaterialTheme.typography.titleMedium)
+            Text(x.message.get(), style = MaterialTheme.typography.bodySmall)
+            Surface(shape = RoundedCornerShape(Dimens.control), color = MaterialTheme.colorScheme.surfaceVariant) {
+                Text(
+                    x.report,
+                    Modifier.heightIn(max = 200.dp).verticalScroll(rememberScrollState()).padding(10.dp),
+                    style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace,
+                )
+            }
+            Wide(true, false, x.copy.get()) { x.onCopy() }
+            Wide(false, false, x.send.get()) { x.onSend() }
+            Wide(false, false, x.close.get()) { x.result.complete(Unit) }
         }
         is Dlg.Input -> InputCard(x)
         is Dlg.Save -> SaveCard(x)

@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.18
+- Add: the full crash report. When (and only when) the last run ended badly (an uncaught exception, a native crash, "not responding", killed for memory while on the screen) the app starts with a window "The app closed unexpectedly": what to do ("contact the developer and pass this report"), the whole report, and the buttons Copy / Send / Close. The report stays until it is closed
+- Add: the report holds the version and build, the device, Android and ABI, language, the time, the age of the process, the Java and native heap, the free memory of the device, the stack with its causes, how the process ended, and the trail of the last 40 things done (tabs, screens, dialogs, saves, shots), kept in a small file (`Breadcrumbs`)
+- Atomicity: `CameraScreen` is split (the permission, the shot with its sharpness and sheet check, the hint and the colour of the frame)
 ## 0.0.17
 - Add: page looks like in the scanner apps, all by plain image processing (no neural network): "Auto" (uneven light and soft shadows), "No shadows" (also the folds and creases of the sheet; paper pure white), "Gray", "B/W" (black text on white); the switch of the editor scrolls sideways
 - Change: Scan tab: first the switch Frame / Auto, under it the ready sizes (only for Frame), last "Shoot"; everything stands in the middle of the screen. The separate "Full auto" cell is gone: "Auto" is the full automatic scan. Quick scan stands in the middle too
