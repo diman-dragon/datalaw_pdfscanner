@@ -1,4 +1,6 @@
 # Changelog
+## 0.0.20
+- Fix: the build failed: `PdfPageView.kt` (split out of the viewer) lacked the `fillMaxSize` import
 ## 0.0.19
 - Quality, camera: half a stop more exposure for documents (the meter takes white paper for grey and under-exposes it: the paper is whiter, the shot less noisy)
 - Quality, camera: a soft shot is no longer shown to the person at once: the camera takes up to two more photos and keeps the sharpest; "Retake / Save as is" is asked only when even the best one is soft
