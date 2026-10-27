@@ -66,6 +66,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.datalaw.pdfscanner.R
+import com.datalaw.pdfscanner.core.Breadcrumbs
 import com.datalaw.pdfscanner.core.CameraSession
 import com.datalaw.pdfscanner.core.askSaveAsIs
 import com.datalaw.pdfscanner.core.get
@@ -141,13 +142,14 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
     val autoNow by rememberUpdatedState(auto)
     LaunchedEffect(auto) { if (!auto) live = null }
 
-    DisposableEffect(owner) {
+    // The live search of the sheet is bound only in Auto: it costs the camera its biggest photo size, and Frame mode does not need it
+    DisposableEffect(owner, auto) {
         gyro.start()
         var gone = false // the screen may be closed before the camera provider is ready: then nothing is bound
         val fut = ProcessCameraProvider.getInstance(appCtx)
         fut.addListener({
             if (!gone) {
-                try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart) SheetWatcher(session.expectRatio, session.minAreaFrac, { autoNow && !busy }) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
+                try { watching = rig.bind(fut.get(), owner, settings.flash, if (smart && auto) SheetWatcher(session.expectRatio, session.minAreaFrac, { autoNow && !busy }) { live = it } else null); ready = true } catch (e: Exception) { failed = true }
             }
         }, ContextCompat.getMainExecutor(appCtx))
         onDispose {
@@ -180,7 +182,11 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                 var waited = 0
                 while (!gyro.steady && waited < 400) { delay(50); waited += 50 }
                 val region = if (auto) live?.let { SheetFit.bbox(it) } else frame
-                val shot = takeShot(rig, appCtx.cacheDir, host, session, auto, region, aspect, land)
+                // in the dark: the flash goes off as soon as the shutter would be too slow for a hand; with no flash the camera takes three photos and keeps the sharpest
+                val dark = rig.dim
+                val flashed = rig.flashForShot(settings.flash)
+                Breadcrumbs.note("shoot: dim=$dark flash=$flashed")
+                val shot = takeShot(rig, appCtx.cacheDir, host, session, auto, region, aspect, land, burst = dark && !flashed)
                 if (shot != null && session.onShot(shot)) closeNow()
             } catch (e: CancellationException) {
                 throw e

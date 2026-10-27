@@ -1,7 +1,12 @@
 package com.datalaw.pdfscanner.camera
 
 import android.content.Context
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureResult
+import android.hardware.camera2.TotalCaptureResult
 import android.util.Size
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -21,7 +26,6 @@ import com.datalaw.pdfscanner.settings.FlashMode
 import java.io.File
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
-import kotlin.math.roundToInt
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -31,10 +35,11 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
     private var camera: Camera? = null
     private var capture: ImageCapture? = null
     private var analysis: ImageAnalysis? = null
+    @Volatile private var exposureNs = 0L // the shutter time of the last preview frame
 
     private companion object {
-        /** The meter takes white paper for grey and under-exposes it: half a stop more makes the paper white and the shot less noisy. */
-        const val DOC_EV = 0.5f
+        /** 1/40 s: a slower shutter than this blurs a handheld shot of small text. */
+        const val SLOW_SHUTTER_NS = 25_000_000L
         // one thread for the whole process: the analysis never blocks the screen
         val analysisExecutor by lazy { Executors.newSingleThreadExecutor() }
     }
@@ -54,7 +59,9 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
                 // makes every decode, rotation and crop 2-4 times bigger and gets the app killed for memory on the shot
                 .setResolutionStrategy(ResolutionStrategy(Size(4608, 3456), ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER))
                 .build()
-            val preview = Preview.Builder().setResolutionSelector(previewSel).build()
+            val previewBuilder = Preview.Builder().setResolutionSelector(previewSel)
+            watchShutter(previewBuilder)
+            val preview = previewBuilder.build()
             preview.setSurfaceProvider(previewView.surfaceProvider)
             val cap = ImageCapture.Builder()
                 .setResolutionSelector(captureSel)
@@ -82,22 +89,31 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
         if (watcher != null) live = try { attempt(true); true } catch (e: Exception) { false }
         if (!live) attempt(false)
         setFlash(flash)
-        setDocumentExposure()
         return live
     }
 
-    private fun setDocumentExposure() {
-        val cam = camera ?: return
-        try {
-            val st = cam.cameraInfo.exposureState
-            if (!st.isExposureCompensationSupported) return
-            val step = st.exposureCompensationStep.toFloat()
-            if (step <= 0f) return
-            val index = (DOC_EV / step).roundToInt().coerceIn(st.exposureCompensationRange.lower, st.exposureCompensationRange.upper)
-            cam.cameraControl.setExposureCompensationIndex(index)
-        } catch (e: Exception) {
-            // not every phone lets the exposure be changed: the shot is then simply as the meter wants it
-        }
+    /**
+     * The camera's own "Auto" flash fires only when the shutter is already open as long as it can be: by then a hand has shaken the shot. For a document the flash
+     * is used as soon as the shutter is slower than a hand can hold (about 1/40 s). [mode] is the person's choice; On / Off are never changed.
+     * Returns true when the flash will fire for the next photo.
+     */
+    fun flashForShot(mode: FlashMode): Boolean {
+        val m = if (mode == FlashMode.Auto && dim) FlashMode.On else mode
+        setFlash(m)
+        return m == FlashMode.On || (m == FlashMode.Auto && dim)
+    }
+
+    /** The light is so weak that the camera keeps the shutter open for longer than a hand holds still. */
+    val dim: Boolean get() = exposureNs > SLOW_SHUTTER_NS
+
+    /** Reads the shutter time the camera chose for every preview frame (it tells how dark it is). */
+    @Suppress("UnsafeOptInUsageError")
+    private fun watchShutter(b: Preview.Builder) {
+        Camera2Interop.Extender(b).setSessionCaptureCallback(object : CameraCaptureSession.CaptureCallback() {
+            override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                result.get(CaptureResult.SENSOR_EXPOSURE_TIME)?.let { exposureNs = it }
+            }
+        })
     }
 
     fun setFlash(m: FlashMode) {

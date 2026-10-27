@@ -94,6 +94,7 @@ fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
             },
             onDelete = { scope.launch { if (ctl.delete(idx)) { if (single != null) ctl.requestClose() else ctl.editing = -1 } } },
             onCancel = { if (single != null) ctl.requestClose() else ctl.editing = -1 },
+            onSwipe = { d -> if (single == null && idx + d in ctl.pages.indices) ctl.editing = idx + d },
         )
         return
     }

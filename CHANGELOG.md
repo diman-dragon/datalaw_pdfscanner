@@ -1,4 +1,11 @@
 # Changelog
+## 0.0.21
+- Fix (sharpness, found on a real scan: a dim page, smeared text at the bottom, grey noisy paper): the +0.5 EV of 0.0.19 is gone (in the dark it makes the shutter even slower and the shot more blurred)
+- Fix: the "Auto" flash of the camera fires only when the shutter is already open as long as it can be, so the shot was blurred before the flash was asked. Now the app reads the shutter time of the preview and fires the flash itself as soon as it is slower than 1/40 s (a hand cannot hold that); On and Off stay as chosen
+- Change: in the dark with the flash off the camera takes three photos and keeps the sharpest (before: only when the first was soft)
+- Fix: the live search of the sheet (a second camera stream) is bound only in Auto mode; in Frame mode it only cost the camera its biggest photo size (the scan in question was 10 MP). Switching Frame / Auto in the camera re-opens the camera for a moment
+- Fix: swipe in the page editor: a sideways swipe on the page goes to the next or the previous page (the hint promised it, the code was not there); a drag that starts on a corner still moves the corner
+- Fix: Back on the Quick, Scan or Settings tab goes to the Library first and only there leaves the app
 ## 0.0.20
 - Fix: the build failed: `PdfPageView.kt` (split out of the viewer) lacked the `fillMaxSize` import
 ## 0.0.19

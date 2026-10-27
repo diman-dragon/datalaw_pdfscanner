@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -81,11 +82,13 @@ fun PageEditor(
     onNext: () -> Unit,
     onDelete: () -> Unit,
     onCancel: () -> Unit,
+    onSwipe: (Int) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val bmp by produceState<Bitmap?>(null, p) { value = try { ctl.source(p, 2000) } catch (e: Exception) { null } }
     var quad by remember(p) { mutableStateOf(p.quad ?: FULL) }
     val b = bmp
+    val swipeNow by rememberUpdatedState(onSwipe)
 
     // The picture on the screen: the old one stays until the new one is ready, so nothing blinks.
     val shown by produceState<Shown?>(null, b, p.look, p.turns) {
@@ -131,8 +134,10 @@ fun PageEditor(
                 Image(view.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                 Canvas(
                     Modifier.fillMaxSize()
-                        .pointerInput(view, k) {
+                        .pointerInput(view, k, p) {
                             var active = -1
+                            var dx = 0f
+                            var dy = 0f
                             detectDragGestures(
                                 onDragStart = { pt ->
                                     var best = -1
@@ -143,10 +148,17 @@ fun PageEditor(
                                         if (dist < bestD) { bestD = dist; best = i }
                                     }
                                     active = best
+                                    dx = 0f
+                                    dy = 0f
                                 },
-                                onDragEnd = { active = -1 },
+                                // a drag that did not start on a corner and went mostly sideways is a swipe: the next page (left) or the previous one (right)
+                                onDragEnd = {
+                                    if (active < 0 && abs(dx) > 90.dp.toPx() && abs(dx) > 2 * abs(dy)) swipeNow(if (dx < 0) 1 else -1)
+                                    active = -1
+                                },
                                 onDragCancel = { active = -1 },
                             ) { change, drag ->
+                                if (active < 0) { dx += drag.x; dy += drag.y }
                                 if (active >= 0) {
                                     change.consume()
                                     val q = quad.toMutableList()

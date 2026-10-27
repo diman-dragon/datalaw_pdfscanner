@@ -24,6 +24,7 @@ private const val MAX_PHOTOS = 3
  * One shot: the photo goes to a file, a small copy is loaded ONCE to check the sharpness and (Auto) to find the sheet, then it is freed before the session
  * saves anything. A soft photo is not shown to the person at once: the camera takes up to two more and keeps the sharpest; only if even that one is soft
  * it asks "Retake / Save as is".
+ * [burst] = the light is weak and there is no flash: all the photos are taken, not only when the first is soft.
  * [region] = where the item is in the picture (the frame, or the outline found live), null = the whole picture.
  * Returns null when the person chose to retake (the photo is deleted), otherwise the shot for the session.
  */
@@ -36,6 +37,7 @@ internal suspend fun takeShot(
     region: FloatArray?,
     aspect: Float,
     land: Boolean,
+    burst: Boolean = false,
 ): ShotFile? {
     var best: Bitmap? = null
     var bestFile: File? = null
@@ -44,7 +46,7 @@ internal suspend fun takeShot(
     try {
         val dir = File(cacheDir, "shots").apply { mkdirs() }
         repeat(MAX_PHOTOS) { n ->
-            if (n > 0 && !Sharpness.isBlurry(bestSharp)) return@repeat
+            if (n > 0 && !(burst || Sharpness.isBlurry(bestSharp))) return@repeat
             val file = try {
                 rig.takePhoto(File(dir, "shot_${System.nanoTime()}.jpg"))
             } catch (e: CancellationException) {
