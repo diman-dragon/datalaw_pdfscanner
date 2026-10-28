@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Checks the layers of the app: no package depends on another one in a circle, and the low layers know nothing of the screens.
 
-    data, pdf, ocr, imaging, settings   (the low layers: files, PDF, text recognition, pictures, preferences)
+    data, pdf, imaging, settings   (the low layers: files, PDF, pictures, preferences)
       <- core                           (what everybody shares: the graph, dialogs, texts, navigation contract, camera contract)
       <- ui                             (theme, widgets, dialogs on screen)
-      <- camera, scan, library, docedit, viewer, prefs, recognize   (the features)
+      <- camera, scan, library, docedit, prefs   (the features)
       <- app                            (the shell: tabs, overlays, the view model)
 
 A feature builds its buttons only of the kit (PrimaryButton, SecondaryButton, GlyphButton).
@@ -18,9 +18,9 @@ import sys
 
 BASE = "app/src/main/java/com/datalaw/pdfscanner/"
 PKG = "com.datalaw.pdfscanner"
-LOW = {"data", "pdf", "ocr", "imaging", "settings"}
+LOW = {"data", "pdf", "imaging", "settings"}
 HIGH = {"core", "ui", "app"}
-FEATURES = {"camera", "scan", "library", "docedit", "viewer", "prefs", "recognize"}
+FEATURES = {"camera", "scan", "library", "docedit", "prefs"}
 # a screen has no buttons of its own: PrimaryButton / SecondaryButton / GlyphButton of the kit (ui) only
 RAW_BUTTON = re.compile(r"(?<![A-Za-z])(Outlined|Text|Filled|Elevated)?Button\(")
 

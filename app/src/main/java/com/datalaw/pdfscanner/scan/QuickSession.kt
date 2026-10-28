@@ -7,7 +7,7 @@ import com.datalaw.pdfscanner.core.Deps
 import com.datalaw.pdfscanner.core.FolderAccess
 import com.datalaw.pdfscanner.core.Tab
 import com.datalaw.pdfscanner.core.ask
-import com.datalaw.pdfscanner.core.askSave
+import com.datalaw.pdfscanner.core.askName
 import com.datalaw.pdfscanner.core.askSaveAsIs
 import com.datalaw.pdfscanner.core.tx
 import com.datalaw.pdfscanner.core.userReason
@@ -44,9 +44,9 @@ class QuickSession(private val d: Deps) : CameraSession {
         val problem = if (auto) ShotCheck.problem(found?.quad) else null
         if (problem != null && !d.ui.askSaveAsIs(problem.ask(sheet = true))) { shot.file.delete(); return false }
         val def = Names.auto("qscan")
-        val choice = askSave(d, def) ?: return false
-        val name = Names.clean(choice.name).ifEmpty { def }
-        val renderer = d.renderer(choice.recognize)
+        val typed = askName(d, def) ?: return false
+        val name = Names.clean(typed).ifEmpty { def }
+        val renderer = d.renderer()
         // The camera closes at once and the Library opens: the page is made and saved in the background, the progress is the line at the top of the app.
         pending++
         d.nav.goTo(Tab.Library)
@@ -55,7 +55,7 @@ class QuickSession(private val d: Deps) : CameraSession {
             try {
                 val page = when {
                     auto && found != null -> renderer.straightened(shot, found.quad)
-                    auto -> renderer.raw(ShotFile(shot.file, null, shot.vr, shot.land))
+                    auto -> renderer.raw(ShotFile(shot.file, null, shot.vr, shot.land, gain = shot.gain))
                     else -> renderer.raw(shot)
                 }
                 val saved = access.save(name, 1) { page }

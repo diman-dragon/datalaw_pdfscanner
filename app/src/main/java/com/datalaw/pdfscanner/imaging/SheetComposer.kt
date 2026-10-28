@@ -24,6 +24,7 @@ object SheetComposer {
     fun rowCap(w: Double): Int = Math.floor((SW - 2 * MARGIN + GAP) / (w + GAP)).toInt().coerceAtLeast(1)
 
     fun compose(item: PlacedItem, side: Int, budget: Int): PdfPage {
+        val gain = item.sides.firstOrNull()?.gain ?: 1f
         val ppm = maxOf(side, 2339).toDouble() / SH
         val sheetW = Math.round(SW * ppm).toInt()
         val sheetH = Math.round(SH * ppm).toInt()
@@ -49,7 +50,7 @@ object SheetComposer {
                 q != null -> maxOf(q.maxOf { it.x } - q.minOf { it.x }, q.maxOf { it.y } - q.minOf { it.y }).coerceAtLeast(0.2f)
                 else -> s.crop?.let { maxOf(it[2] - it[0], it[3] - it[1]) } ?: 1f
             }
-            val img = BitmapLoader.load(s.file, minOf(4000, Math.round(maxOf(dw, dh) / c0)))
+            val img = BitmapLoader.load(s.file, minOf(6000, Math.round(maxOf(dw, dh) / c0)))
             var piece = if (q != null) {
                 PageWarp.warpTo(img, q.map { PointF(it.x * img.width, it.y * img.height) }, dw, dh)
             } else {
@@ -68,8 +69,10 @@ object SheetComposer {
             if (!full) canvas.drawRect(dst, line)
             piece.recycle()
         }
-        val enc = JpegCodec.encodeToBudget(sheet, if (full) budget else budget * 2)
-        sheet.recycle()
+        val lit = if (gain > 1.05f) Enhance.lift(sheet, gain) else sheet
+        if (lit !== sheet) sheet.recycle()
+        val enc = JpegCodec.encodeToBudget(lit, if (full) budget else budget * 2)
+        lit.recycle()
         return PdfPage(enc.jpeg, enc.w, enc.h)
     }
 

@@ -65,7 +65,7 @@ object PageWarp {
     }
 
     fun warp(src: Bitmap, q: List<PointF>, maxSide: Int): Bitmap {
-        val (w, h) = pageSize(q, src.width, src.height, minOf(4000, maxSide))
+        val (w, h) = pageSize(q, src.width, src.height, maxSide)
         return warpTo(src, q, w, h)
     }
 

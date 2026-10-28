@@ -11,7 +11,7 @@ import androidx.compose.ui.geometry.Offset
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.core.Deps
 import com.datalaw.pdfscanner.core.FolderAccess
-import com.datalaw.pdfscanner.core.askSave
+import com.datalaw.pdfscanner.core.askName
 import com.datalaw.pdfscanner.core.get
 import com.datalaw.pdfscanner.core.tx
 import com.datalaw.pdfscanner.core.userReason
@@ -21,6 +21,7 @@ import com.datalaw.pdfscanner.imaging.Look
 import com.datalaw.pdfscanner.imaging.PageRenderer
 import com.datalaw.pdfscanner.pdf.PdfReader
 import com.datalaw.pdfscanner.pdf.PdfTarget
+import com.datalaw.pdfscanner.settings.DocLayout
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,13 +41,17 @@ class EditPage(val index: Int, val ratio: Float) {
 }
 
 /** Edit an existing PDF: frame / look / rotation of each page, order, deletion; save replaces the original or makes a copy. */
-class DocEditController(private val d: Deps, val file: PdfFile, private val single: Int?) {
+class DocEditController(private val d: Deps, val file: PdfFile) {
     val pages = mutableStateListOf<EditPage>()
     var loading by mutableStateOf(true)
     var editing by mutableIntStateOf(-1)   // index in [pages] of the page open in the editor, -1 = the grid
     var sequence by mutableStateOf(false)  // the editor walks through all pages (Back / Next)
     var busy by mutableStateOf(false)
-    private var dirty = false
+    /** How the document is shown: one page at a time (true) or all pages in a grid. Taken from the settings at the start, changed by the person, remembered. */
+    var layoutPages by mutableStateOf(false)
+        private set
+    var dirty by mutableStateOf(false)
+        private set
     private var reader: PdfReader? = null
     private val job = SupervisorJob()
     private val scope = CoroutineScope(d.scope.coroutineContext + job)
@@ -54,14 +59,18 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
 
     fun markDirty() { dirty = true }
 
+    /** Something was changed: a frame, a look, a turn, the order or a deleted page. */
+    val hasChanges: Boolean get() = dirty || pages.any { it.touched }
+
     fun start() {
         scope.launch {
             try {
+                layoutPages = d.settings().docLayout == DocLayout.Pages
                 val r = PdfReader.open(d.graph.app.contentResolver, Uri.parse(file.uri))
                 reader = r
                 r.ratios.forEachIndexed { i, ratio -> pages.add(EditPage(i, ratio)) }
                 loading = false
-                if (single != null) editing = single.coerceIn(0, pages.size - 1)
+                if (layoutPages && pages.isNotEmpty()) editing = d.graph.settingsStore.pageOf(file.uri).coerceIn(0, pages.size - 1)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -69,6 +78,29 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
                 d.nav.pop()
             }
         }
+    }
+
+    /** One page at a time, from the page the document was left on; remembered for the next opening. */
+    fun showPages() {
+        scope.launch {
+            layoutPages = true
+            sequence = false
+            d.graph.settingsStore.setDocLayout(DocLayout.Pages)
+            if (pages.isNotEmpty()) editing = d.graph.settingsStore.pageOf(file.uri).coerceIn(0, pages.size - 1)
+        }
+    }
+
+    /** All pages in a grid; remembered for the next opening. */
+    fun showGrid() {
+        layoutPages = false
+        sequence = false
+        editing = -1
+        scope.launch { d.graph.settingsStore.setDocLayout(DocLayout.Grid) }
+    }
+
+    /** The page the person is on, so that the document opens on it next time. */
+    fun rememberPage(i: Int) {
+        scope.launch { d.graph.settingsStore.setPageOf(file.uri, i) }
     }
 
     fun close() {
@@ -107,8 +139,7 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
 
     fun requestClose() {
         scope.launch {
-            val changed = dirty || pages.any { it.touched }
-            if (!changed || d.ui.askConfirm(tx(R.string.de_discardq), tx(R.string.de_discard), tx(R.string.dlg_stay), danger = true)) d.nav.pop()
+            if (!hasChanges || d.ui.askConfirm(tx(R.string.de_discardq), tx(R.string.de_discard), tx(R.string.dlg_stay), danger = true)) d.nav.pop()
         }
     }
 
@@ -116,17 +147,16 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
         if (busy || pages.isEmpty()) return
         scope.launch {
             val base = Names.withoutPdf(file.name)
-            val choice = askSave(d, base)
-            if (choice == null) { if (single != null) d.nav.pop(); return@launch }
-            val name = Names.clean(choice.name).ifEmpty { base }
+            val typed = askName(d, base) ?: return@launch
+            val name = Names.clean(typed).ifEmpty { base }
             val same = name.equals(base, ignoreCase = true)
-            if (same && !d.ui.askConfirm(tx(R.string.de_replaceq), tx(R.string.de_replace), tx(R.string.dlg_cancel))) { if (single != null) d.nav.pop(); return@launch }
+            if (same && !d.ui.askConfirm(tx(R.string.de_replaceq), tx(R.string.de_replace), tx(R.string.dlg_cancel))) return@launch
             busy = true
             d.ui.beginProgress(tx(R.string.scan_saving))
             try {
                 val list = pages.toList()
-                val renderer = d.renderer(choice.recognize)
-                val side = PdfTarget.forDpi(d.settings().pdfDpi).side.coerceAtMost(4000)
+                val renderer = d.renderer()
+                val side = PdfTarget.forDpi(d.settings().pdfDpi).side.coerceAtMost(5200)
                 val r = access.save(if (same) "$base~new" else name, list.size) { i ->
                     d.ui.setProgress(tx(R.string.scan_saving_n, i + 1, list.size))
                     val p = list[i]
@@ -156,7 +186,6 @@ class DocEditController(private val d: Deps, val file: PdfFile, private val sing
                 throw e
             } catch (e: Throwable) {
                 d.ui.toast(tx(R.string.scan_fail_n, e.userReason()))
-                if (single != null) d.nav.pop()
             } finally {
                 busy = false
                 d.ui.endProgress()

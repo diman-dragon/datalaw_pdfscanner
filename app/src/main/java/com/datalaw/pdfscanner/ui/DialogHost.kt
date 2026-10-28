@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
@@ -38,7 +39,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.datalaw.pdfscanner.R
 import com.datalaw.pdfscanner.core.Dlg
-import com.datalaw.pdfscanner.core.SaveAnswer
 import com.datalaw.pdfscanner.core.UiHost
 import com.datalaw.pdfscanner.core.get
 import com.datalaw.pdfscanner.ui.theme.Dimens
@@ -48,6 +48,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun DialogHost(host: UiHost) {
     val d by host.dialog.collectAsStateWithLifecycle()
+    val ctx = LocalContext.current // the language chosen in the app (a share window of the system would speak the language of the phone)
     when (val x = d) {
         null -> Unit
         is Dlg.Alert -> Card({ x.result.complete(Unit) }) {
@@ -76,23 +77,25 @@ fun DialogHost(host: UiHost) {
                 )
             }
             Wide(true, false, x.copy.get()) { x.onCopy() }
-            Wide(false, false, x.send.get()) { x.onSend() }
+            Wide(false, false, x.send.get()) { x.onSend(ctx) }
             Wide(false, false, x.close.get()) { x.result.complete(Unit) }
         }
         is Dlg.Input -> InputCard(x)
-        is Dlg.Save -> SaveCard(x)
     }
 }
 
 @Composable
 private fun Card(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val bridge = rememberLocaleBridge() // taken HERE: inside the Dialog the language of the app is already lost
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        ) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
+        bridge.Provide {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
+            }
         }
     }
 }
@@ -133,25 +136,5 @@ private fun InputCard(x: Dlg.Input) {
         )
         Wide(true, false, x.ok.get()) { x.result.complete(v.text) }
         Wide(false, false, x.cancel.get()) { x.result.complete(null) }
-    }
-}
-
-@Composable
-private fun SaveCard(x: Dlg.Save) {
-    var v by remember(x) { mutableStateOf(TextFieldValue(x.initial, TextRange(0, x.initial.length))) }
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(x) { focus.requestWhenReady() }
-    Card({ x.result.complete(null) }) {
-        Text(x.title.get())
-        OutlinedTextField(
-            value = v,
-            onValueChange = { v = it },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions.Default,
-            modifier = Modifier.fillMaxWidth().focusRequester(focus),
-        )
-        Wide(true, false, x.recognize.get()) { x.result.complete(SaveAnswer(v.text, true)) }
-        Wide(false, false, x.plain.get()) { x.result.complete(SaveAnswer(v.text, false)) }
-        TextButton({ x.result.complete(null) }, Modifier.fillMaxWidth()) { Text(x.cancel.get()) }
     }
 }

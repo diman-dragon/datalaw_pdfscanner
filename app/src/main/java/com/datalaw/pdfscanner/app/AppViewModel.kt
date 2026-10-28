@@ -60,7 +60,7 @@ class AppViewModel(val graph: AppGraph) : ViewModel(), AppActions {
         ui.askReport(
             tx(R.string.crash_title), tx(R.string.crash_ask, tx(r.reason)), r.text, tx(R.string.crash_copy), tx(R.string.crash_send), tx(R.string.vw_close),
             onCopy = { CrashReport.copy(graph.app, r); ui.toast(tx(R.string.crash_copied)) },
-            onSend = { CrashReport.share(graph.app, r, graph.app.getString(R.string.crash_send)) },
+            onSend = { c -> CrashReport.share(graph.app, r, c.getString(R.string.crash_send)) },
         )
         CrashReport.dismiss(graph.app)
     }

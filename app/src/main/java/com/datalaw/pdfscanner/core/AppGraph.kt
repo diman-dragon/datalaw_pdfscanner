@@ -4,7 +4,6 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.util.LruCache
 import com.datalaw.pdfscanner.data.FolderRepository
-import com.datalaw.pdfscanner.ocr.OcrEngine
 import com.datalaw.pdfscanner.settings.SettingsStore
 import java.io.File
 
@@ -12,7 +11,6 @@ import java.io.File
 class AppGraph(val app: Application) {
     val settingsStore = SettingsStore(app)
     val folders = FolderRepository(app)
-    val ocr = OcrEngine(app)
     val ui = UiHost()
     /** Page previews, limited by memory (a 16th of what the app may use), not by count. */
     val thumbs = object : LruCache<String, Pair<Bitmap, Int>>((Runtime.getRuntime().maxMemory() / 16).toInt()) {

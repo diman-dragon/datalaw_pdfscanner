@@ -85,7 +85,8 @@ fun OverflowMenu(label: String, modifier: Modifier = Modifier, content: @Composa
             Modifier.size(44.dp).clip(CircleShape).clickable(role = Role.Button) { open = true }.semantics { contentDescription = label },
             contentAlignment = Alignment.Center,
         ) { Text("⋮", fontSize = 22.sp, fontWeight = FontWeight.Bold) }
-        DropdownMenu(open, { open = false }) { content { open = false } }
+        val bridge = rememberLocaleBridge() // a menu is a window of its own: the language of the app is handed over
+        DropdownMenu(open, { open = false }) { bridge.Provide { content { open = false } } }
     }
 }
 

@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +52,6 @@ import com.datalaw.pdfscanner.core.resolve
 import com.datalaw.pdfscanner.docedit.DocEditScreen
 import com.datalaw.pdfscanner.library.LibraryScreen
 import com.datalaw.pdfscanner.prefs.SettingsScreen
-import com.datalaw.pdfscanner.recognize.OcrScreen
 import com.datalaw.pdfscanner.scan.QuickTab
 import com.datalaw.pdfscanner.scan.ScanTab
 import com.datalaw.pdfscanner.settings.Settings
@@ -63,7 +63,6 @@ import com.datalaw.pdfscanner.ui.TitleBar
 import com.datalaw.pdfscanner.ui.WithLocale
 import com.datalaw.pdfscanner.ui.theme.Dimens
 import com.datalaw.pdfscanner.ui.theme.AppTheme
-import com.datalaw.pdfscanner.viewer.ViewerScreen
 import kotlinx.coroutines.CompletableDeferred
 
 @Composable
@@ -86,7 +85,9 @@ private fun Content(vm: AppViewModel) {
     val snack = remember { SnackbarHostState() }
     val ctx = LocalContext.current
 
-    LaunchedEffect(Unit) { vm.ui.toasts.collect { snack.showSnackbar(it.resolve(ctx)) } }
+    // the collector lives as long as the screen: it must read the language CURRENT at the moment of the message, not the one of the start
+    val ctxNow by rememberUpdatedState(ctx)
+    LaunchedEffect(Unit) { vm.ui.toasts.collect { snack.showSnackbar(it.resolve(ctxNow)) } }
 
     // The system folder picker, asked for by controllers through UiHost.
     var pending by remember { mutableStateOf<CompletableDeferred<Uri?>?>(null) }
@@ -128,10 +129,8 @@ private fun Content(vm: AppViewModel) {
                 CompositionLocalProvider(LocalContentColor provides if (o is Overlay.Camera) Color.White else MaterialTheme.colorScheme.onBackground) {
                     Box(Modifier.fillMaxSize().background(if (o is Overlay.Camera) Color.Black else MaterialTheme.colorScheme.background)) {
                         when (o) {
-                            is Overlay.Viewer -> ViewerScreen(vm, o.file)
-                            is Overlay.DocEdit -> DocEditScreen(vm, o.file, o.page)
+                            is Overlay.DocEdit -> DocEditScreen(vm, o.file)
                             is Overlay.Camera -> CameraScreen(o.session) { vm.pop() }
-                            is Overlay.Ocr -> OcrScreen(vm, o.file, o.page, o.pages)
                         }
                     }
                 }

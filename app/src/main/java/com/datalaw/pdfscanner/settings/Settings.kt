@@ -4,6 +4,9 @@ enum class ThemeMode { Auto, Light, Dark }
 enum class FlashMode { Auto, On, Off; fun next(): FlashMode = entries[(ordinal + 1) % entries.size] }
 enum class CamMode { Frame, Auto }
 enum class LibView { List, Cards }
+
+/** How a document opens: all its pages in a grid, or one page at a time (swipe to turn). The last choice is remembered. */
+enum class DocLayout { Grid, Pages }
 enum class AppLang(val tag: String) { Auto(""), En("en"), Ru("ru") }
 
 data class Settings(
@@ -16,5 +19,5 @@ data class Settings(
     val libView: LibView = LibView.List,
     val camMode: CamMode = CamMode.Frame,
     val scanType: String = "a4",
-    val ocrLangs: Set<String> = setOf("ru", "en"),
+    val docLayout: DocLayout = DocLayout.Grid,
 )

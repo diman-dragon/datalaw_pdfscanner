@@ -29,7 +29,6 @@
     <string name="lib_choose">Открыть настройки</string>
     <string name="lib_delete">Удалить</string>
     <string name="lib_delq">Удалить файл?</string>
-    <string name="lib_edit">Редактировать</string>
     <string name="lib_empty">В папке нет PDF</string>
     <string name="lib_empty_hint">Отсканируйте документ — он появится здесь</string>
     <string name="lib_error">Не удалось открыть папку</string>
@@ -48,17 +47,6 @@
     <string name="nav_quick">Быстрое</string>
     <string name="nav_scan">Сканирование</string>
     <string name="nav_settings">Настройки</string>
-    <string name="ocr_all">Весь документ</string>
-    <string name="ocr_copied">Скопировано</string>
-    <string name="ocr_copy">Копировать</string>
-    <string name="ocr_dl">Подготовка языка (первый раз нужен интернет)…</string>
-    <string name="ocr_empty">Текст не найден</string>
-    <string name="ocr_fail">Не удалось распознать. Проверьте интернет для первой загрузки языка</string>
-    <string name="ocr_menu">Распознать текст</string>
-    <string name="ocr_nolang">Выберите хотя бы один язык</string>
-    <string name="ocr_page">Эта страница</string>
-    <string name="ocr_run_n">Распознаю %1$d/%2$d</string>
-    <string name="ocr_title">Распознавание текста</string>
     <string name="qs_blur">Снимок получился нерезким. Переснять или сохранить как есть?</string>
     <string name="qs_blur_retake">Переснять</string>
     <string name="qs_blur_save">Сохранить как есть</string>
@@ -125,12 +113,9 @@
     <string name="tab_scan">Сканирование</string>
     <string name="tab_settings">Настройки</string>
     <string name="vw_close">Закрыть</string>
-    <string name="vw_editdoc">Редактировать документ</string>
-    <string name="vw_editpage">Править страницу</string>
-    <string name="vw_fail">Не удалось открыть PDF</string>
     <string name="vw_page_n">%1$d / %2$d</string>
     <string name="de_keptnew_n">Не удалось заменить оригинал. Новая версия сохранена как: %1$s</string>
-    <string name="set_pdfdpi_hint">Разрешение картинок страниц в PDF. «Авто» — максимум, который даёт камера (до 6000 px). Чем выше, тем чётче, но файл больше.</string>
+    <string name="set_pdfdpi_hint">Разрешение страницы в PDF по длинной стороне A4: 150 dpi = 1754 px, 300 dpi = 3508 px, 600 dpi = 7016 px. «Авто» — максимум, который даёт камера (до 6000 px). Камера просит у телефона снимок нужного размера; если памяти не хватает, размер снижается сам, приложение не закрывается.</string>
     <string name="set_folderchange">Изменить</string>
     <string name="qs_label">A4 · макс. качество</string>
     <string name="cam_flash">Вспышка</string>
@@ -149,16 +134,13 @@
     <string name="sc_nosheet">Границ предмета не видно. Положите его на контрастный фон</string>
     <string name="sc_cut_ask">Предмет выходит за кадр, края обрезаны. Переснять или сохранить как есть?</string>
     <string name="sc_nosheet_ask">Границы предмета не найдены. Переснять или сохранить середину кадра?</string>
-    <string name="save_recognize">Распознать и сохранить</string>
-    <string name="save_plain">Сохранить как есть</string>
-    <string name="save_ocr_fail">Не удалось подготовить распознавание (нужен интернет один раз). Сохранить без распознавания?</string>
     <string name="cam_hold">Держите ровно — снимок сделается сам</string>
     <string name="st_auto">Полное авто</string>
     <string name="sc_hint_full">Наведите на лист: когда он виден целиком и телефон неподвижен, снимок сделается сам</string>
     <string name="help_label">Что это</string>
     <string name="help_saveto">📁 Сохранение в: %1$s%2$s</string>
-    <string name="help_quick">⚡ Быстрое сканирование: одно нажатие — готовый PDF.\n\n📐 Рамка: впишите лист в рамку A4 на экране.\n🎯 Авто: камера сама находит границы листа и выравнивает его.\n⚠️ В режиме «Авто» приложение предупреждает, если лист выходит за кадр или не виден: отодвиньте телефон.\n📷 Снимок делается в высоком качестве (до 16 Мп: больше в страницу PDF всё равно не поместится). Качество изображения в PDF задаётся в настройках.\n💾 При сохранении выбираете: «Распознать и сохранить» (в PDF появится текст для поиска) или «Сохранить как есть».\n\n%1$s</string>
-    <string name="help_scan">📷 Сканирование: выберите, что снимаете, и нажмите «Снять». Предмет ляжет на лист A4 в реальном размере.\n\n✨ Полное авто: размер выбирать не нужно. Когда лист виден целиком и телефон неподвижен, камера снимает сама. Страница ложится на лист A4 с сохранением пропорций.\n📐 Рамка: впишите предмет в рамку выбранного размера.\n🎯 Авто: камера сама находит границы предмета и выравнивает его. Карточку держите горизонтально, чек — вертикально.\n💳 Карточка: права, ВНЖ, ID, банковская; обе стороны ложатся на один лист.\n🧾 Чек: длинную ленту можно продолжить следующей частью.\n⚠️ В режиме «Авто» приложение предупреждает, если предмет выходит за кадр или не виден.\n💾 При сохранении выбираете: «Распознать и сохранить» или «Сохранить как есть».\n\n%1$s</string>
+    <string name="help_quick">⚡ Быстрое сканирование: одно нажатие — готовый PDF.\n\n📐 Рамка: впишите лист в рамку A4 на экране.\n🎯 Авто: камера сама находит границы листа и выравнивает его.\n⚠️ В режиме «Авто» приложение предупреждает, если лист выходит за кадр или не виден: отодвиньте телефон.\n📷 Размер снимка зависит от качества PDF в настройках (150 / 300 / 600 dpi или «Авто»). В темноте вспышка включается сама, а снимок ждёт, пока телефон не замрёт.\n💾 Вы выбираете имя файла; PDF сохраняется в фоне.\n\n%1$s</string>
+    <string name="help_scan">📷 Сканирование: «Рамка» или «Авто», затем «Снять». Предмет кладётся на лист A4 в реальном размере.\n\n🎯 Авто: размер выбирать не нужно. Камера сама находит предмет и, когда он виден целиком и телефон неподвижен, снимает сама. Страница кладётся на лист A4 с сохранением формы.\n📐 Рамка: выберите размер под переключателем и впишите предмет в рамку.\n💳 Карточка: права, вид на жительство, ID, банковская карта; обе стороны идут на один лист.\n🧾 Чек: длинную ленту можно продолжить следующей частью.\n⚠️ В режиме «Авто» приложение предупреждает, если предмет выходит за кадр или не виден.\n💾 Вы выбираете имя файла; PDF сохраняется в фоне.\n\n%1$s</string>
     <string name="crash_ask">В прошлый раз приложение завершилось аварийно (%1$s). Обратитесь к разработчику и передайте ему этот отчёт:</string>
     <string name="crash_copy">Копировать</string>
     <string name="crash_copied">Подробности скопированы</string>
@@ -171,14 +153,8 @@
     <string name="err_folder">Папка недоступна</string>
     <string name="err_io">Не удалось записать файл</string>
     <string name="err_unknown">Непредвиденная ошибка</string>
-    <string name="vw_prev">Предыдущая страница</string>
-    <string name="vw_next">Следующая страница</string>
-    <string name="vw_zoomin">Приблизить</string>
-    <string name="vw_zoomout">Отдалить</string>
     <string name="rs_rotl">Повернуть влево</string>
     <string name="rs_rotr">Повернуть вправо</string>
-    <string name="vw_strip">Лента</string>
-    <string name="vw_pages">Листы</string>
     <string name="rs_autoframe">Рамка авто</string>
     <string name="rs_resetframe">Вся страница</string>
     <string name="fx_clean">Без теней</string>
@@ -186,4 +162,6 @@
     <string name="fx_bw">Ч/б</string>
     <string name="crash_title">Приложение закрылось аварийно</string>
     <string name="crash_send">Отправить</string>
+    <string name="de_layout_grid">Все страницы</string>
+    <string name="de_layout_pages">По одной странице</string>
 </resources>

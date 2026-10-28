@@ -9,7 +9,7 @@ import com.datalaw.pdfscanner.core.FolderAccess
 import com.datalaw.pdfscanner.core.Tab
 import com.datalaw.pdfscanner.core.UiText
 import com.datalaw.pdfscanner.core.ask
-import com.datalaw.pdfscanner.core.askSave
+import com.datalaw.pdfscanner.core.askName
 import com.datalaw.pdfscanner.core.askSaveAsIs
 import com.datalaw.pdfscanner.core.tx
 import com.datalaw.pdfscanner.core.userReason
@@ -101,9 +101,9 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         val problem = if (auto) ShotCheck.problem(found?.quad) else null
         if (problem != null && !d.ui.askSaveAsIs(problem.ask(sheetLike))) { raw.file.delete(); return null }
         if (!auto) return raw
-        if (found == null) return ShotFile(raw.file, null, raw.vr, raw.land)
+        if (found == null) return ShotFile(raw.file, null, raw.vr, raw.land, gain = raw.gain)
         val (quad, wide) = oriented(found)
-        return ShotFile(raw.file, raw.crop, raw.vr, if (type.orient == Orient.Video) wide else raw.land, quad, if (type.free) ItemFit.mm(found.aspect) else null)
+        return ShotFile(raw.file, raw.crop, raw.vr, if (type.orient == Orient.Video) wide else raw.land, quad, if (type.free) ItemFit.mm(found.aspect) else null, gain = raw.gain)
     }
 
     override suspend fun onShot(shot: ShotFile): Boolean {
@@ -138,17 +138,17 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
         while (true) {
             if (a == "more") return false
             val def = Names.auto("scan")
-            val choice = askSave(d, def)
-            if (choice != null) return finish(Names.clean(choice.name).ifEmpty { def }, choice.recognize)
+            val typed = askName(d, def)
+            if (typed != null) return finish(Names.clean(typed).ifEmpty { def })
             a = askMore()
         }
     }
 
-    /** The camera closes at once and the Library opens; the pages are finished, recognised and written in the background, with the progress at the top of the app. */
-    private fun finish(name: String, recognize: Boolean): Boolean {
+    /** The camera closes at once and the Library opens; the pages are finished and written in the background, with the progress at the top of the app. */
+    private fun finish(name: String): Boolean {
         val list = sheets.toList()
         val files = shots.map { it.file }.distinct()
-        val renderer = d.renderer(recognize)
+        val renderer = d.renderer()
         saving++
         d.nav.goTo(Tab.Library)
         d.scope.launch {
@@ -156,8 +156,7 @@ class ScanSession(private val d: Deps, private val type: ScanType) : CameraSessi
             try {
                 val saved = access.save(name, list.size) { i ->
                     d.ui.setProgress(tx(R.string.scan_saving_n, i + 1, list.size))
-                    val page = list[i].await()
-                    if (recognize) renderer.recognized(page) else page
+                    list[i].await()
                 }
                 d.ui.toast(tx(R.string.scan_saved_n, saved.name))
                 d.nav.libraryChanged()

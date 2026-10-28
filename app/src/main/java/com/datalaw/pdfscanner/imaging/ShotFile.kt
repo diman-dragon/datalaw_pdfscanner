@@ -9,6 +9,7 @@ import java.io.File
  * [quad]: Auto mode only, the corners of the item found in the photo (TL, TR, BR, BL as 0..1, turned to the shape of the item); the item is straightened from them.
  * [mm]: the size the item is put at on the sheet when it is not the size of its type (Full auto: it is fitted to the sheet).
  * [found]: Pre-calculated sheet detection result to avoid re-decoding the image.
+ * [gain]: how much lighter the page must be made after the shot (1 = not at all): in the dark the camera is told to expose less (a shorter shutter, no blur) and the light is given back in software.
  */
 class ShotFile(
     val file: File,
@@ -18,4 +19,5 @@ class ShotFile(
     val quad: List<Offset>? = null,
     val mm: Pair<Double, Double>? = null,
     val found: Found? = null,
+    val gain: Float = 1f,
 )

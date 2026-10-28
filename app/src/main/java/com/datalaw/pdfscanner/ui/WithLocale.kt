@@ -28,3 +28,23 @@ fun WithLocale(lang: AppLang, content: @Composable () -> Unit) {
     // the same tree for every language: switching it does not tear the screen down
     CompositionLocalProvider(LocalContext provides ctx, LocalConfiguration provides newCfg, LocalResources provides ctx.resources) { content() }
 }
+
+/**
+ * The language chosen in the app, taken at a place where it is still in force and handed to a window of its own. A Dialog or a menu is a separate Android window:
+ * Compose starts its Context, Configuration and Resources again from the phone, so without this its texts speak the language of the phone, not of the app.
+ * Take it with [rememberLocaleBridge] OUTSIDE the window, wrap the content of the window in [Provide].
+ */
+class LocaleBridge(private val ctx: Context, private val cfg: Configuration, private val res: Resources) {
+    @Composable
+    fun Provide(content: @Composable () -> Unit) {
+        CompositionLocalProvider(LocalContext provides ctx, LocalConfiguration provides cfg, LocalResources provides res) { content() }
+    }
+}
+
+@Composable
+fun rememberLocaleBridge(): LocaleBridge {
+    val ctx = LocalContext.current
+    val cfg = LocalConfiguration.current
+    val res = LocalResources.current
+    return remember(ctx, cfg, res) { LocaleBridge(ctx, cfg, res) }
+}

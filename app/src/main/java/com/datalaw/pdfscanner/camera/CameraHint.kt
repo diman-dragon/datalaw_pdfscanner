@@ -19,10 +19,10 @@ internal fun frameColorOf(bad: Boolean, focus: FocusState): Color = when {
 
 /** The one line under the picture: the most important thing the person has to know right now (a failure first, the quiet hint of the mode last). */
 @Composable
-internal fun cameraHint(failed: Boolean, ui: CamUi, hold: Float, problem: ShotProblem?, sheetLike: Boolean, focus: FocusState, smartAuto: Boolean): String = when {
+internal fun cameraHint(failed: Boolean, ui: CamUi, hold: Float, settling: Boolean, problem: ShotProblem?, sheetLike: Boolean, focus: FocusState, smartAuto: Boolean): String = when {
     failed -> stringResource(R.string.cam_unavailable)
     ui.status != null -> ui.status!!.get()
-    hold > 0.05f -> stringResource(R.string.cam_hold)
+    settling || hold > 0.05f -> stringResource(R.string.cam_hold)
     problem != null -> problem.hint(sheetLike).get()
     focus == FocusState.Seeking -> stringResource(R.string.qs_focusing)
     focus == FocusState.Locked -> stringResource(R.string.qs_focuslock)

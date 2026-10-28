@@ -92,9 +92,9 @@ fun LibraryScreen(vm: AppActions, lib: LibraryController) {
                 is LibState.Ok -> if (s.files.isEmpty()) {
                     Empty("📄", stringResource(R.string.lib_empty), stringResource(R.string.lib_empty_hint), null) {}
                 } else {
-                    val onOpen: (PdfFile) -> Unit = { vm.push(Overlay.Viewer(it)) }
+                    val onOpen: (PdfFile) -> Unit = { vm.push(Overlay.DocEdit(it)) }
                     val menu: @Composable (PdfFile) -> Unit = { f ->
-                        FileMenu(f, onEdit = { vm.push(Overlay.DocEdit(f)) }, onExternal = {
+                        FileMenu(f, onExternal = {
                             try { ctx.startActivity(graph.folders.viewIntent(Uri.parse(f.uri))) } catch (e: ActivityNotFoundException) { vm.toast(R.string.lib_noviewer) }
                         }, onRename = { lib.rename(f) }, onDelete = { lib.delete(f) })
                     }
@@ -164,9 +164,8 @@ private fun FileCard(f: PdfFile, onOpen: (PdfFile) -> Unit, menu: @Composable (P
 }
 
 @Composable
-private fun FileMenu(f: PdfFile, onEdit: () -> Unit, onExternal: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
+private fun FileMenu(f: PdfFile, onExternal: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
     OverflowMenu(stringResource(R.string.lib_menu)) { close ->
-        DropdownMenuItem({ Text(stringResource(R.string.lib_edit)) }, { close(); onEdit() })
         DropdownMenuItem({ Text(stringResource(R.string.lib_openext)) }, { close(); onExternal() })
         DropdownMenuItem({ Text(stringResource(R.string.lib_rename)) }, { close(); onRename() })
         DropdownMenuItem({ Text(stringResource(R.string.lib_delete), color = MaterialTheme.colorScheme.error) }, { close(); onDelete() })

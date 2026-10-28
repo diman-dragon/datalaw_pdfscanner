@@ -47,6 +47,7 @@ import com.datalaw.pdfscanner.imaging.Sharpness
 import com.datalaw.pdfscanner.ui.SecondaryButton
 import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.BottomBar
+import com.datalaw.pdfscanner.ui.GlyphButton
 import com.datalaw.pdfscanner.ui.RotateButtons
 import com.datalaw.pdfscanner.ui.Seg
 import com.datalaw.pdfscanner.ui.TitleBar
@@ -83,6 +84,8 @@ fun PageEditor(
     onDelete: () -> Unit,
     onCancel: () -> Unit,
     onSwipe: (Int) -> Unit = {},
+    nextEnabled: Boolean = true,
+    onGrid: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val bmp by produceState<Bitmap?>(null, p) { value = try { ctl.source(p, 2000) } catch (e: Exception) { null } }
@@ -120,6 +123,7 @@ fun PageEditor(
     Column(Modifier.fillMaxSize().background(scheme.background).systemBarsPadding()) {
         TitleBar(ctl.file.name, onBack = onCancel) {
             Text(stringResource(R.string.vw_page_n, number, total), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            if (onGrid != null) GlyphButton("▦", stringResource(R.string.de_layout_grid), onGrid)
         }
 
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(Dimens.screen)) {
@@ -198,7 +202,7 @@ fun PageEditor(
             if (showBack) SecondaryButton(stringResource(R.string.rs_back), onBack)
             if (ctl.pages.size > 1) SecondaryButton(stringResource(R.string.sc_delete), onDelete)
             Spacer(Modifier.weight(1f))
-            PrimaryButton(stringResource(nextLabel), onNext)
+            PrimaryButton(stringResource(nextLabel), onNext, enabled = nextEnabled)
         }
     }
 }

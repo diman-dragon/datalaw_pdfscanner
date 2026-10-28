@@ -6,7 +6,7 @@
 - CI artifact name: datalaw_pdfscanner_<version>.apk / .aab (without secrets: a release build signed with the debug key, datalaw_pdfscanner_<version>_debugkey.apk).
 - Every edit adds a line to CHANGELOG.md under the new version.
 - Build only through Gradle (`./gradlew`), locally from VS Code tasks or on GitHub Actions. No Android Studio project files are committed.
-- Layers, one way only (checked by `python3 tools/check_layers.py`, also in CI): low (`data`, `pdf`, `ocr`, `imaging`, `settings`) <- `core` <- `ui` <- features (`camera`, `scan`, `library`, `docedit`, `viewer`, `prefs`, `recognize`) <- `app`. A low layer never imports `core`, `ui` or `app`; screens take `AppActions` (core), never the view model.
+- Layers, one way only (checked by `python3 tools/check_layers.py`, also in CI): low (`data`, `pdf`, `imaging`, `settings`) <- `core` <- `ui` <- features (`camera`, `scan`, `library`, `docedit`, `prefs`) <- `app`. A low layer never imports `core`, `ui` or `app`; screens take `AppActions` (core), never the view model.
 - Anything the user reads comes from `strings.xml` (en + ru); a failure shows a plain reason (`userReason()`), never the raw exception text.
 - A screen has nothing of its own: it is built of `ui/ScreenKit` (TitleBar, BottomBar, GlyphButton, OverflowMenu, CenterNote, PageBadge), `AppButton` (PrimaryButton, SecondaryButton: one line of label, never two), `ToolRow` / `RotateButtons`, `CenterColumn`, `CycleRow`, `AppCard`, `Seg`, the text roles of `AppTypography` and the colours of the theme; sizes, corners and glyph sizes come from `Dimens`. A raw Material button in a feature fails `tools/check_layers.py`.
 - Maths without a screen (zoom focus, page geometry) lives in its own file as plain functions and has a unit test.

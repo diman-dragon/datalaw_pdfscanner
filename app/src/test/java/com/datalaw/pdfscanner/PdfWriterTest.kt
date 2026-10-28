@@ -1,7 +1,6 @@
 package com.datalaw.pdfscanner
 
 import com.datalaw.pdfscanner.pdf.PdfPage
-import com.datalaw.pdfscanner.pdf.PdfWord
 import com.datalaw.pdfscanner.pdf.PdfWriter
 import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.runBlocking
@@ -10,15 +9,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PdfWriterTest {
-    private fun build(withText: Boolean): String {
+    private fun build(pages: Int): String {
         val bos = ByteArrayOutputStream()
-        val words = if (withText) listOf(PdfWord("Привет", 0.1f, 0.1f, 0.4f, 0.15f), PdfWord("world", 0.5f, 0.1f, 0.8f, 0.15f)) else emptyList()
-        val page = PdfPage(ByteArray(10) { 1 }, 100, 140, words)
-        runBlocking { PdfWriter.write(bos, 2) { page } }
+        val page = PdfPage(ByteArray(10) { 1 }, 100, 140)
+        runBlocking { PdfWriter.write(bos, pages) { page } }
         return bos.toByteArray().toString(Charsets.ISO_8859_1)
     }
 
-    private fun checkXref(s: String) {
+    private fun checkXref(s: String, expectedObjects: Int) {
         assertTrue(s.startsWith("%PDF-1.4"))
         assertTrue(s.endsWith("%%EOF\n"))
         val sx = s.lastIndexOf("startxref")
@@ -36,17 +34,11 @@ class PdfWriterTest {
                 used++
             }
         }
-        assertTrue(used >= 2 + 2 + 2 * 2 - 2)
+        assertEquals(expectedObjects, used)
     }
 
-    @Test fun xrefPointsToObjects() = checkXref(build(false))
+    // the catalog, the page tree, then for each page: the page, its content and its picture
+    @Test fun xrefPointsToEveryObjectOfTwoPages() = checkXref(build(2), 2 + 2 * 3)
 
-    @Test fun xrefPointsToObjectsWithTextLayer() = checkXref(build(true))
-
-    @Test fun textLayerHasUnicodeMap() {
-        val s = build(true)
-        assertTrue(s.contains("/ToUnicode"))
-        assertTrue(s.contains("3 Tr"))
-        assertTrue(s.contains("<01> <041f>")) // code 1 -> U+041F, Cyrillic capital Pe (first letter of "Привет")
-    }
+    @Test fun xrefPointsToEveryObjectOfOnePage() = checkXref(build(1), 2 + 3)
 }

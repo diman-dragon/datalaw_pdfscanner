@@ -1,6 +1,6 @@
 # DataLaw PDF Scanner (native)
 
-Android PDF scanner: Kotlin, Jetpack Compose, CameraX, OpenCV, Tesseract. Rules of the project: [CONTRACT.md](CONTRACT.md).
+Android PDF scanner: Kotlin, Jetpack Compose, CameraX, OpenCV. Rules of the project: [CONTRACT.md](CONTRACT.md).
 
 ## Build
 
@@ -27,8 +27,7 @@ Secrets for a release build: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`
 | `data` | Storage Access Framework folder, names |
 | `pdf` | PDF reader (PdfRenderer) and the streaming PDF writer |
 | `imaging` | OpenCV engine: detect, warp, enhance, sharpness, JPEG budget, A4 sheet composer, page renderer |
-| `ocr` | Tesseract |
 | `camera` | CameraX rig, frame overlay, gyroscope |
 | `scan` | Quick / Scan sessions, scan types, saving |
-| `library`, `viewer`, `docedit`, `settings` | screens |
+| `library`, `docedit`, `settings` | screens |
 | `ui` | theme, dialogs, navigation state |

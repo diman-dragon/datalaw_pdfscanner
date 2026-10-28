@@ -23,7 +23,7 @@ android {
         targetSdk = 36
         versionCode = vMajor * 10000 + vMinor * 100 + vPatch
         versionName = appVersion
-        ndk { abiFilters += "arm64-v8a" }  // OpenCV + Tesseract are native and heavy: one ABI = half the size
+        ndk { abiFilters += "arm64-v8a" }  // OpenCV is native and heavy: one ABI = half the size
     }
 
     // Debug key (debug.keystore, committed) is fixed, so every CI build installs as an UPDATE.
@@ -94,6 +94,5 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.opencv)
-    implementation(libs.tesseract)
     testImplementation(libs.junit)
 }

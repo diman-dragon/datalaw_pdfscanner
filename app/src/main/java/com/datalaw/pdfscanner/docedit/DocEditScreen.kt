@@ -51,6 +51,7 @@ import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.AppCard
 import com.datalaw.pdfscanner.ui.BottomBar
 import com.datalaw.pdfscanner.ui.CenterNote
+import com.datalaw.pdfscanner.ui.GlyphButton
 import com.datalaw.pdfscanner.ui.OverflowMenu
 import com.datalaw.pdfscanner.ui.PageBadge
 import com.datalaw.pdfscanner.ui.TitleBar
@@ -58,24 +59,25 @@ import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlinx.coroutines.launch
 
 @Composable
-fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
-    val ctl = remember { DocEditController(vm.deps, file, single) }
+fun DocEditScreen(vm: AppActions, file: PdfFile) {
+    val ctl = remember { DocEditController(vm.deps, file) }
     val scope = rememberCoroutineScope()
     DisposableEffect(Unit) { ctl.start(); onDispose { ctl.close() } }
 
     val idx = ctl.editing
+    val pagesLayout = ctl.layoutPages
+    // one page at a time: Back closes the document (the grid is a button away); the grid: Back from a page returns to it
     BackHandler {
-        when {
-            idx >= 0 && single == null -> ctl.editing = -1
-            else -> ctl.requestClose()
-        }
+        if (idx >= 0 && !pagesLayout) ctl.editing = -1 else ctl.requestClose()
     }
+    // the page the person is on is remembered, so that the document opens on it next time
+    LaunchedEffect(idx, pagesLayout) { if (pagesLayout && idx >= 0) ctl.rememberPage(idx) }
 
     if (idx in ctl.pages.indices) {
         val p = ctl.pages[idx]
         val last = !ctl.sequence || idx == ctl.pages.size - 1
         val nextLabel = when {
-            single != null -> R.string.sc_save
+            pagesLayout -> R.string.sc_save
             !ctl.sequence -> R.string.ms_apply
             last -> R.string.ed_done
             else -> R.string.rs_next
@@ -87,22 +89,26 @@ fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
             onBack = { ctl.editing = idx - 1 },
             onNext = {
                 when {
-                    single != null -> { ctl.editing = -1; ctl.save() }
+                    pagesLayout -> ctl.save()
                     last -> { ctl.editing = -1; ctl.sequence = false }
                     else -> ctl.editing = idx + 1
                 }
             },
-            onDelete = { scope.launch { if (ctl.delete(idx)) { if (single != null) ctl.requestClose() else ctl.editing = -1 } } },
-            onCancel = { if (single != null) ctl.requestClose() else ctl.editing = -1 },
-            onSwipe = { d -> if (single == null && idx + d in ctl.pages.indices) ctl.editing = idx + d },
+            onDelete = { scope.launch { if (ctl.delete(idx)) { if (pagesLayout) ctl.editing = idx.coerceAtMost(ctl.pages.size - 1) else ctl.editing = -1 } } },
+            onCancel = { if (pagesLayout) ctl.requestClose() else ctl.editing = -1 },
+            onSwipe = { d -> if (idx + d in ctl.pages.indices) ctl.editing = idx + d },
+            nextEnabled = !pagesLayout || (ctl.hasChanges && !ctl.busy),
+            onGrid = if (pagesLayout) ({ ctl.showGrid() }) else null,
         )
         return
     }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
-        TitleBar(file.name, onBack = { ctl.requestClose() })
+        TitleBar(file.name, onBack = { ctl.requestClose() }) {
+            if (!ctl.loading && ctl.pages.isNotEmpty()) GlyphButton("▭", stringResource(R.string.de_layout_pages), { ctl.showPages() })
+        }
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (ctl.loading || single != null) {
+            if (ctl.loading) {
                 CenterNote(stringResource(if (ctl.busy) R.string.scan_saving else R.string.de_loading))
             } else {
                 LazyVerticalGrid(
@@ -115,12 +121,10 @@ fun DocEditScreen(vm: AppActions, file: PdfFile, single: Int?) {
                 }
             }
         }
-        if (single == null) {
-            BottomBar {
-                SecondaryButton(stringResource(R.string.de_all), { ctl.sequence = true; ctl.editing = 0 }, enabled = !ctl.loading && ctl.pages.isNotEmpty())
-                Spacer(Modifier.weight(1f))
-                PrimaryButton(stringResource(R.string.sc_save), { ctl.save() }, enabled = !ctl.loading && !ctl.busy)
-            }
+        BottomBar {
+            SecondaryButton(stringResource(R.string.de_all), { ctl.sequence = true; ctl.editing = 0 }, enabled = !ctl.loading && ctl.pages.isNotEmpty())
+            Spacer(Modifier.weight(1f))
+            PrimaryButton(stringResource(R.string.sc_save), { ctl.save() }, enabled = !ctl.loading && !ctl.busy)
         }
     }
 }

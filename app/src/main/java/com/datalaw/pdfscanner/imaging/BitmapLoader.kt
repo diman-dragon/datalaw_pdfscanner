@@ -18,9 +18,19 @@ object BitmapLoader {
         0L
     }
 
-    /** A big bitmap of this heap is only decoded when that much is free (a full-resolution photo needs ~50 MB). */
+    /** What the phone can still give, from the kernel (bitmaps live outside the Java heap, so the heap alone says nothing); -1 = unknown. */
+    private fun deviceAvailable(): Long = try {
+        java.io.File("/proc/meminfo").useLines { lines ->
+            lines.firstOrNull { it.startsWith("MemAvailable:") }?.split(Regex("\\s+"))?.getOrNull(1)?.toLongOrNull()?.times(1024L) ?: -1L
+        }
+    } catch (e: Throwable) {
+        -1L
+    }
+
+    /** A big bitmap is only decoded when it fits both the Java heap and half of what the phone has free (a 64 MP photo is 256 MB, and turning it needs a copy). */
     fun hasRoom(needBytes: Long, safetyBuffer: Long = 16 * 1024 * 1024L): Boolean = try {
-        availableMemory() > (needBytes + safetyBuffer)
+        val dev = deviceAvailable()
+        availableMemory() > (needBytes + safetyBuffer) && (dev < 0 || dev / 2 > needBytes)
     } catch (e: Throwable) {
         false
     }
@@ -65,7 +75,7 @@ object BitmapLoader {
         var sample = 1
         while (maxOf(b.outWidth, b.outHeight) / (sample * 2) >= longSide) sample *= 2
         // never decode more than the heap can take: keep raising the sample until there is room (an OOM here would kill the app)
-        while (maxOf(b.outWidth, b.outHeight) / sample > 600 && !hasRoom((b.outWidth.toLong() / sample) * (b.outHeight / sample) * 4)) {
+        while (maxOf(b.outWidth, b.outHeight) / sample > 600 && !hasRoom((b.outWidth.toLong() / sample) * (b.outHeight / sample) * 4 * 2)) {
             sample *= 2
         }
         var curSample = sample

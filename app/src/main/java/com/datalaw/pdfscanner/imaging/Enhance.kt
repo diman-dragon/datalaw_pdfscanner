@@ -75,6 +75,20 @@ object Enhance {
         }
     }
 
+    /** The page lighter by [gain] times, as a longer exposure would have made it (linear, clipped at white). Any failure (memory) leaves the page as it is. */
+    fun lift(src: Bitmap, gain: Float): Bitmap = try {
+        Cv.ensure()
+        val rgb = Cv.rgb(src)
+        try {
+            rgb.convertTo(rgb, -1, gain.toDouble(), 0.0)
+            Cv.bitmap(rgb)
+        } finally {
+            rgb.release()
+        }
+    } catch (e: Throwable) {
+        src
+    }
+
     private fun sharpen(m: Mat, blur: Mat) {
         Imgproc.GaussianBlur(m, blur, Size(0.0, 0.0), 1.2)
         Core.addWeighted(m, 1 + SHARP, blur, -SHARP, 0.0, m)
