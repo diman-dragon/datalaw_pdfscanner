@@ -43,10 +43,14 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
     private var capture: ImageCapture? = null
     private var analysis: ImageAnalysis? = null
     @Volatile private var exposureNs = 0L // the shutter time of the last preview frame
+    @Volatile private var isoNow = 0       // the sensitivity of the last preview frame
 
     private companion object {
-        /** 1/40 s: a slower shutter than this blurs a handheld shot of small text. */
-        const val SLOW_SHUTTER_NS = 25_000_000L
+        /** 1/50 s: a slower shutter than this blurs a handheld shot of small text: the shot waits for calm and is taken a stop darker. */
+        const val SLOW_SHUTTER_NS = 20_000_000L
+        /** A preview cannot expose longer than a frame (~1/30 s): the shutter at its limit AND a high ISO is a really dark room (an ordinary room is ISO 400-1000). */
+        const val DARK_SHUTTER_NS = 28_000_000L
+        const val DARK_ISO = 2000
         // one thread for the whole process: the analysis never blocks the screen
         val analysisExecutor by lazy { Executors.newSingleThreadExecutor() }
     }
@@ -110,18 +114,24 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
     }
 
     /**
-     * The camera's own "Auto" flash fires only when the shutter is already open as long as it can be: by then a hand has shaken the shot. For a document the flash
-     * is used as soon as the shutter is slower than a hand can hold (about 1/40 s). [mode] is the person's choice; On / Off are never changed.
+     * "Auto" flash for a document is decided here, not by the camera (its own flash fires only when the shutter is already as slow as it gets, by then the shot is
+     * blurred): the flash fires in a really dark room ([dark]) and not otherwise, because indoors on a page a flash is a white glare. On / Off are the person's.
      * Returns true when the flash will fire for the next photo.
      */
     fun flashForShot(mode: FlashMode): Boolean {
-        val m = if (mode == FlashMode.Auto && dim) FlashMode.On else mode
-        setFlash(m)
-        return m == FlashMode.On || (m == FlashMode.Auto && dim)
+        val on = mode == FlashMode.On || (mode == FlashMode.Auto && dark)
+        setFlash(if (on) FlashMode.On else FlashMode.Off)
+        return on
     }
 
-    /** The light is so weak that the camera keeps the shutter open for longer than a hand holds still. */
+    /** The light is weak: the camera keeps the shutter open for longer than a hand holds still. */
     val dim: Boolean get() = exposureNs > SLOW_SHUTTER_NS
+
+    /** A really dark room: the shutter is at its limit and the sensitivity is high. */
+    val dark: Boolean get() = exposureNs >= DARK_SHUTTER_NS && isoNow >= DARK_ISO
+
+    /** The sensitivity of the last preview frame (0 = not known yet). */
+    val iso: Int get() = isoNow
 
     /** The shutter time (ns) of the last preview frame: how long the sensor is exposed, so how still the hand must be. 0 = not known yet. */
     val shutterNs: Long get() = exposureNs
@@ -136,8 +146,11 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
         return ShotPlan(flash, Math.pow(2.0, -biasEv.toDouble()).toFloat(), changed)
     }
 
-    /** After the photo: the exposure goes back to what the meter wants. */
-    fun endShot() { setBias(0f) }
+    /** After the photo: the exposure goes back to what the meter wants and the flash to what the person chose. */
+    fun endShot(mode: FlashMode) {
+        setBias(0f)
+        setFlash(mode)
+    }
 
     @Volatile private var biasEv = 0f
 
@@ -183,6 +196,7 @@ class CameraRig(private val context: Context, val previewView: PreviewView) {
         Camera2Interop.Extender(b).setSessionCaptureCallback(object : CameraCaptureSession.CaptureCallback() {
             override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
                 result.get(CaptureResult.SENSOR_EXPOSURE_TIME)?.let { exposureNs = it }
+                result.get(CaptureResult.SENSOR_SENSITIVITY)?.let { isoNow = it }
             }
         })
     }

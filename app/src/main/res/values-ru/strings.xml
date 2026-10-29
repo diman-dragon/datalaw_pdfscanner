@@ -55,7 +55,7 @@
     <string name="qs_hint">Впишите лист в рамку A4 и нажмите кнопку. Не в фокусе? Коснитесь нужной точки на экране.</string>
     <string name="qs_nodetail">Мало деталей для фокуса. Коснитесь текста или края листа</string>
     <string name="rs_back">Назад</string>
-    <string name="rs_hint">Тяните углы рамки. Двойное касание — рамка автоматически. Свайп — соседняя страница.</string>
+    <string name="rs_hint">Тяните углы рамки. Двойное касание или два пальца — приближение. Свайп — соседняя страница.</string>
     <string name="rs_next">Далее</string>
     <string name="rs_warn_blur">Снимок может быть нерезким — лучше переснять</string>
     <string name="rs_warn_tilt_n">Сильный перекос %1$d%%</string>
@@ -164,4 +164,5 @@
     <string name="crash_send">Отправить</string>
     <string name="de_layout_grid">Все страницы</string>
     <string name="de_layout_pages">По одной странице</string>
+    <string name="de_reset">Отменить правки страницы</string>
 </resources>

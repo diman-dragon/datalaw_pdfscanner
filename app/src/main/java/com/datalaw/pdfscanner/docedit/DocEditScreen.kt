@@ -52,6 +52,8 @@ import com.datalaw.pdfscanner.ui.AppCard
 import com.datalaw.pdfscanner.ui.BottomBar
 import com.datalaw.pdfscanner.ui.CenterNote
 import com.datalaw.pdfscanner.ui.GlyphButton
+import com.datalaw.pdfscanner.ui.MenuDivider
+import com.datalaw.pdfscanner.ui.MenuRow
 import com.datalaw.pdfscanner.ui.OverflowMenu
 import com.datalaw.pdfscanner.ui.PageBadge
 import com.datalaw.pdfscanner.ui.TitleBar
@@ -138,10 +140,13 @@ private fun PageCard(ctl: DocEditController, p: EditPage, i: Int, onEdit: () -> 
             p.thumb?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
             PageBadge("${i + 1}", Modifier.align(Alignment.BottomStart).padding(6.dp))
             OverflowMenu(stringResource(R.string.lib_menu), Modifier.align(Alignment.TopEnd)) { close ->
-                DropdownMenuItem({ Text(stringResource(R.string.sc_edit)) }, { close(); onEdit() })
-                if (i > 0) DropdownMenuItem({ Text(stringResource(R.string.sc_left)) }, { close(); ctl.move(i, -1) })
-                if (i < ctl.pages.size - 1) DropdownMenuItem({ Text(stringResource(R.string.sc_right)) }, { close(); ctl.move(i, 1) })
-                if (ctl.pages.size > 1) DropdownMenuItem({ Text(stringResource(R.string.sc_delete), color = MaterialTheme.colorScheme.error) }, { close(); scope.launch { ctl.delete(i) } })
+                MenuRow("✏️", stringResource(R.string.sc_edit)) { close(); onEdit() }
+                if (i > 0) MenuRow("◀", stringResource(R.string.sc_left)) { close(); ctl.move(i, -1) }
+                if (i < ctl.pages.size - 1) MenuRow("▶", stringResource(R.string.sc_right)) { close(); ctl.move(i, 1) }
+                if (ctl.pages.size > 1) {
+                    MenuDivider()
+                    MenuRow("🗑️", stringResource(R.string.sc_delete), danger = true) { close(); scope.launch { ctl.delete(i) } }
+                }
             }
         }
     }

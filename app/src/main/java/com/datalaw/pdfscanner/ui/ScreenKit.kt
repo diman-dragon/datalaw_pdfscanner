@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
@@ -86,7 +87,13 @@ fun OverflowMenu(label: String, modifier: Modifier = Modifier, content: @Composa
             contentAlignment = Alignment.Center,
         ) { Text("⋮", fontSize = 22.sp, fontWeight = FontWeight.Bold) }
         val bridge = rememberLocaleBridge() // a menu is a window of its own: the language of the app is handed over
-        DropdownMenu(open, { open = false }) { bridge.Provide { content { open = false } } }
+        DropdownMenu(
+            open, { open = false },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 8.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) { bridge.Provide { content { open = false } } }
     }
 }
 

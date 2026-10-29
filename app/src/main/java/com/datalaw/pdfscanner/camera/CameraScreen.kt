@@ -182,7 +182,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
                 // 1. the camera is set up for a document: the flash instead of a slow shutter, in the dark a stop less light (a faster shutter)
                 val plan = rig.prepareShot(settings.flash)
                 if (plan.settle) delay(350) // the meter follows the change
-                Breadcrumbs.note("shoot: shutter=${rig.shutterNs / 1000} us, flash=${plan.flash}, gain=${plan.gain}")
+                Breadcrumbs.note("shoot: shutter=${rig.shutterNs / 1000} us, iso=${rig.iso}, flash=${plan.flash}, gain=${plan.gain}")
                 // 2. the photo is taken in a calm: the tap on the shutter shakes the phone, and the limit of the shake depends on the shutter time
                 Stillness.await({ gyro.rate }, { rig.shutterNs }, plan.flash) { settling = it }
                 val shot = takeShot(rig, appCtx.cacheDir, host, session, auto, region, aspect, land, plan.gain)
@@ -192,7 +192,7 @@ fun CameraScreen(session: CameraSession, onClose: () -> Unit) {
             } catch (e: Throwable) {
                 host.toast(tx(R.string.scan_fail_n, e.userReason()))
             } finally {
-                rig.endShot()
+                rig.endShot(settings.flash)
                 settling = false
                 busy = false
             }

@@ -45,7 +45,7 @@ class PageRenderer(private val target: PdfTarget) {
             out = Bitmap.createBitmap(img, x0, y0, x1 - x0, y1 - y0)
             if (out !== img) img.recycle() // a crop of the whole picture is the same bitmap
         }
-        finish(out, null, side, shot.gain)
+        finish(out, null, side, shot.gain, paper = true)
     }
 
     /** Quick scan, Auto mode: the sheet found in the photo ([quad]: TL, TR, BR, BL as 0..1 of the upright photo) straightened to a flat page of true proportions, nothing else. */
@@ -56,7 +56,7 @@ class PageRenderer(private val target: PdfTarget) {
         val img = BitmapLoader.load(shot.file, Math.round(wside / ext))
         val out = PageWarp.warp(img, quad.map { PointF(it.x * img.width, it.y * img.height) }, wside)
         img.recycle()
-        finish(out, null, side, shot.gain)
+        finish(out, null, side, shot.gain, paper = true)
     }
 
     /** Scan tab: an A4 sheet with the item at its real size. */
@@ -71,8 +71,9 @@ class PageRenderer(private val target: PdfTarget) {
     }
 
     /** [gain] > 1: the shot was taken darker on purpose (a shorter shutter in the dark): the light is given back here. */
-    private fun finish(bmp: Bitmap, keep: Bitmap?, side: Int, gain: Float = 1f): PdfPage {
-        val lit = if (gain > 1.05f) Enhance.lift(bmp, gain) else bmp
+    private fun finish(bmp: Bitmap, keep: Bitmap?, side: Int, gain: Float = 1f, paper: Boolean = false): PdfPage {
+        val g = if (paper) Enhance.whiteGain(bmp, gain) else gain // a camera shot: the paper is made white
+        val lit = if (g > 1.05f) Enhance.lift(bmp, g) else bmp
         if (lit !== bmp && bmp !== keep) bmp.recycle()
         val enc = JpegCodec.encodeToBudget(lit, target.budget)
         if (lit !== keep) lit.recycle()

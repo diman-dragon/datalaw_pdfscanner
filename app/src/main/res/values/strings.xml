@@ -55,7 +55,7 @@
     <string name="qs_hint">Fit the sheet into the A4 frame and tap the button. Out of focus? Tap the spot on the screen.</string>
     <string name="qs_nodetail">Too little detail to focus. Tap the text or the edge of the sheet</string>
     <string name="rs_back">Back</string>
-    <string name="rs_hint">Drag the frame corners. Double-tap finds the frame by itself. Swipe — the next page.</string>
+    <string name="rs_hint">Drag the frame corners. Double-tap or two fingers zoom. Swipe — the next page.</string>
     <string name="rs_next">Next</string>
     <string name="rs_warn_blur">The shot may be blurry — better retake</string>
     <string name="rs_warn_tilt_n">Strong tilt %1$d%%</string>
@@ -164,4 +164,5 @@
     <string name="crash_send">Send</string>
     <string name="de_layout_grid">All pages</string>
     <string name="de_layout_pages">One page at a time</string>
+    <string name="de_reset">Undo the changes of this page</string>
 </resources>

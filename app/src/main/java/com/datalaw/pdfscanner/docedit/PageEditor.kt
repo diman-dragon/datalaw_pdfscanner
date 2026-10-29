@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -27,15 +28,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.datalaw.pdfscanner.R
@@ -69,7 +75,7 @@ private class Shown(val bmp: Bitmap, val turns: Int)
 
 /**
  * The editor of one page. The page itself shows every change at once (turn, Original / Auto); the frame is drawn over it, the outside is darkened.
- * Drag the corners; double tap or "Auto frame" finds the frame by itself, "Whole page" takes it off. The tools are the row the viewer has.
+ * Drag the corners; "Auto frame" finds the frame by itself, "Whole page" takes it off. Two fingers or a double tap zoom the page, a swipe turns to the next one.
  */
 @Composable
 fun PageEditor(
@@ -88,7 +94,7 @@ fun PageEditor(
     onGrid: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val bmp by produceState<Bitmap?>(null, p) { value = try { ctl.source(p, 2000) } catch (e: Exception) { null } }
+    val bmp by produceState<Bitmap?>(null, p) { value = try { ctl.source(p, 2400) } catch (e: Exception) { null } }
     var quad by remember(p) { mutableStateOf(p.quad ?: FULL) }
     val b = bmp
     val swipeNow by rememberUpdatedState(onSwipe)
@@ -120,67 +126,79 @@ fun PageEditor(
     val view: Bitmap? = sh?.bmp ?: b
     val k = sh?.turns ?: 0
     val scheme = MaterialTheme.colorScheme
+    val density = LocalDensity.current
+    val zoom = remember(p, k) { EditorZoom() } // another page or a turn starts from the whole page
+
+    /** All the changes of this page taken back. */
+    fun reset() {
+        setQuad(FULL)
+        p.quad = null
+        p.look = Look.Original
+        p.turns = 0
+        ctl.markDirty()
+    }
+
     Column(Modifier.fillMaxSize().background(scheme.background).systemBarsPadding()) {
         TitleBar(ctl.file.name, onBack = onCancel) {
+            if (p.touched) GlyphButton("↺", stringResource(R.string.de_reset), { reset() })
             Text(stringResource(R.string.vw_page_n, number, total), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
             if (onGrid != null) GlyphButton("▦", stringResource(R.string.de_layout_grid), onGrid)
         }
 
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(Dimens.screen)) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(Dimens.screen).clipToBounds()) {
             val wPx = constraints.maxWidth.toFloat()
             val hPx = constraints.maxHeight.toFloat()
             if (view != null) {
-                val scale = min(wPx / view.width, hPx / view.height)
-                val dw = view.width * scale
-                val dh = view.height * scale
+                val fit = min(wPx / view.width, hPx / view.height)
+                val dw = view.width * fit
+                val dh = view.height * fit
                 val ox = (wPx - dw) / 2
                 val oy = (hPx - dh) / 2
-                Image(view.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                Canvas(
-                    Modifier.fillMaxSize()
-                        .pointerInput(view, k, p) {
-                            var active = -1
-                            var dx = 0f
-                            var dy = 0f
-                            detectDragGestures(
-                                onDragStart = { pt ->
-                                    var best = -1
-                                    var bestD = 56.dp.toPx()
-                                    quad.forEachIndexed { i, q ->
-                                        val v = toView(q, k)
-                                        val dist = hypot(pt.x - (ox + v.x * dw), pt.y - (oy + v.y * dh))
-                                        if (dist < bestD) { bestD = dist; best = i }
-                                    }
-                                    active = best
-                                    dx = 0f
-                                    dy = 0f
-                                },
-                                // a drag that did not start on a corner and went mostly sideways is a swipe: the next page (left) or the previous one (right)
-                                onDragEnd = {
-                                    if (active < 0 && abs(dx) > 90.dp.toPx() && abs(dx) > 2 * abs(dy)) swipeNow(if (dx < 0) 1 else -1)
-                                    active = -1
-                                },
-                                onDragCancel = { active = -1 },
-                            ) { change, drag ->
-                                if (active < 0) { dx += drag.x; dy += drag.y }
-                                if (active >= 0) {
-                                    change.consume()
-                                    val q = quad.toMutableList()
-                                    val v = toView(q[active], k)
-                                    val nv = Offset((v.x + drag.x / dw).coerceIn(0f, 1f), (v.y + drag.y / dh).coerceIn(0f, 1f))
-                                    q[active] = fromView(nv, k)
-                                    setQuad(q)
-                                }
+                val grab = with(density) { 56.dp.toPx() }
+                // the corner under a finger (c = a point of the page, not of the screen: the grab radius shrinks as the page grows) and the move of a corner
+                val cornerAt = { c: Offset ->
+                    var best = -1
+                    var bestD = grab / zoom.scale
+                    quad.forEachIndexed { i, q ->
+                        val v = toView(q, k)
+                        val dist = hypot(c.x - (ox + v.x * dw), c.y - (oy + v.y * dh))
+                        if (dist < bestD) { bestD = dist; best = i }
+                    }
+                    best
+                }
+                val moveCorner = { i: Int, d: Offset ->
+                    val q = quad.toMutableList()
+                    val v = toView(q[i], k)
+                    val nv = Offset((v.x + d.x / dw).coerceIn(0f, 1f), (v.y + d.y / dh).coerceIn(0f, 1f))
+                    q[i] = fromView(nv, k)
+                    setQuad(q)
+                }
+                val cornerNow by rememberUpdatedState(cornerAt)
+                val moveNow by rememberUpdatedState(moveCorner)
+                Box(Modifier.fillMaxSize().pageGestures(zoom, wPx to hPx, { Size(wPx, hPx) }, { c -> cornerNow(c) }, { i, d -> moveNow(i, d) }, { d -> swipeNow(d) })) {
+                    Box(
+                        Modifier.fillMaxSize().graphicsLayer {
+                            transformOrigin = TransformOrigin(0f, 0f)
+                            scaleX = zoom.scale
+                            scaleY = zoom.scale
+                            translationX = zoom.offset.x
+                            translationY = zoom.offset.y
+                        },
+                    ) {
+                        Image(view.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                        Canvas(Modifier.fillMaxSize()) {
+                            val s = zoom.scale // lines and handles keep their size on the screen
+                            val pts = quad.map { toView(it, k) }.map { Offset(ox + it.x * dw, oy + it.y * dh) }
+                            val path = Path().apply { moveTo(pts[0].x, pts[0].y); for (i in 1..3) lineTo(pts[i].x, pts[i].y); close() }
+                            val outside = Path().apply { fillType = PathFillType.EvenOdd; addRect(Rect(ox, oy, ox + dw, oy + dh)); addPath(path) }
+                            drawPath(outside, Color.Black.copy(alpha = 0.4f))
+                            drawPath(path, scheme.primary, style = Stroke(2.dp.toPx() / s))
+                            pts.forEach {
+                                drawCircle(scheme.primary, 11.dp.toPx() / s, it)
+                                drawCircle(scheme.surface, 11.dp.toPx() / s, it, style = Stroke(1.5.dp.toPx() / s))
                             }
                         }
-                        .pointerInput(b) { detectTapGestures(onDoubleTap = { autoFrame() }) },
-                ) {
-                    val pts = quad.map { toView(it, k) }.map { Offset(ox + it.x * dw, oy + it.y * dh) }
-                    val path = Path().apply { moveTo(pts[0].x, pts[0].y); for (i in 1..3) lineTo(pts[i].x, pts[i].y); close() }
-                    val outside = Path().apply { fillType = PathFillType.EvenOdd; addRect(Rect(ox, oy, ox + dw, oy + dh)); addPath(path) }
-                    drawPath(outside, Color.Black.copy(alpha = 0.4f))
-                    drawPath(path, scheme.primary, style = Stroke(2.dp.toPx()))
-                    pts.forEach { drawCircle(scheme.primary, 11.dp.toPx(), it); drawCircle(scheme.surface, 11.dp.toPx(), it, style = Stroke(1.5.dp.toPx())) }
+                    }
                 }
             }
         }

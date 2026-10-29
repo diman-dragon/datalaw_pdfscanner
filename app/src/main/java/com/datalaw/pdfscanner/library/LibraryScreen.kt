@@ -59,6 +59,8 @@ import com.datalaw.pdfscanner.core.Tab
 import com.datalaw.pdfscanner.data.PdfFile
 import com.datalaw.pdfscanner.settings.LibView
 import com.datalaw.pdfscanner.settings.Settings
+import com.datalaw.pdfscanner.ui.MenuDivider
+import com.datalaw.pdfscanner.ui.MenuRow
 import com.datalaw.pdfscanner.ui.PrimaryButton
 import com.datalaw.pdfscanner.ui.AppCard
 import com.datalaw.pdfscanner.ui.LocalGraph
@@ -166,8 +168,9 @@ private fun FileCard(f: PdfFile, onOpen: (PdfFile) -> Unit, menu: @Composable (P
 @Composable
 private fun FileMenu(f: PdfFile, onExternal: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
     OverflowMenu(stringResource(R.string.lib_menu)) { close ->
-        DropdownMenuItem({ Text(stringResource(R.string.lib_openext)) }, { close(); onExternal() })
-        DropdownMenuItem({ Text(stringResource(R.string.lib_rename)) }, { close(); onRename() })
-        DropdownMenuItem({ Text(stringResource(R.string.lib_delete), color = MaterialTheme.colorScheme.error) }, { close(); onDelete() })
+        MenuRow("↗", stringResource(R.string.lib_openext)) { close(); onExternal() }
+        MenuRow("✏️", stringResource(R.string.lib_rename)) { close(); onRename() }
+        MenuDivider()
+        MenuRow("🗑️", stringResource(R.string.lib_delete), danger = true) { close(); onDelete() }
     }
 }
