@@ -62,7 +62,6 @@ import com.datalaw.pdfscanner.ui.theme.Dimens
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
-import kotlin.math.min
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -145,15 +144,17 @@ fun PageEditor(
             if (onGrid != null) GlyphButton("▦", stringResource(R.string.de_layout_grid), onGrid)
         }
 
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(Dimens.screen).clipToBounds()) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
             val wPx = constraints.maxWidth.toFloat()
             val hPx = constraints.maxHeight.toFloat()
             if (view != null) {
-                val fit = min(wPx / view.width, hPx / view.height)
-                val dw = view.width * fit
-                val dh = view.height * fit
-                val ox = (wPx - dw) / 2
-                val oy = (hPx - dh) / 2
+                // a free margin around the page: a corner on the edge of the page is still well inside the screen, so a finger can take it
+                val margin = with(density) { 36.dp.toPx() }
+                val box = fitInto(wPx, hPx, view.width.toFloat(), view.height.toFloat(), margin)
+                val ox = box[0]
+                val oy = box[1]
+                val dw = box[2]
+                val dh = box[3]
                 val grab = with(density) { 56.dp.toPx() }
                 // the corner under a finger (c = a point of the page, not of the screen: the grab radius shrinks as the page grows) and the move of a corner
                 val cornerAt = { c: Offset ->
@@ -185,7 +186,7 @@ fun PageEditor(
                             translationY = zoom.offset.y
                         },
                     ) {
-                        Image(view.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                        Image(view.asImageBitmap(), null, Modifier.fillMaxSize().padding(with(density) { margin.toDp() }), contentScale = ContentScale.Fit)
                         Canvas(Modifier.fillMaxSize()) {
                             val s = zoom.scale // lines and handles keep their size on the screen
                             val pts = quad.map { toView(it, k) }.map { Offset(ox + it.x * dw, oy + it.y * dh) }

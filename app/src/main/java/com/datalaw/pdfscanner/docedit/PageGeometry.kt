@@ -30,3 +30,11 @@ internal fun tilt(q: List<Offset>, b: Bitmap?): Int? {
     val t = max(abs(top / max(bot, 1f) - 1f), abs(lef / max(rig, 1f) - 1f))
     return if (t > 0.15f) (t * 100).toInt() else null
 }
+
+/** Where the page lies in a view of [w] x [h] px: the biggest fit of a [bw] x [bh] picture that leaves [margin] px free on every side, centred. Returns left, top, width, height. */
+internal fun fitInto(w: Float, h: Float, bw: Float, bh: Float, margin: Float): FloatArray {
+    val fit = maxOf(minOf((w - 2 * margin) / bw, (h - 2 * margin) / bh), 0.01f)
+    val dw = bw * fit
+    val dh = bh * fit
+    return floatArrayOf((w - dw) / 2, (h - dh) / 2, dw, dh)
+}

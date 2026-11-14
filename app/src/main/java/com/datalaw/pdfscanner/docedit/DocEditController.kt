@@ -139,7 +139,7 @@ class DocEditController(private val d: Deps, val file: PdfFile) {
 
     fun requestClose() {
         scope.launch {
-            if (!hasChanges || d.ui.askConfirm(tx(R.string.de_discardq), tx(R.string.de_discard), tx(R.string.dlg_stay), danger = true)) d.nav.pop()
+            if (!hasChanges || d.ui.askConfirm(tx(R.string.de_discardq), tx(R.string.de_discard), tx(R.string.de_keep), danger = true)) d.nav.pop()
         }
     }
 
